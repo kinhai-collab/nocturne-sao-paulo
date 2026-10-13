@@ -648,5 +648,135 @@
     "restaurant": "vista",
     "asset": "vista-photo-4.webp",
     "source": "https://vistasaopaulo.com.br/wp-content/uploads/2019/11/MG_9737-1024x683.jpg"
+  },
+  {
+    "restaurant": "banzeiro",
+    "asset": "banzeiro-card.webp",
+    "source": "https://grupobanzeiro.com.br/wp-content/themes/banzeiro-theme/assets/images/banzeiro-sao-paulo/banner-image-mobile.png"
+  },
+  {
+    "restaurant": "banzeiro",
+    "asset": "banzeiro-photo-1.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/b90eeda6c39442caa6356f64960b5361.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "banzeiro",
+    "asset": "banzeiro-photo-2.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/ed55f58584114802a81ebefc6f40b178.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "banzeiro",
+    "asset": "banzeiro-photo-3.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/327ab8ce512b4feda64f1ef1eb3636ae.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "amazo",
+    "asset": "amazo-card.webp",
+    "source": "https://amazoperuano.com.br/wp-content/uploads/2023/06/AMAZO-LOGO-2020-WHT.png"
+  },
+  {
+    "restaurant": "amazo",
+    "asset": "amazo-photo-1.webp",
+    "source": "https://amazoperuano.com.br/wp-content/uploads/2023/06/DSC02019-1.jpg"
+  },
+  {
+    "restaurant": "amazo",
+    "asset": "amazo-photo-2.webp",
+    "source": "https://amazoperuano.com.br/wp-content/uploads/2023/06/DSC02170.jpg"
+  },
+  {
+    "restaurant": "amazo",
+    "asset": "amazo-photo-3.webp",
+    "source": "https://amazoperuano.com.br/wp-content/uploads/2023/07/DSC02285-scaled.jpg"
+  },
+  {
+    "restaurant": "amazo",
+    "asset": "amazo-photo-4.webp",
+    "source": "https://amazoperuano.com.br/wp-content/uploads/2025/09/Copy-of-amazo_agosto-2602-scaled.jpg"
+  },
+  {
+    "restaurant": "jiquitaia",
+    "asset": "jiquitaia-card.webp",
+    "source": "https://jiquitaia.com.br/wp-content/uploads/2018/11/id.png"
+  },
+  {
+    "restaurant": "jiquitaia",
+    "asset": "jiquitaia-photo-1.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/4537b811bd714da3a12210316b0aae4d.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "jiquitaia",
+    "asset": "jiquitaia-photo-2.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/2da5aafadb1e4412b9e9c887458e53ef.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "jiquitaia",
+    "asset": "jiquitaia-photo-3.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/adad9eb01ea54db480616f6fa8adfbf1.jpg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "komah",
+    "asset": "komah-card.webp",
+    "source": "https://komah.com.br/wp-content/uploads/2017/03/logo-preto.png"
+  },
+  {
+    "restaurant": "komah",
+    "asset": "komah-photo-1.webp",
+    "source": "https://komah.com.br/wp-content/uploads/2022/12/komah-ambiente.jpg"
+  },
+  {
+    "restaurant": "komah",
+    "asset": "komah-photo-2.webp",
+    "source": "https://komah.com.br/wp-content/uploads/2023/04/komah-fachada-logo-video.jpg"
+  },
+  {
+    "restaurant": "komah",
+    "asset": "komah-photo-3.webp",
+    "source": "https://komah.com.br/wp-content/uploads/2023/04/komah-fachada-reflexo-home.jpg"
+  },
+  {
+    "restaurant": "komah",
+    "asset": "komah-photo-4.webp",
+    "source": "https://komah.com.br/wp-content/uploads/2023/04/komah-delivery-banner.jpg"
+  },
+  {
+    "restaurant": "fito",
+    "asset": "fito-card.webp",
+    "source": "https://framerusercontent.com/images/OsztChAY7D4YcEoMHnGAjPXOgU.webp"
+  },
+  {
+    "restaurant": "fito",
+    "asset": "fito-photo-1.webp",
+    "source": "https://framerusercontent.com/images/OsztChAY7D4YcEoMHnGAjPXOgU.webp"
+  },
+  {
+    "restaurant": "fito",
+    "asset": "fito-photo-2.webp",
+    "source": "https://framerusercontent.com/images/GYhdjAOGRp3CgG7snhoQcJ9UuDQ.webp"
+  },
+  {
+    "restaurant": "fito",
+    "asset": "fito-photo-3.webp",
+    "source": "https://framerusercontent.com/images/5Rw7CVnrdU0GWJg3E86rRP5vSo.webp"
+  },
+  {
+    "restaurant": "fito",
+    "asset": "fito-photo-4.webp",
+    "source": "https://framerusercontent.com/images/U9U7g5Pt6EMckwfpmUplGZw0.webp"
+  },
+  {
+    "restaurant": "dona-onca",
+    "asset": "dona-onca-card.webp",
+    "source": "https://bardadonaonca.com.br/wordpress/wp-content/uploads/2018/11/bar-dona-onca.jpg"
+  },
+  {
+    "restaurant": "dona-onca",
+    "asset": "dona-onca-photo-1.webp",
+    "source": "https://bardadonaonca.com.br/wordpress/wp-content/uploads/2018/11/bar-dona-onca.jpg"
+  },
+  {
+    "restaurant": "dona-onca",
+    "asset": "dona-onca-photo-2.webp",
+    "source": "https://bardadonaonca.com.br/wordpress/wp-content/uploads/2018/11/bg2.jpg"
   }
 ]
