@@ -38,7 +38,7 @@ Deno.serve(async req=>{
     const raw=await req.text();if(raw.length>14000)return json({error:'Ballot too large.'},413);
     const p=JSON.parse(raw);
     if(p.pollId!==POLL||p.origin!==origin)return json({error:'Unknown poll or origin.'},400);
-    if(!Array.isArray(p.choices)||p.choices.length<1||p.choices.length>5||new Set(p.choices).size!==p.choices.length||p.choices.some((id:unknown)=>typeof id!=='string'||!IDS.includes(id)))return json({error:'Choose 1-5 distinct restaurants.'},400);
+    if(p.action!=='ballot'&&(!Array.isArray(p.choices)||p.choices.length<1||p.choices.length>5||new Set(p.choices).size!==p.choices.length||p.choices.some((id:unknown)=>typeof id!=='string'||!IDS.includes(id))))return json({error:'Choose 1-5 distinct restaurants.'},400);
     if(typeof p.credential!=='string'||p.credential.length>10000||typeof p.nonce!=='string'||!/^[a-zA-Z0-9-]{72}$/.test(p.nonce))return json({error:'Invalid sign-in. Please sign in again.'},401);
     let person;
     try {
@@ -47,6 +47,13 @@ Deno.serve(async req=>{
       if(typeof payload.sub!=='string'||!/^\d{1,255}$/.test(payload.sub)||payload.email_verified!==true||typeof payload.email!=='string'||payload.nonce!==p.nonce||typeof payload.iat!=='number'||payload.iat>now+60||payload.azp&&payload.azp!==googleClientId)throw new Error();
       person=payload;
     }catch{return json({error:'Google sign-in could not be verified. Please sign in again.'},401);}
+    if(p.action==='ballot'){
+      const {data:challenge,error:challengeError}=await db.from('dining_challenges').select('nonce').eq('nonce',p.nonce).eq('origin',origin).eq('poll_id',POLL).gt('expires_at',new Date().toISOString()).maybeSingle();
+      if(challengeError||!challenge)return json({error:'Sign-in expired. Please sign in again.'},401);
+      const {data:ballot,error:ballotError}=await db.from('dining_ballots').select('choices').eq('poll_id',POLL).eq('google_sub',person.sub!).maybeSingle();
+      if(ballotError)return json({error:'Could not load your ballot. Please retry.'},503);
+      return json({choices:ballot?.choices||[]});
+    }
     const {error}=await db.rpc('dining_cast_ballot',{p_poll:POLL,p_sub:person.sub,p_name:typeof person.name==='string'?person.name:'',p_email:person.email,p_choices:p.choices,p_nonce:p.nonce,p_origin:origin,p_publish_initial:p.publishInitial===true});
     if(error){const permitted=['Sign-in expired. Please sign in again.','This Google account has already submitted a different ballot.'];return json({error:permitted.includes(error.message)?error.message:'Could not save ballot. Please retry.'},409);}
     return json({ok:true});
