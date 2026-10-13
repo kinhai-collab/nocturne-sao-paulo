@@ -1,0 +1,652 @@
+[
+  {
+    "restaurant": "balaio",
+    "asset": "balaio-card.webp",
+    "source": "https://balaioims.com.br/wp-content/uploads/2019/02/balaioims.png"
+  },
+  {
+    "restaurant": "balaio",
+    "asset": "balaio-photo-1.webp",
+    "source": "https://balaioims.com.br/wp-content/uploads/2017/12/restaurante.jpg"
+  },
+  {
+    "restaurant": "balaio",
+    "asset": "balaio-photo-2.webp",
+    "source": "https://images.getinapp.com.br/4bfe2542-d157-4cf2-9d46-7829ba80d934.jpg"
+  },
+  {
+    "restaurant": "balaio",
+    "asset": "balaio-photo-3.webp",
+    "source": "https://balaioims.com.br/wp-content/uploads/2017/12/salao01.jpg"
+  },
+  {
+    "restaurant": "balaio",
+    "asset": "balaio-photo-4.webp",
+    "source": "https://balaioims.com.br/wp-content/uploads/2017/12/panela.jpg"
+  },
+  {
+    "restaurant": "balaio",
+    "asset": "balaio-photo-5.webp",
+    "source": "https://balaioims.com.br/wp-content/uploads/2017/12/top-balaio-1-1.jpg"
+  },
+  {
+    "restaurant": "d-o-m",
+    "asset": "d-o-m-card.webp",
+    "source": "https://domrestaurante.com.br/wp-content/uploads/2025/02/Logo-DOM-e1739910275384.webp"
+  },
+  {
+    "restaurant": "d-o-m",
+    "asset": "d-o-m-photo-1.webp",
+    "source": "https://domrestaurante.com.br/wp-content/uploads/2026/01/slider2026b-home-02-dom-restaurante-dom-02.jpg"
+  },
+  {
+    "restaurant": "d-o-m",
+    "asset": "d-o-m-photo-2.webp",
+    "source": "https://domrestaurante.com.br/wp-content/uploads/2026/01/slider2026g-home-02-dom-restaurante-dom-02.jpg"
+  },
+  {
+    "restaurant": "d-o-m",
+    "asset": "d-o-m-photo-3.webp",
+    "source": "https://domrestaurante.com.br/wp-content/uploads/2026/01/slider2026d-home-02-dom-restaurante-dom-02-2.jpg"
+  },
+  {
+    "restaurant": "d-o-m",
+    "asset": "d-o-m-photo-4.webp",
+    "source": "https://domrestaurante.com.br/wp-content/uploads/2025/02/alex-atalla-dom-restaurante-salao.png"
+  },
+  {
+    "restaurant": "d-o-m",
+    "asset": "d-o-m-photo-5.webp",
+    "source": "https://domrestaurante.com.br/wp-content/uploads/elementor/thumbs/alex-atalla-dom-restaurante03-r1t1r3phgccg83z375eicron3cvrvj071pqsaefqog.png"
+  },
+  {
+    "restaurant": "evvai",
+    "asset": "evvai-card.webp",
+    "source": "https://static.wixstatic.com/media/a49b6b_ded0cf6a98b64aafab8f0753d1d5685e~mv2.png"
+  },
+  {
+    "restaurant": "evvai",
+    "asset": "evvai-photo-1.webp",
+    "source": "https://static.wixstatic.com/media/74e638_5ff16653e1c74439aa36a0a76b80ccb8~mv2.jpg"
+  },
+  {
+    "restaurant": "evvai",
+    "asset": "evvai-photo-2.webp",
+    "source": "https://static.wixstatic.com/media/74e638_da9a4f121d4943faa3e4cc04af606b9f~mv2.jpeg"
+  },
+  {
+    "restaurant": "evvai",
+    "asset": "evvai-photo-3.webp",
+    "source": "https://static.wixstatic.com/media/74e638_08aa0293276c47cda53fa6fca76e4eaf~mv2.jpg"
+  },
+  {
+    "restaurant": "evvai",
+    "asset": "evvai-photo-4.webp",
+    "source": "https://static.wixstatic.com/media/74e638_25b61a1616e94c658fb64e3d1663146b~mv2.jpg"
+  },
+  {
+    "restaurant": "evvai",
+    "asset": "evvai-photo-5.webp",
+    "source": "https://static.wixstatic.com/media/74e638_b513d3eef70c4cf398831f7cbddce6c0~mv2.jpg"
+  },
+  {
+    "restaurant": "fame-osteria",
+    "asset": "fame-osteria-card.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/0e6dfda9a4ed49279f406816fdd18ad7.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "fame-osteria",
+    "asset": "fame-osteria-photo-1.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/0e6dfda9a4ed49279f406816fdd18ad7.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "fame-osteria",
+    "asset": "fame-osteria-photo-2.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/296089f36add47758ec8a69e47f29424.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "figueira",
+    "asset": "figueira-card.webp",
+    "source": "https://gruporubaiyat.com/images/logo-rubaiyat.png"
+  },
+  {
+    "restaurant": "figueira",
+    "asset": "figueira-photo-1.webp",
+    "source": "https://gruporubaiyat.com/api/uploads/ambiente-figueira-marcus-fabrinni-12_25.webp"
+  },
+  {
+    "restaurant": "figueira",
+    "asset": "figueira-photo-2.webp",
+    "source": "https://gruporubaiyat.com/api/uploads/forno-figueira-marcus-fabrinni-4-12_25.webp"
+  },
+  {
+    "restaurant": "figueira",
+    "asset": "figueira-photo-3.webp",
+    "source": "https://gruporubaiyat.com/api/uploads/figueira-rubaiyat-jardins-03_26.webp"
+  },
+  {
+    "restaurant": "jun-sakamoto",
+    "asset": "jun-sakamoto-card.webp",
+    "source": "https://www.junsakamoto.com.br/static/reservas_index_static/images/8.jpg"
+  },
+  {
+    "restaurant": "jun-sakamoto",
+    "asset": "jun-sakamoto-photo-1.webp",
+    "source": "https://www.junsakamoto.com.br/static/reservas_index_static/images/8.jpg"
+  },
+  {
+    "restaurant": "jun-sakamoto",
+    "asset": "jun-sakamoto-photo-2.webp",
+    "source": "https://www.junsakamoto.com.br/static/reservas_index_static/images/6.jpg"
+  },
+  {
+    "restaurant": "jun-sakamoto",
+    "asset": "jun-sakamoto-photo-3.webp",
+    "source": "https://www.junsakamoto.com.br/static/reservas_index_static/images/5.jpg"
+  },
+  {
+    "restaurant": "jun-sakamoto",
+    "asset": "jun-sakamoto-photo-4.webp",
+    "source": "https://www.junsakamoto.com.br/static/reservas_index_static/images/2.jpg"
+  },
+  {
+    "restaurant": "jun-sakamoto",
+    "asset": "jun-sakamoto-photo-5.webp",
+    "source": "https://www.junsakamoto.com.br/static/reservas_index_static/images/1.jpg"
+  },
+  {
+    "restaurant": "kan-suke",
+    "asset": "kan-suke-card.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/f3bd334c0a5b495a95ac75e6de7ef612.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "kan-suke",
+    "asset": "kan-suke-photo-1.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/f3bd334c0a5b495a95ac75e6de7ef612.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "kan-suke",
+    "asset": "kan-suke-photo-2.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/dcc4654b59a6484f8d9c17c27d7ec5d4.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "kan-suke",
+    "asset": "kan-suke-photo-3.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/0cdda3410ff549b6bf6d4e5489c80f27.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "kanoe",
+    "asset": "kanoe-card.webp",
+    "source": "https://kanoerestaurant.com/wp-content/uploads/2023/10/og.png"
+  },
+  {
+    "restaurant": "kanoe",
+    "asset": "kanoe-photo-1.webp",
+    "source": "https://kanoerestaurant.com/wp-content/uploads/2023/09/22-420x745.jpeg"
+  },
+  {
+    "restaurant": "kanoe",
+    "asset": "kanoe-photo-2.webp",
+    "source": "https://kanoerestaurant.com/wp-content/uploads/2023/09/25-420x745.jpeg"
+  },
+  {
+    "restaurant": "kanoe",
+    "asset": "kanoe-photo-3.webp",
+    "source": "https://kanoerestaurant.com/wp-content/uploads/2023/09/19-420x745.jpeg"
+  },
+  {
+    "restaurant": "kanoe",
+    "asset": "kanoe-photo-4.webp",
+    "source": "https://kanoerestaurant.com/wp-content/uploads/2025/02/kanoe-home-04-420x745.jpg"
+  },
+  {
+    "restaurant": "kanoe",
+    "asset": "kanoe-photo-5.webp",
+    "source": "https://kanoerestaurant.com/wp-content/uploads/2023/09/17-420x745.jpeg"
+  },
+  {
+    "restaurant": "kazuo",
+    "asset": "kazuo-card.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/0d21372a88ea46638f9dc541c3be07a5.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "kazuo",
+    "asset": "kazuo-photo-1.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/0d21372a88ea46638f9dc541c3be07a5.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "kazuo",
+    "asset": "kazuo-photo-2.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/1e0b1a929bb049cebd67072683ea0f85.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "kinoshita",
+    "asset": "kinoshita-card.webp",
+    "source": "https://restaurantekinoshita.com.br/wp-content/uploads/2024/02/Logo-Kinoshita-1024x364.png"
+  },
+  {
+    "restaurant": "kinoshita",
+    "asset": "kinoshita-photo-1.webp",
+    "source": "https://restaurantekinoshita.com.br/wp-content/uploads/2025/09/LAGOSTA.jpg"
+  },
+  {
+    "restaurant": "kinoshita",
+    "asset": "kinoshita-photo-2.webp",
+    "source": "https://restaurantekinoshita.com.br/wp-content/uploads/2025/09/SUSHI.jpg"
+  },
+  {
+    "restaurant": "kinoshita",
+    "asset": "kinoshita-photo-3.webp",
+    "source": "https://restaurantekinoshita.com.br/wp-content/uploads/2025/09/CAVIAR.jpg"
+  },
+  {
+    "restaurant": "kinoshita",
+    "asset": "kinoshita-photo-4.webp",
+    "source": "https://restaurantekinoshita.com.br/wp-content/uploads/2025/09/CLUEFIN.jpg"
+  },
+  {
+    "restaurant": "kuro",
+    "asset": "kuro-card.webp",
+    "source": "https://kuroeshiro.com.br/wp-content/uploads/2025/02/51.webp"
+  },
+  {
+    "restaurant": "kuro",
+    "asset": "kuro-photo-1.webp",
+    "source": "https://kuroeshiro.com.br/wp-content/uploads/2025/02/51.webp"
+  },
+  {
+    "restaurant": "kuro",
+    "asset": "kuro-photo-2.webp",
+    "source": "https://kuroeshiro.com.br/wp-content/uploads/2025/02/55.webp"
+  },
+  {
+    "restaurant": "kuro",
+    "asset": "kuro-photo-3.webp",
+    "source": "https://kuroeshiro.com.br/wp-content/uploads/2025/01/3.webp"
+  },
+  {
+    "restaurant": "kuro",
+    "asset": "kuro-photo-4.webp",
+    "source": "https://kuroeshiro.com.br/wp-content/uploads/2025/01/4.webp"
+  },
+  {
+    "restaurant": "mani",
+    "asset": "mani-card.webp",
+    "source": "https://www.restaurantemani.com.br/wp-content/uploads/mani_segundo-salao-5_pedro-napolitano-prata.jpg"
+  },
+  {
+    "restaurant": "mani",
+    "asset": "mani-photo-1.webp",
+    "source": "https://www.restaurantemani.com.br/wp-content/uploads/mani_segundo-salao-5_pedro-napolitano-prata.jpg"
+  },
+  {
+    "restaurant": "mani",
+    "asset": "mani-photo-2.webp",
+    "source": "https://www.restaurantemani.com.br/wp-content/uploads/mani_mangarito__-ostra__-porco-_e_-ora-pro-nobis-_-kombu-tannia-Brazilian-tuber__-oyster_-pork_-Barbados-gooseberry-leaves-_a_nd-kombu3_julia_na-primon.jpg"
+  },
+  {
+    "restaurant": "mani",
+    "asset": "mani-photo-3.webp",
+    "source": "https://www.restaurantemani.com.br/wp-content/uploads/2023/06/mani_balacobaco3_angelo-dal-bo.png"
+  },
+  {
+    "restaurant": "mani",
+    "asset": "mani-photo-4.webp",
+    "source": "https://www.restaurantemani.com.br/wp-content/uploads/mani_cajuzinho3_juliana-primon.jpg"
+  },
+  {
+    "restaurant": "mani",
+    "asset": "mani-photo-5.webp",
+    "source": "https://www.restaurantemani.com.br/wp-content/uploads/mani_lingua-de-boi-berinjela-ora-pro-nobis-tucupi-e-molho-de-ervas-aromaticas-_-beef-tongue-eggplant-Barbados-gooseberry-leaves-tucupi-manioc-root-sauce-herbs-sauce2_juliana-primon.jpg"
+  },
+  {
+    "restaurant": "metzi",
+    "asset": "metzi-card.webp",
+    "source": "https://storage.googleapis.com/gpt-engineer-file-uploads/xqmPQFHj0lQ0NfAdwqeuHxLF53s1/social-images/social-1782262175677-nani-rodrigues-metzi-33.webp"
+  },
+  {
+    "restaurant": "metzi",
+    "asset": "metzi-photo-1.webp",
+    "source": "https://storage.googleapis.com/gpt-engineer-file-uploads/xqmPQFHj0lQ0NfAdwqeuHxLF53s1/social-images/social-1782262175677-nani-rodrigues-metzi-33.webp"
+  },
+  {
+    "restaurant": "metzi",
+    "asset": "metzi-photo-2.webp",
+    "source": "https://metzi.com.br/__l5e/assets-v1/004b6b50-6c05-459d-910c-98bb133fb620/hero-metzi.jpg"
+  },
+  {
+    "restaurant": "metzi",
+    "asset": "metzi-photo-3.webp",
+    "source": "https://metzi.com.br/__l5e/assets-v1/a4429d34-7891-4356-8815-58f3b73227dd/about-metzi.jpg"
+  },
+  {
+    "restaurant": "mocoto",
+    "asset": "mocoto-card.webp",
+    "source": "https://mocoto.com.br/wp-content/uploads/2018/12/apple-touch-icon-1.png"
+  },
+  {
+    "restaurant": "mocoto",
+    "asset": "mocoto-photo-1.webp",
+    "source": "https://mocoto.com.br/wp-content/uploads/2018/04/fachada01.jpg"
+  },
+  {
+    "restaurant": "mocoto",
+    "asset": "mocoto-photo-2.webp",
+    "source": "https://mocoto.com.br/wp-content/uploads/2018/04/caipirinha.jpg"
+  },
+  {
+    "restaurant": "mocoto",
+    "asset": "mocoto-photo-3.webp",
+    "source": "https://mocoto.com.br/wp-content/uploads/2018/04/pudim.jpg"
+  },
+  {
+    "restaurant": "mocoto",
+    "asset": "mocoto-photo-4.webp",
+    "source": "https://mocoto.com.br/wp-content/uploads/cardapios1.jpg"
+  },
+  {
+    "restaurant": "mocoto",
+    "asset": "mocoto-photo-5.webp",
+    "source": "https://mocoto.com.br/wp-content/uploads/2018/04/museu2-1.jpg"
+  },
+  {
+    "restaurant": "murakami",
+    "asset": "murakami-card.webp",
+    "source": "https://www.murakamimu.com/wp-content/themes/murakami/assets/content.jpg"
+  },
+  {
+    "restaurant": "murakami",
+    "asset": "murakami-photo-1.webp",
+    "source": "https://www.murakamimu.com/wp-content/uploads/2021/08/3.png"
+  },
+  {
+    "restaurant": "murakami",
+    "asset": "murakami-photo-2.webp",
+    "source": "https://www.murakamimu.com/wp-content/uploads/2021/08/2.png"
+  },
+  {
+    "restaurant": "murakami",
+    "asset": "murakami-photo-3.webp",
+    "source": "https://www.murakamimu.com/wp-content/uploads/2021/08/5.png"
+  },
+  {
+    "restaurant": "murakami",
+    "asset": "murakami-photo-4.webp",
+    "source": "https://www.murakamimu.com/wp-content/uploads/2021/08/4.png"
+  },
+  {
+    "restaurant": "murakami",
+    "asset": "murakami-photo-5.webp",
+    "source": "https://www.murakamimu.com/wp-content/uploads/2023/05/wasabi_2.jpeg"
+  },
+  {
+    "restaurant": "nelita",
+    "asset": "nelita-card.webp",
+    "source": "https://nelitarestaurante.com.br/wp/wp-content/uploads/2024/08/nelita-logo.png"
+  },
+  {
+    "restaurant": "nelita",
+    "asset": "nelita-photo-1.webp",
+    "source": "https://nelitarestaurante.com.br/wp/wp-content/uploads/2025/08/2-01-01.png"
+  },
+  {
+    "restaurant": "nelita",
+    "asset": "nelita-photo-2.webp",
+    "source": "https://nelitarestaurante.com.br/wp/wp-content/uploads/2025/08/12-01-e1756246190661.jpg"
+  },
+  {
+    "restaurant": "nelita",
+    "asset": "nelita-photo-3.webp",
+    "source": "https://nelitarestaurante.com.br/wp/wp-content/uploads/2025/08/11-01-e1756245381978.jpg"
+  },
+  {
+    "restaurant": "nelita",
+    "asset": "nelita-photo-4.webp",
+    "source": "https://nelitarestaurante.com.br/wp/wp-content/uploads/2025/08/6-02.jpg"
+  },
+  {
+    "restaurant": "nelita",
+    "asset": "nelita-photo-5.webp",
+    "source": "https://nelitarestaurante.com.br/wp/wp-content/uploads/2025/08/6-01.jpg"
+  },
+  {
+    "restaurant": "oizumi-sushi",
+    "asset": "oizumi-sushi-card.webp",
+    "source": "https://oizumisushi.com/wp-content/uploads/2025/05/Design-sem-nome-5-2.png"
+  },
+  {
+    "restaurant": "oizumi-sushi",
+    "asset": "oizumi-sushi-photo-1.webp",
+    "source": "https://oizumisushi.com/wp-content/uploads/2025/06/Oizumi-Sushi-Stories-11-1-e1768227995447-768x1440.jpg"
+  },
+  {
+    "restaurant": "oizumi-sushi",
+    "asset": "oizumi-sushi-photo-2.webp",
+    "source": "https://oizumisushi.com/wp-content/uploads/2025/06/3-768x432.jpg"
+  },
+  {
+    "restaurant": "oizumi-sushi",
+    "asset": "oizumi-sushi-photo-3.webp",
+    "source": "https://oizumisushi.com/wp-content/uploads/2025/10/Inserir-um-pouquinho-de-texto-768x960.webp"
+  },
+  {
+    "restaurant": "oizumi-sushi",
+    "asset": "oizumi-sushi-photo-4.webp",
+    "source": "https://oizumisushi.com/wp-content/uploads/2025/10/Inserir-um-pouquinho-de-texto-4-768x960.webp"
+  },
+  {
+    "restaurant": "oizumi-sushi",
+    "asset": "oizumi-sushi-photo-5.webp",
+    "source": "https://oizumisushi.com/wp-content/uploads/2025/10/L1007059-1-768x1152.webp"
+  },
+  {
+    "restaurant": "picchi",
+    "asset": "picchi-card.webp",
+    "source": "https://restaurantepicchi.com.br/wp/wp-content/uploads/2024/09/og.png"
+  },
+  {
+    "restaurant": "picchi",
+    "asset": "picchi-photo-1.webp",
+    "source": "https://restaurantepicchi.com.br/wp/wp-content/uploads/2024/08/picchi-restaurante-ambiente-03.jpg"
+  },
+  {
+    "restaurant": "picchi",
+    "asset": "picchi-photo-2.webp",
+    "source": "https://restaurantepicchi.com.br/wp/wp-content/uploads/2024/08/picchi-restaurante-ambiente-01.jpg"
+  },
+  {
+    "restaurant": "picchi",
+    "asset": "picchi-photo-3.webp",
+    "source": "https://restaurantepicchi.com.br/wp/wp-content/uploads/2024/08/picchi-restaurante-ambiente-04.jpg"
+  },
+  {
+    "restaurant": "picchi",
+    "asset": "picchi-photo-4.webp",
+    "source": "https://restaurantepicchi.com.br/wp/wp-content/uploads/2024/08/picchi-restaurante-ambiente-02.jpg"
+  },
+  {
+    "restaurant": "picchi",
+    "asset": "picchi-photo-5.webp",
+    "source": "https://restaurantepicchi.com.br/wp/wp-content/uploads/2024/08/sobre-o-picchi-1920x2879.jpg"
+  },
+  {
+    "restaurant": "porco",
+    "asset": "porco-card.webp",
+    "source": "https://acasadoporco.com.br/img/logo_desktop.png"
+  },
+  {
+    "restaurant": "porco",
+    "asset": "porco-photo-1.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/b442edf98d334ad9a5a6568f1bbd8ab6.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "porco",
+    "asset": "porco-photo-2.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/398928a5263a44e3b1139e391bb414e6.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "porco",
+    "asset": "porco-photo-3.webp",
+    "source": "https://prod-pics.guide.michelin.com/api/public/content/19eacfd633684e55bd70610f71e339c3.jpeg?format=webp&h=800&w=1200"
+  },
+  {
+    "restaurant": "ryo-gastronomia",
+    "asset": "ryo-gastronomia-card.webp",
+    "source": "https://static1.squarespace.com/static/5f062ece50c32336acbd23f8/t/5f22e76c73c1573a7362aeed/1596122992394/ryo.png"
+  },
+  {
+    "restaurant": "ryo-gastronomia",
+    "asset": "ryo-gastronomia-photo-1.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5f062ece50c32336acbd23f8/1595607102572-S0M5FN8AIBKCKZ18G7EU/RYO_19-MAIO_13322.jpg"
+  },
+  {
+    "restaurant": "ryo-gastronomia",
+    "asset": "ryo-gastronomia-photo-2.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5f062ece50c32336acbd23f8/1595606417875-8MDR4BGOUH8BB1HHEMDI/20170407-IMG_2475-ilanalichtenstein_ryo.jpg"
+  },
+  {
+    "restaurant": "ryo-gastronomia",
+    "asset": "ryo-gastronomia-photo-3.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5f062ece50c32336acbd23f8/1597445050394-DSMOAY8JYFJ3ADM3ECQX/20170407-IMG_2433-ilanalichtenstein_ryo.jpg"
+  },
+  {
+    "restaurant": "ryo-gastronomia",
+    "asset": "ryo-gastronomia-photo-4.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5f062ece50c32336acbd23f8/1597444080768-FIQ62XD83SIEZI0PC9ME/01.jpg"
+  },
+  {
+    "restaurant": "ryo-gastronomia",
+    "asset": "ryo-gastronomia-photo-5.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5f062ece50c32336acbd23f8/1597444098162-79ERONAPRM12ZQXO97GE/Screen+Shot+2020-08-14+at+7.17.50+PM.png"
+  },
+  {
+    "restaurant": "skye",
+    "asset": "skye-card.webp",
+    "source": "https://cdn.prod.website-files.com/68a37fe812fde78086e0bdad/698f4fd33d706d2efc23b1cf_Espaco%20Skye%20Unique%204.avif"
+  },
+  {
+    "restaurant": "skye",
+    "asset": "skye-photo-1.webp",
+    "source": "https://cdn.prod.website-files.com/68a37fe812fde78086e0bdad/698f4fd33d706d2efc23b1cf_Espaco%20Skye%20Unique%204.avif"
+  },
+  {
+    "restaurant": "skye",
+    "asset": "skye-photo-2.webp",
+    "source": "https://cdn.prod.website-files.com/68a37fe812fde78086e0bdad/698f4fd37fea7c493d6d18e6_Espaco%20Skye%20Unique%203.avif"
+  },
+  {
+    "restaurant": "skye",
+    "asset": "skye-photo-3.webp",
+    "source": "https://cdn.prod.website-files.com/68a37fe812fde78086e0bdad/68c8144680253efe73a9ef30_Skye%20Gastronomia%20japonesa%2001.avif"
+  },
+  {
+    "restaurant": "skye",
+    "asset": "skye-photo-4.webp",
+    "source": "https://cdn.prod.website-files.com/68a37fe812fde78086e0bdad/69c589987b54e32a58c3594c_Gastronomia%20Italiana%2002_2026.avif"
+  },
+  {
+    "restaurant": "skye",
+    "asset": "skye-photo-5.webp",
+    "source": "https://cdn.prod.website-files.com/68a37fe812fde78086e0bdad/68c81444437a46cd86e83a60_Skye%20Gastronomia%20brasileira%2001.avif"
+  },
+  {
+    "restaurant": "tangara-jean-georges",
+    "asset": "tangara-jean-georges-card.webp",
+    "source": "https://images.eu.ctfassets.net/og3b0tarlg4b/7FBU7oPWwKSoRdT80XxFx2/116bd5f8b3b1dde8a030cec4ca7912b7/PALACIO_TANGARA_DINING_TANGARA_JEAN-GEORGES_RESTAURANT.jpeg"
+  },
+  {
+    "restaurant": "tangara-jean-georges",
+    "asset": "tangara-jean-georges-photo-1.webp",
+    "source": "https://images.eu.ctfassets.net/og3b0tarlg4b/7FBU7oPWwKSoRdT80XxFx2/116bd5f8b3b1dde8a030cec4ca7912b7/PALACIO_TANGARA_DINING_TANGARA_JEAN-GEORGES_RESTAURANT.jpeg"
+  },
+  {
+    "restaurant": "tangara-jean-georges",
+    "asset": "tangara-jean-georges-photo-2.webp",
+    "source": "https://images.eu.ctfassets.net/og3b0tarlg4b/1GBfH1FdCpbHchEp38Jb3i/74182964cc1f3fd8e9cd041d7367b097/PALACIO_TANGARA_DINING_TANGARA_JEAN-GEORGES_PRIVATE_ROOM_.jpeg"
+  },
+  {
+    "restaurant": "tordesilhas",
+    "asset": "tordesilhas-card.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5edbe369723faa2b0d774e22/1591478227764-7J3Y1H38GVMXQOC586R2/Tord+Fachada-+Lais+Podesta.jpg"
+  },
+  {
+    "restaurant": "tordesilhas",
+    "asset": "tordesilhas-photo-1.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5edbe369723faa2b0d774e22/1591478227764-7J3Y1H38GVMXQOC586R2/Tord+Fachada-+Lais+Podesta.jpg"
+  },
+  {
+    "restaurant": "tordesilhas",
+    "asset": "tordesilhas-photo-2.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5edbe369723faa2b0d774e22/1591562678450-W04XOG0E5TVA2DBV7MZF/Comiss%C3%A3o+de+Frente+2014+IV.jpg"
+  },
+  {
+    "restaurant": "tordesilhas",
+    "asset": "tordesilhas-photo-3.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5edbe369723faa2b0d774e22/1591562177994-T9AG6QU4RNLD96RFW00R/FOTO+SITE+MARA.DEGA.jpg"
+  },
+  {
+    "restaurant": "tordesilhas",
+    "asset": "tordesilhas-photo-4.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5edbe369723faa2b0d774e22/1591805064731-6AYXVT9HFMKT09RXTWLK/sineta.jpg"
+  },
+  {
+    "restaurant": "tordesilhas",
+    "asset": "tordesilhas-photo-5.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5edbe369723faa2b0d774e22/1591805182493-J5IKJZWLKLEZ48BS28CP/091010+MARA_SALLES+159.jpg"
+  },
+  {
+    "restaurant": "tuju",
+    "asset": "tuju-card.webp",
+    "source": "https://static.wixstatic.com/media/2f08f6_0adcea214f474c42845ffc33d17fc20f~mv2.png"
+  },
+  {
+    "restaurant": "tuju",
+    "asset": "tuju-photo-1.webp",
+    "source": "https://static.wixstatic.com/media/2f08f6_7e152b2ec9334ec2876617e63527b56df000.jpg"
+  },
+  {
+    "restaurant": "tuju",
+    "asset": "tuju-photo-2.webp",
+    "source": "https://static.wixstatic.com/media/2f08f6_031426030cbf4643b100f9c4b38e81ca~mv2.png"
+  },
+  {
+    "restaurant": "tuju",
+    "asset": "tuju-photo-3.webp",
+    "source": "https://static.wixstatic.com/media/2f08f6_f398ff695d094575a58c7079ab787eb5~mv2.png"
+  },
+  {
+    "restaurant": "tuju",
+    "asset": "tuju-photo-4.webp",
+    "source": "https://static.wixstatic.com/media/2f08f6_a3e8fbe85f5b4fae97504f32d4532090~mv2.jpg"
+  },
+  {
+    "restaurant": "tuju",
+    "asset": "tuju-photo-5.webp",
+    "source": "https://static.wixstatic.com/media/2f08f6_4b3e200ddf0d403bb94209c404d50194~mv2.png"
+  },
+  {
+    "restaurant": "vista",
+    "asset": "vista-card.webp",
+    "source": "https://vistasaopaulo.com.br/wp-content/uploads/2019/11/MG_2600-1024x683.jpg"
+  },
+  {
+    "restaurant": "vista",
+    "asset": "vista-photo-1.webp",
+    "source": "https://vistasaopaulo.com.br/wp-content/uploads/2019/11/MG_2600-1024x683.jpg"
+  },
+  {
+    "restaurant": "vista",
+    "asset": "vista-photo-2.webp",
+    "source": "https://vistasaopaulo.com.br/wp-content/uploads/2019/11/IMG_2775-1024x768.jpg"
+  },
+  {
+    "restaurant": "vista",
+    "asset": "vista-photo-3.webp",
+    "source": "https://vistasaopaulo.com.br/wp-content/uploads/2024/05/DHC_0543-1024x683.jpg"
+  },
+  {
+    "restaurant": "vista",
+    "asset": "vista-photo-4.webp",
+    "source": "https://vistasaopaulo.com.br/wp-content/uploads/2019/11/MG_9737-1024x683.jpg"
+  }
+]
