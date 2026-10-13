@@ -1,1 +1,1 @@
-window.POLL_CONFIG = {endpoint: 'https://script.google.com/macros/s/AKfycbya2JEI8wy0smvtxLryn5FIFfXI893jXIGQJ-_Q-PHQXc0DkX5Di_WHa2jYl9tgVJFPJQ/exec', pollId: 'sao-paulo-2026', maxChoices: 5, googleClientId: '701098268942-l2sf5ldelqt3b4q1jro8cppv18bcvdlq.apps.googleusercontent.com'};
+window.POLL_CONFIG = {endpoint: 'https://mxmqqqzxopjinlkjtcnb.supabase.co/functions/v1/dining-poll', transport: 'supabase', pollId: 'sao-paulo-2026', maxChoices: 5, googleClientId: '701098268942-l2sf5ldelqt3b4q1jro8cppv18bcvdlq.apps.googleusercontent.com'};
