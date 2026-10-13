@@ -1,3 +1,1 @@
-// Leave blank for an explicitly labeled browser-only demo.
-// Set to your Google Apps Script deployed /exec URL to enable shared votes.
-window.POLL_CONFIG = {endpoint: '', pollId: 'sao-paulo-2026', maxChoices: 5, googleClientId: ''};
+window.POLL_CONFIG = {endpoint: 'https://script.google.com/macros/s/AKfycbya2JEI8wy0smvtxLryn5FIFfXI893jXIGQJ-_Q-PHQXc0DkX5Di_WHa2jYl9tgVJFPJQ/exec', pollId: 'sao-paulo-2026', maxChoices: 5, googleClientId: '701098268942-l2sf5ldelqt3b4q1jro8cppv18bcvdlq.apps.googleusercontent.com'};
