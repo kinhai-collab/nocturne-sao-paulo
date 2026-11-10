@@ -248,7 +248,8 @@ function browseRestaurants(guest = false) {
   show('Search restaurants', `<div class="stack">
     <button type="button" data-action="return-restaurants">← Back to meal</button>
     <form class="stack" data-form="restaurant-search">
-      <label>Search by name, cuisine or neighbourhood <input type="search" data-restaurant-search autocomplete="off" autofocus></label>
+      <label>City <input type="search" data-restaurant-city placeholder="e.g. Toronto" autocomplete="off" autofocus></label>
+      <label>Food type <input type="search" data-restaurant-search placeholder="e.g. Sushi or Italian" autocomplete="off"></label>
       <div class="row" data-cuisine-suggestions aria-label="Cuisine suggestions"></div>
       <div class="row spread"><button type="submit" class="primary">Search</button>
         <label>Sort by <select data-restaurant-sort><option value="match">Best match</option><option value="popular">Popularity</option><option value="rating">Highest rating</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></label>
@@ -261,7 +262,7 @@ function browseRestaurants(guest = false) {
   </div>`);
   const search = panel.querySelector('[data-restaurant-search]');
   updateRestaurantResults(search);
-  search.focus();
+  panel.querySelector('[data-restaurant-city]').focus();
 }
 
 function closeRestaurantBrowser() {
@@ -303,10 +304,15 @@ function updateRestaurantResults(input) {
   const history = [...new Set(state.meals.filter(m => m.organizer && m.restaurant && ['Booked','Confirmed'].includes(m.status)).map(m => m.restaurant))];
   const candidates = [...(window.BEYOND_RESTAURANTS || []),
     ...(window.RESTAURANTS || []).map(([id,name,stars,cuisine,priceLevel])=>({id,name,cuisine,priceLevel,area:'São Paulo'}))];
+  const cityInput = panel.querySelector('[data-restaurant-city]').value.trim();
+  const city = normalizeRestaurantText(cityInput);
   const words = query.split(/\s+/).filter(Boolean);
+  const filtering = Boolean(city || query);
   const matches = candidates.filter(restaurant => {
-    const searchable = normalizeRestaurantText([restaurant.name,restaurant.cuisine,restaurant.area,restaurant.best,restaurant.description].join(' '));
-    return words.every(word=>searchable.includes(word));
+    const area = normalizeRestaurantText(restaurant.area);
+    const cityMatches = !city || area.includes(city) || (city === 'toronto' && area === 'north york');
+    const food = normalizeRestaurantText([restaurant.name,restaurant.cuisine,restaurant.best,restaurant.description].join(' '));
+    return cityMatches && words.every(word=>food.includes(word));
   });
   const sort = panel.querySelector('[data-restaurant-sort]').value;
   const popularity = r => r.rating * Math.log1p(r.reviewCount || 0) || 0;
@@ -327,10 +333,10 @@ function updateRestaurantResults(input) {
       <button type="button" data-action="pick-restaurant" data-name="${escape(name)}" aria-label="${added?'Added to poll':'Add to poll'}: ${escape(name)}" ${added || (guest && meal.suggested) ? 'disabled' : ''}>${added?'Added to poll':'Add to poll'}</button></article>`;
   };
   panel.querySelector('[data-restaurant-results]').innerHTML =
-    (!query && sort==='match' && history.length ? '<small>Booked before</small>'+history.slice(0,4).map(name=>card(name,candidates.find(r=>r.name===name))).join('') : '') +
-    '<small>'+ (query ? 'Guide results' : 'New to you · from the guide') +'</small>' +
-    (matches.filter(r => query || sort!=='match' || !history.slice(0,4).includes(r.name)).map(r=>card(r.name,r)).join('') || '<small>No matching guide entries.</small>');
-  panel.querySelector('[data-google-search]').href = maps(query || 'restaurants', location);
+    (!filtering && sort==='match' && history.length ? '<small>Booked before</small>'+history.slice(0,4).map(name=>card(name,candidates.find(r=>r.name===name))).join('') : '') +
+    '<small>'+ (filtering ? 'Guide results' : 'New to you · from the guide') +'</small>' +
+    (matches.filter(r => filtering || sort!=='match' || !history.slice(0,4).includes(r.name)).map(r=>card(r.name,r)).join('') || '<small>No matching guide entries.</small>');
+  panel.querySelector('[data-google-search]').href = maps(input.value.trim() || 'restaurants', cityInput || location);
 }
 
 async function suggestRestaurant(name) {
@@ -417,7 +423,13 @@ function busyForm() {
 panel.addEventListener('close',()=>{ restaurantReturn=null; panel.classList.remove('restaurant-browser'); });
 panel.addEventListener('cancel',event=>{ if(restaurantReturn){ event.preventDefault(); closeRestaurantBrowser(); } });
 panel.addEventListener('input',event=>{
-  if(event.target.matches('[data-restaurant-search]')) { suggestCuisines(event.target); updateRestaurantResults(event.target); }
+  const search = panel.querySelector('[data-restaurant-search]');
+  if (event.target === search) {
+    suggestCuisines(search);
+    updateRestaurantResults(search);
+  } else if (event.target.matches('[data-restaurant-city]')) {
+    updateRestaurantResults(search);
+  }
 });
 panel.addEventListener('change',event=>{
   if(event.target.matches('[data-restaurant-sort]')) updateRestaurantResults(panel.querySelector('[data-restaurant-search]'));
