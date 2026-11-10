@@ -1,0 +1,148 @@
+@font-face {
+  font-family: Enkai Display;
+  src: url("assets/fonts/playfair-regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+body[data-invite-theme] {
+  color-scheme: light;
+  --bg: #fbf1e6;
+  --surface: #fff8f0;
+  --ink: #402626;
+  --muted: #6f4d4d;
+  --line: #dfc8be;
+  --accent: #7c3547;
+  --on-accent: #fff;
+  --gutter: clamp(1.15rem, 5vw, 2.25rem);
+}
+
+body[data-invite-theme="after-hours"] {
+  color-scheme: dark;
+  --bg: #241b18;
+  --surface: #30231e;
+  --ink: #ffedd9;
+  --muted: #d5bbaa;
+  --line: #73574b;
+  --accent: #efd1a6;
+  --on-accent: #2c1a13;
+}
+
+.invite-frame {
+  max-width: 32rem;
+  padding: 0 0 max(1.25rem, env(safe-area-inset-bottom));
+}
+
+.invite-header {
+  padding: .45rem var(--gutter);
+  border: 0;
+}
+
+.invite-wordmark {
+  font: 1.65rem Enkai Display, Georgia, serif;
+  letter-spacing: .07em;
+}
+
+.invite-signin {
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: .25em;
+}
+
+.invite-cover {
+  margin: .2rem var(--gutter) 0;
+  overflow: hidden;
+  border-radius: 48% 48% .4rem .4rem / 50% 50% .4rem .4rem;
+  background: var(--surface);
+}
+
+.invite-cover img {
+  display: block;
+  width: 100%;
+  height: clamp(10rem, 45vw, 15rem);
+  object-fit: cover;
+}
+
+[data-invite-theme="after-hours"] .invite-cover {
+  margin: 0;
+  border-radius: 0;
+}
+
+[data-invite-theme="after-hours"] .invite-cover img {
+  object-position: center 54%;
+}
+
+.invite-content {
+  padding: 1.15rem var(--gutter) 0;
+}
+
+[data-invite-theme="supper-club"] .invite-content { text-align: center; }
+
+.invite-content h1 {
+  font: clamp(2.4rem, 10vw, 3.7rem)/1.05 Enkai Display, Georgia, serif;
+  letter-spacing: -.045em;
+}
+
+.invite-content p,
+.invite-dialog p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.invite-content .invite-kicker {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.invite-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  margin: 1rem 0;
+  padding: .8rem 0;
+  border-block: 1px solid var(--line);
+}
+
+.invite-facts dt { color: var(--muted); font-size: .8rem; }
+.invite-facts dd { margin: .2rem 0 0; font-size: .94rem; font-weight: 600; }
+
+.invite-cta {
+  width: 100%;
+  min-height: 48px;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.invite-cta:disabled { opacity: .6; cursor: default; }
+
+.invite-footer {
+  padding: .25rem var(--gutter) 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+.invite-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-underline-offset: .2em;
+}
+
+.invite-dialog {
+  max-width: 32rem;
+  padding: 1.15rem 1.15rem max(1.15rem, env(safe-area-inset-bottom));
+}
+
+.invite-dialog h2 { font-family: Enkai Display, Georgia, serif; }
+.invite-dismiss { float: right; margin-left: .4rem; }
+.invite-dismiss button { min-width: 44px; font-size: 1.25rem; }
+.invite-dialog fieldset { clear: both; margin: 1rem 0; }
+.invite-dialog label { display: flex; align-items: center; min-height: 44px; gap: .65rem; }
+.invite-dialog input { accent-color: var(--accent); }
+.invite-providers { display: grid; gap: .6rem; }
+body[data-invite-theme] :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }

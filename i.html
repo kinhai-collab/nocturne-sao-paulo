@@ -15,8 +15,51 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="planner.css">
 <script src="invite.js" defer></script>
-<link rel="stylesheet" href="enkai-brand.css"></head>
+<link rel="stylesheet" href="enkai-brand.css">
+<link rel="stylesheet" href="invite-themes.css"></head>
 <body>
 <main><h1><span class="enkai-logo"><img src="assets/enkai-logo.jpg" alt="Enkai"></span></h1><p>You’re invited to a meal.</p><a id="open-invite" href="planner.html">Open the meal planner</a></main>
+<template id="invite-preview">
+  <main class="invite-frame">
+    <header class="invite-header">
+      <span class="invite-wordmark">Enkai</span>
+      <button type="button" class="invite-signin">Sign in</button>
+    </header>
+    <div class="invite-cover"><img alt="" width="960" height="640"></div>
+    <section class="invite-content" aria-labelledby="invite-title">
+      <p class="invite-kicker">An invitation from Maya</p>
+      <h1 id="invite-title">Dinner with friends</h1>
+      <p>Let’s get everyone around the table. Pick the times that work for you.</p>
+      <dl class="invite-facts">
+        <div><dt>Where</dt><dd>West End, Toronto</dd></div>
+        <div><dt>Who’s coming</dt><dd>Maya, Alex and Sam</dd></div>
+      </dl>
+      <button type="button" class="invite-cta" id="open-vote">Vote on a time</button>
+    </section>
+    <footer class="invite-footer">Sample invite <span aria-hidden="true">·</span> <a id="other-theme"></a></footer>
+  </main>
+  <dialog class="invite-dialog" id="preview-vote" aria-labelledby="vote-title">
+    <form method="dialog" class="invite-dismiss"><button aria-label="Close" value="close">×</button></form>
+    <h2 id="vote-title">When can you make it?</h2>
+    <form id="sample-vote">
+      <fieldset>
+        <legend>Select every time that works for you. Times are in Toronto.</legend>
+        <label><input type="checkbox" name="time"> Friday, 7:00 p.m.</label>
+        <label><input type="checkbox" name="time"> Saturday, 6:30 p.m.</label>
+        <label><input type="checkbox" name="time"> Sunday, 6:00 p.m.</label>
+      </fieldset>
+      <button class="invite-cta" type="submit" disabled>Continue</button>
+    </form>
+  </dialog>
+  <dialog class="invite-dialog" id="preview-signin" aria-labelledby="signin-title">
+    <form method="dialog" class="invite-dismiss"><button aria-label="Close" value="close">×</button></form>
+    <h2 id="signin-title">Sign in to Enkai</h2>
+    <p>In a real invite, you’d sign in here to save your vote. This preview uses a sample account.</p>
+    <form method="dialog" class="invite-providers">
+      <button value="google">Continue with Google</button>
+      <button value="microsoft">Continue with Microsoft</button>
+    </form>
+  </dialog>
+</template>
 </body>
 </html>
