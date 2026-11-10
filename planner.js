@@ -398,4 +398,3 @@ async function copyInvite(url) {
 }
 render();
 resumeMicrosoft().catch(error=>message(error.message));
-
