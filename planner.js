@@ -18,6 +18,9 @@ let activeMeal = null;
 let activeWish = null;
 let noticeTimer;
 let credential = '';
+let provider = 'google';
+const microsoftFlowKey = 'nocturne-microsoft-flow';
+let microsoftClient;
 let signingIn = false;
 let requestInFlight = false;
 let invite = new URLSearchParams(location.hash.slice(1)).get('invite');
@@ -26,7 +29,7 @@ const endpoint = new URL('meal-planner', window.POLL_CONFIG.endpoint).href;
 async function api(action, payload = {}) {
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + credential },
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + credential, ...(provider === 'microsoft' ? { 'Authorization-Provider': 'microsoft' } : {}) },
     body: JSON.stringify({ action, ...payload }),
   });
   const data = await response.json().catch(() => ({}));
@@ -45,10 +48,70 @@ async function refresh() {
   state.meals = meals;
   render();
 }
-async function startSignIn() {
+async function finishSignIn() {
+  let joined;
+  if (invite) {
+    try { joined = await api('join', { invite }); }
+    catch (error) {
+      if (!credential || !/unavailable|invalid/i.test(error.message)) throw error;
+      message(error.message);
+    }
+    invite = null;
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  await refresh();
+  if (joined) mealDetails(state.meals.find(meal => meal.id === joined.id));
+  else if (panel.open) panel.close();
+}
+
+async function getMicrosoftClient() {
+  if (!microsoftClient) {
+    const { PublicClientApplication } = await import('https://cdn.jsdelivr.net/npm/@azure/msal-browser@4.30.0/+esm');
+    const client = new PublicClientApplication({
+      auth: {
+        clientId: 'f3b49437-bb05-4ea3-a4cb-9925ea767320',
+        authority: 'https://login.microsoftonline.com/consumers',
+        redirectUri: new URL('planner.html', location.href).href,
+        navigateToLoginRequestUrl: false,
+      },
+      cache: { cacheLocation: 'memoryStorage' },
+    });
+    await client.initialize();
+    microsoftClient = client;
+  }
+  return microsoftClient;
+}
+async function startMicrosoft(linking) {
+  try {
+    sessionStorage.setItem(microsoftFlowKey, JSON.stringify({ invite, linking }));
+    const client = await getMicrosoftClient();
+    await client.loginRedirect({ scopes: ['openid', 'profile'], prompt: 'select_account' });
+  } catch (error) {
+    sessionStorage.removeItem(microsoftFlowKey);
+    message('Microsoft sign-in could not start. Try again in your browser.');
+  }
+}
+async function resumeMicrosoft() {
+  const pending = sessionStorage.getItem(microsoftFlowKey);
+  if (!pending) return;
+  sessionStorage.removeItem(microsoftFlowKey);
+  try {
+    const { invite: savedInvite, linking } = JSON.parse(pending);
+    invite = savedInvite;
+    const result = await (await getMicrosoftClient()).handleRedirectPromise();
+    if (!result?.idToken) return;
+    credential = result.idToken;
+    provider = 'microsoft';
+    await finishSignIn();
+    if (linking) await startSignIn(true);
+  } catch (error) { message(error.message); }
+}
+
+async function startSignIn(linking = false) {
   if (signingIn) return;
   signingIn = true;
-  show('Sign in with Google', '<div id="planner-google" class="stack"><p class="muted">Loading Google sign-in…</p></div>');
+  show(linking ? 'Link your Google account' : 'Sign in with Google',
+    '<div id="planner-google" class="stack"><p class="muted">Loading Google sign-in…</p></div>');
   try {
     if (!window.google?.accounts?.id) await new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -61,29 +124,21 @@ async function startSignIn() {
     google.accounts.id.initialize({
       client_id: window.POLL_CONFIG.googleClientId,
       callback: async result => {
-        credential = result.credential;
         try {
-          let joined;
-          if (invite) {
-            try { joined = await api('join', { invite }); }
-            catch (error) {
-              if (!credential) throw error;
-              if (!/unavailable|invalid/i.test(error.message)) throw error;
-              invite = null;
-              history.replaceState(null, '', location.pathname + location.search);
-              await refresh();
-              if (panel.open) panel.close();
-              message(error.message);
-              return;
-            }
+          if (linking) {
+            await api('link', { googleCredential: result.credential });
+            await refresh();
+            if (panel.open) panel.close();
+            message('Accounts linked. Both sign-in methods now open the same planner.');
+          } else {
+            provider = 'google';
+            credential = result.credential;
+            await finishSignIn();
           }
-          await refresh();
-          if (joined) {
-            invite = null;
-            history.replaceState(null, '', location.pathname + location.search);
-            mealDetails(state.meals.find(meal => meal.id === joined.id));
-          } else if (panel.open) panel.close();
-        } catch (error) { credential = ''; message(error.message); }
+        } catch (error) {
+          if (!linking) credential = '';
+          message(error.message);
+        }
       },
     });
     const button = document.querySelector('#planner-google');
@@ -157,7 +212,7 @@ function render() {
   const names = { dashboard: 'Your upcoming meals', polls: 'Open polls', wishlist: 'Your restaurant wish list' };
   root.innerHTML = `<section class="hero"><p class="eyebrow">Meal planner</p><h1>${names[view]}</h1>
     <p class="muted">${credential ? 'Share a poll link and see responses as guests vote.' : invite ? 'You’ve been invited to a meal. Sign in to view the options and vote. If Google sign-in is blocked in your messaging app, open this link in Chrome or Safari.' : 'Sign in to plan meals, invite guests, and collect responses.'}</p>
-    <div class="row">${credential ? '<button class="primary" data-action="new">Plan a meal</button><button data-action="refresh">Refresh responses</button><button data-action="signout">Sign out</button>' : '<button class="primary" data-action="signin">Sign in with Google</button>'}<button data-action="people">Connections</button><button data-action="busy">Calendar blocks</button></div></section>
+    <div class="row">${credential ? '<button class="primary" data-action="new">Plan a meal</button><button data-action="refresh">Refresh responses</button><button data-action="signout">Sign out</button>' + (provider === 'google' ? '<button data-action="link-microsoft">Link Microsoft account</button>' : '<button data-action="link-google">Link Google account</button>') : '<button class="primary" data-action="signin">Sign in with Google</button><button data-action="microsoft">Sign in with Microsoft</button>'}<button data-action="people">Connections</button><button data-action="busy">Calendar blocks</button></div></section>
     ${view==='dashboard' ? dashboard() : view==='wishlist' ? wishlist() : '<div class="stack">'+(state.meals.filter(isPolling).map(card).join('') || '<p class="muted">No open polls yet.</p>')+'</div>'}`;
   document.querySelectorAll('[data-view]').forEach(button => {
     if (button.dataset.view===view) button.setAttribute('aria-current','page');
@@ -199,7 +254,7 @@ function mealDetails(meal) {
   show(meal.title, `<div class="stack"><div>${statusPill(status(meal))} · ${durationLabel(meal.duration)}</div>
     <p class="muted">Guests: ${guests}</p>
     ${meal.organizer ? `<div class="row"><button data-action="share">Share invite</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(inviteUrl(meal))}" target="_blank" rel="noopener">WhatsApp</a><button data-action="refresh-meal">Refresh responses</button></div>
-    <section class="card stack"><h3>Guest responses · ${meal.responses.length}</h3>${meal.responses.map(({name,vote})=>`<div><strong>${escape(name)}</strong><div><small>Times: ${escape(vote.times.map(dateTime).join(', ') || 'None selected')}</small></div><div><small>Restaurants: ${escape(vote.restaurants.join(', ') || 'None selected')}</small></div></div>`).join('') || '<p class="muted">No responses yet.</p>'}</section>` : '<p class="muted">The organizer can see your Google display name and your choices.</p>'}
+    <section class="card stack"><h3>Guest responses · ${meal.responses.length}</h3>${meal.responses.map(({name,vote})=>`<div><strong>${escape(name)}</strong><div><small>Times: ${escape(vote.times.map(dateTime).join(', ') || 'None selected')}</small></div><div><small>Restaurants: ${escape(vote.restaurants.join(', ') || 'None selected')}</small></div></div>`).join('') || '<p class="muted">No responses yet.</p>'}</section>` : '<p class="muted">The organizer can see your display name and your choices.</p>'}
     ${meal.restaurant ? `<a href="${maps(meal.restaurant,meal.location)}" target="_blank" rel="noopener">Find ${escape(meal.restaurant)} on Google Maps ↗</a>` : ''}
     ${isPolling(meal) ? `<form class="stack card" data-form="vote"><h3>Respond to poll</h3>
       <fieldset><legend>Times that work</legend>${choices(meal.selectedTime?[]:meal.times,'times',vote.times,t=>escape(dateTime(t))+votesLabel('times',t)+(hasConflict(t,meal.duration)?' · ⚠ Calendar block overlaps':''))}</fieldset>
@@ -235,8 +290,11 @@ document.addEventListener('click', event=>{
     case 'today': anchor=new Date(); render(); break;
     case 'new': if (credential) mealForm(); else startSignIn(); break;
     case 'signin': startSignIn(); break;
+    case 'microsoft': startMicrosoft(false); break;
+    case 'link-microsoft': startMicrosoft(true); break;
+    case 'link-google': startSignIn(true); break;
     case 'signout':
-      credential=''; state.meals=[]; google.accounts.id.disableAutoSelect(); render(); break;
+      credential=''; state.meals=[]; window.google?.accounts?.id?.disableAutoSelect(); render(); break;
     case 'refresh':
       refresh().then(()=>message('Responses refreshed.')).catch(error=>message(error.message)); break;
     case 'refresh-meal': {
@@ -339,3 +397,4 @@ async function copyInvite(url) {
   catch { show('Share invite', `<label>Copy this link<input readonly value="${escape(url)}"></label>`); }
 }
 render();
+resumeMicrosoft().catch(error=>message(error.message));
