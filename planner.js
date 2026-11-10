@@ -292,13 +292,13 @@ function restaurantPicker(value = '') {
 function browseRestaurants(guest = false) {
   const input = guest ? null : panel.querySelector('[name=restaurants]');
   const location = panel.querySelector('[name=location]')?.value || activeMeal?.location || '';
-  restaurantReturn = { nodes: [...panel.childNodes], input, guest, location, meal: activeMeal };
+  restaurantReturn = { nodes: [...panel.childNodes], input, guest, location, meal: activeMeal, places: [] };
   panel.classList.add('restaurant-browser');
   show('Search restaurants', `<div class="stack">
     <button type="button" data-action="return-restaurants">← Back to meal</button>
     <form class="stack" data-form="restaurant-search">
-      <label>City <input type="search" data-restaurant-city placeholder="e.g. Toronto" autocomplete="off" autofocus></label>
-      <label>Food type <input type="search" data-restaurant-search placeholder="e.g. Sushi or Italian" autocomplete="off"></label>
+      <label>City <input type="search" required maxlength="120" data-restaurant-city placeholder="e.g. Toronto" autocomplete="off" autofocus></label>
+      <label>Food type <input type="search" maxlength="100" data-restaurant-search placeholder="e.g. Sushi or Italian" autocomplete="off"></label>
       <div class="row" data-cuisine-suggestions aria-label="Cuisine suggestions"></div>
       <div class="row spread"><button type="submit" class="primary">Search</button>
         <label>Sort by <select data-restaurant-sort><option value="match">Best match</option><option value="popular">Popularity</option><option value="rating">Highest rating</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></label>
@@ -306,12 +306,16 @@ function browseRestaurants(guest = false) {
     </form>
     <p class="muted" data-restaurant-count role="status" tabindex="-1"></p>
     <div class="stack" data-restaurant-results></div>
+    <small translate="no">Google Maps</small>
     <a data-google-search target="_blank" rel="noopener">Search Google Maps ↗</a>
     ${guest ? '<form class="stack" data-form="suggest"><label>Suggest a restaurant by name <input name="suggestion" required maxlength="120"></label><button>Add to poll</button></form>' : ''}
   </div>`);
   const search = panel.querySelector('[data-restaurant-search]');
+  const city = panel.querySelector('[data-restaurant-city]');
+  city.value = location;
   updateRestaurantResults(search);
-  panel.querySelector('[data-restaurant-city]').focus();
+  panel.querySelector('[data-restaurant-count]').textContent = 'Enter a city and select Search.';
+  city.focus();
 }
 
 function closeRestaurantBrowser() {
@@ -349,45 +353,62 @@ function compareRestaurantPrices(a, b, direction) {
 
 function updateRestaurantResults(input) {
   const { input: names, guest, meal, location } = restaurantReturn;
-  const query = normalizeRestaurantText(input.value);
-  const history = [...new Set(state.meals.filter(m => m.organizer && m.restaurant && ['Booked','Confirmed'].includes(m.status)).map(m => m.restaurant))];
-  const candidates = [...(window.BEYOND_RESTAURANTS || []),
-    ...(window.RESTAURANTS || []).map(({ price, ...restaurant }) => ({
-      ...restaurant, priceLevel: price, area: 'São Paulo',
-    }))];
   const cityInput = panel.querySelector('[data-restaurant-city]').value.trim();
-  const city = normalizeRestaurantText(cityInput.split(',')[0]);
-  const words = query.split(/\s+/).filter(Boolean);
-  const filtering = Boolean(city || query);
-  const matches = candidates.filter(restaurant => {
-    const area = normalizeRestaurantText(restaurant.area);
-    const cityMatches = !city || area.includes(city) || (city === 'toronto' && area === 'north york');
-    const food = normalizeRestaurantText([restaurant.name,restaurant.cuisine,restaurant.best,restaurant.description].join(' '));
-    return cityMatches && words.every(word=>food.includes(word));
-  });
+  const matches = [...restaurantReturn.places];
   const sort = panel.querySelector('[data-restaurant-sort]').value;
   const popularity = r => r.rating * Math.log1p(r.reviewCount || 0) || 0;
   if (sort === 'popular') matches.sort((a,b)=>popularity(b)-popularity(a) || (b.rating || 0)-(a.rating || 0));
   if (sort === 'rating') matches.sort((a,b)=>(b.rating || 0)-(a.rating || 0) || (b.reviewCount || 0)-(a.reviewCount || 0));
   if (sort === 'low' || sort === 'high') matches.sort((a,b)=>compareRestaurantPrices(a,b,sort==='low'?1:-1));
-  panel.querySelector('[data-restaurant-count]').textContent = matches.length
-    ? `${matches.length} guide ${matches.length===1?'result':'results'}${sort==='popular'?' · Rating and review count':sort==='low'||sort==='high'?' · CAD prices first, then price levels':''}`
-    : 'No guide results. Try another search or open Google Maps.';
   const selected = new Set([...(meal?.restaurants || []), ...(names?.value.split('\n') || [])].map(name=>name.trim().toLowerCase()));
   const card = (name, r) => {
-    const src = window.RESTAURANT_MEDIA?.[r?.id]?.card;
+    const address = r.address;
     const added = selected.has(name.toLowerCase());
     const preview = r ? [r.area, r.cuisine, r.rating ? '★ '+r.rating+(r.reviewCount?' ('+r.reviewCount.toLocaleString()+' reviews)':'') : '', r.price ? 'CA$'+r.price[0] : r.priceLevel || ''].filter(Boolean).join(' · ') : '';
     return `<article class="card venue-result">
-      ${src ? `<img class="venue-thumb" src="${escape(src)}" alt="" loading="lazy">` : ''}
-      <div><h3>${escape(name)}</h3><small>${escape(preview)}</small><div><a href="${maps(name,r?.area || location)}" target="_blank" rel="noopener">View on Google Maps ↗</a></div></div>
+      <div><h3>${escape(name)}</h3><small>${escape(preview)}</small><p>${escape(address)}</p><div><a href="${maps(name,r.address || location)}" target="_blank" rel="noopener">View on Google Maps ↗</a></div>${r.attributions.map(item=>`<small>${escape(item.provider)}</small>`).join('')}</div>
       <button type="button" data-action="pick-restaurant" data-name="${escape(name)}" aria-label="${added?'Added to poll':'Add to poll'}: ${escape(name)}" ${added || (guest && meal.suggested) ? 'disabled' : ''}>${added?'Added to poll':'Add to poll'}</button></article>`;
   };
-  panel.querySelector('[data-restaurant-results]').innerHTML =
-    (!filtering && sort==='match' && history.length ? '<small>Booked before</small>'+history.slice(0,4).map(name=>card(name,candidates.find(r=>r.name===name))).join('') : '') +
-    '<small>'+ (filtering ? 'Guide results' : 'New to you · from the guide') +'</small>' +
-    (matches.filter(r => filtering || sort!=='match' || !history.slice(0,4).includes(r.name)).map(r=>card(r.name,r)).join('') || '<small>No matching guide entries.</small>');
+  panel.querySelector('[data-restaurant-results]').innerHTML = matches.map(r=>card(r.name,r)).join('');
   panel.querySelector('[data-google-search]').href = maps(input.value.trim() || 'restaurants', cityInput || location);
+}
+
+const googlePriceLevels = {
+  PRICE_LEVEL_INEXPENSIVE: '$', PRICE_LEVEL_MODERATE: '$$',
+  PRICE_LEVEL_EXPENSIVE: '$$$', PRICE_LEVEL_VERY_EXPENSIVE: '$$$$',
+};
+
+async function searchGooglePlaces(form) {
+  const search = restaurantReturn;
+  const city = form.querySelector('[data-restaurant-city]').value.trim();
+  const food = form.querySelector('[data-restaurant-search]');
+  const summary = panel.querySelector('[data-restaurant-count]');
+  const button = form.querySelector('[type=submit]');
+  if (!city || button.disabled) return;
+  button.disabled = true;
+  search.places = [];
+  updateRestaurantResults(food);
+  summary.textContent = 'Searching Google Maps…';
+  try {
+    const places = await api('places', { city, food: food.value.trim() });
+    if (search !== restaurantReturn) return;
+    search.places = places.filter(place=>place.displayName?.text).map(place=>({
+      name: place.displayName.text, cuisine: place.primaryTypeDisplayName?.text,
+      area: place.formattedAddress, address: place.formattedAddress,
+      rating: place.rating, reviewCount: place.userRatingCount,
+      priceLevel: googlePriceLevels[place.priceLevel], attributions: place.attributions || [],
+    }));
+    updateRestaurantResults(food);
+    summary.textContent = search.places.length ? `${search.places.length} Google Maps results in ${city}.` : `No results in ${city}. Try another food type.`;
+  } catch (error) {
+    summary.textContent = error.message;
+  } finally {
+    button.disabled = false;
+    if (search === restaurantReturn) {
+      summary.focus({ preventScroll: true });
+      summary.scrollIntoView?.({ block: 'start' });
+    }
+  }
 }
 
 async function suggestRestaurant(name) {
@@ -592,17 +613,7 @@ panel.addEventListener('submit',event=>{
       const newContacts = data.has('saveContacts') ? split(value('guests')) : [];
       syncMeal('create', { details }, newContacts); return;
     }
-    case 'restaurant-search': {
-      const food = form.querySelector('[data-restaurant-search]');
-      const city = form.querySelector('[data-restaurant-city]');
-      updateRestaurantResults(food);
-      const summary = panel.querySelector('[data-restaurant-count]');
-      const terms = [food.value.trim(), city.value.trim()].filter(Boolean);
-      summary.textContent = (terms.length ? `Search results for ${terms.join(' in ')}. ` : 'All restaurants. ') + summary.textContent;
-      summary.focus({ preventScroll: true });
-      summary.scrollIntoView?.({ block: 'start' });
-      return;
-    }
+    case 'restaurant-search': searchGooglePlaces(form); return;
     case 'suggest': suggestRestaurant(value('suggestion')); return;
     case 'vote': {
       syncMeal('vote', { id: activeMeal.id, vote: { times: data.getAll('times'), restaurants: data.getAll('restaurants') } }); return;

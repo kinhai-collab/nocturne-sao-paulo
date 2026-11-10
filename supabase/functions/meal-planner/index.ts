@@ -89,7 +89,39 @@ Deno.serve(async req => {
   try {
     const raw = await req.text();
     if (raw.length > 24000) return reply({ error: 'Request is too large.' }, 413);
-    const { action, id, invite, version, details, vote, restaurant, googleCredential } = JSON.parse(raw);
+    const { action, id, invite, version, details, vote, restaurant, googleCredential, city, food } = JSON.parse(raw);
+    if (action === 'places') {
+      if (typeof city !== 'string' || !city.trim() || city.length > 120 ||
+          typeof food !== 'string' || food.length > 100) {
+        return reply({ error: 'Enter a city and a food type of up to 100 characters.' }, 400);
+      }
+      const key = Deno.env.get('GOOGLE_PLACES_API_KEY');
+      if (!key) return reply({ error: 'Live Google Maps search is unavailable.' }, 503);
+      const { data: reserved, error: quotaError } = await db.rpc('meal_reserve_places_search');
+      if (quotaError) return reply({ error: 'Restaurant search is temporarily unavailable.' }, 503);
+      if (!reserved) return reply({ error: 'Nocturne reached its monthly Google Maps search limit. You can still search in Google Maps.' }, 429);
+      try {
+        const result = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': key,
+            'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.primaryTypeDisplayName,places.attributions',
+          },
+          body: JSON.stringify({
+            textQuery: `${food.trim() || 'Restaurants'} in ${city.trim()}`,
+            includedType: 'restaurant',
+            pageSize: 20,
+          }),
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!result.ok) return reply({ error: 'Google Maps search is temporarily unavailable.' }, 502);
+        const { places = [] } = await result.json();
+        return reply(places);
+      } catch {
+        return reply({ error: 'Google Maps search did not respond. Try again.' }, 502);
+      }
+    }
     if (action === 'remember' && !remembered) {
       const token = 'nocturne_' + (crypto.randomUUID() + crypto.randomUUID()).replaceAll('-', '');
       const { error } = await db.from(sessions).insert({
