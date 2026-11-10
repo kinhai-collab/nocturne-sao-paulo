@@ -17,6 +17,8 @@ let activeWish = null;
 let noticeTimer;
 const rememberedSessionKey = 'nocturne-planner-session';
 let credential = '';
+let lastMealRefresh = 0;
+let autoRefreshing = false;
 
 function savedSession() {
   try { return JSON.parse(localStorage.getItem(rememberedSessionKey)); }
@@ -52,12 +54,13 @@ async function signOut() {
   forgetSession();
   credential = '';
   state.meals = [];
+  view = 'dashboard';
   window.google?.accounts?.id?.disableAutoSelect();
   microsoftClient?.clearCache().catch(()=>{});
   render();
 }
 
-const rememberSelected = () => root.querySelector('[data-remember-me]')?.checked === true;
+const rememberSelected = () => panel.querySelector('[data-remember-me]')?.checked === true;
 let provider = 'google';
 const microsoftFlowKey = 'nocturne-microsoft-flow';
 let microsoftClient;
@@ -100,10 +103,21 @@ async function api(action, payload = {}) {
   if (!response.ok) throw Error(data.error || 'Could not reach the meal planner.');
   return data;
 }
-async function refresh() {
+async function refresh(inBackground = false) {
+  const currentCredential = credential;
   const meals = await api('list');
+  if (credential !== currentCredential || (inBackground && requestInFlight)) return;
   state.meals = meals;
+  lastMealRefresh = Date.now();
   render();
+}
+async function refreshOnReturn() {
+  if (!credential || document.hidden || panel.open || requestInFlight || autoRefreshing ||
+      !['dashboard', 'polls'].includes(view) || Date.now() - lastMealRefresh < 60_000) return;
+  autoRefreshing = true;
+  try { await refresh(true); }
+  catch { /* Keep the current plans visible when a background refresh fails. */ }
+  finally { autoRefreshing = false; }
 }
 async function finishSignIn() {
   let joined;
@@ -170,6 +184,7 @@ function chooseSignIn() {
   show('Sign in to Enkai', `<div class="stack">
     <button type="button" data-action="signin">Continue with Google</button>
     <button type="button" data-action="microsoft">Continue with Microsoft</button>
+    <label class="option"><input type="checkbox" data-remember-me><span>Remember me on this browser for 30 days</span></label>
   </div>`);
 }
 
@@ -289,15 +304,26 @@ function wishlist() {
     ${state.wishes.map(w => `<article class="card stack"><h3>${escape(w.name)}</h3><small>${escape(w.location)} · ${w.interested.length} interested</small>
       <div class="row"><a class="button" href="${maps(w.name,w.location)}" target="_blank" rel="noopener">Find on Google Maps</a><button data-action="wish-interest" data-id="${w.id}">Interest list</button><button data-action="wish-date" data-id="${w.id}">It’s a Date</button></div></article>`).join('') || '<p class="muted">Save a restaurant you’d like to visit.</p>'}</div>`;
 }
+function settings() {
+  const link = provider === 'google'
+    ? '<button data-action="link-microsoft">Link Microsoft account</button>'
+    : '<button data-action="link-google">Link Google account</button>';
+  return `<div class="stack">
+    <section class="card stack"><h2>Account</h2><div class="row">${link}<button data-action="signout">Sign out</button></div></section>
+    <section class="card stack"><h2>Planning</h2><div class="row"><button data-action="people">Saved guests</button><button data-action="busy">Calendar blocks</button></div></section>
+  </div>`;
+}
 function render() {
-  const names = { dashboard: 'Your meals', polls: 'Open polls', wishlist: 'Your restaurant wish list' };
-  root.innerHTML = `<section class="hero"><p class="eyebrow">Meal planner</p><h1>${names[view]}</h1>
-    <p class="muted">${credential ? 'Share a poll link and see responses as guests vote.' : invite ? 'You’ve been invited to a meal. Sign in to view the options and vote. If Google sign-in is blocked in your messaging app, open this link in Chrome or Safari.' : 'Sign in to plan meals, invite guests, and collect responses.'}</p>
-    <div class="row">${credential ? '<button class="primary" data-action="new">Plan a meal</button><button data-action="refresh">Refresh responses</button><button data-action="signout">Sign out</button>' + (provider === 'google' ? '<button data-action="link-microsoft">Link Microsoft account</button>' : '<button data-action="link-google">Link Google account</button>') : '<button class="primary" data-action="choose-signin">Sign in</button>'}<button data-action="people">Connections</button><button data-action="busy">Calendar blocks</button></div>
-    ${credential ? '' : '<label class="option"><input type="checkbox" data-remember-me><span>Remember me on this browser for 30 days</span></label>'}</section>
-    ${view==='dashboard' ? dashboard() : view==='wishlist' ? wishlist() : '<div class="stack">'+(state.meals.filter(isPolling).map(card).join('') || '<p class="muted">No open polls yet.</p>')+'</div>'}`;
+  if (!credential && view === 'settings') view = 'dashboard';
+  const names = { dashboard: 'Your dates await', polls: 'Open polls', wishlist: 'Your restaurant wish list', settings: 'Settings' };
+  root.innerHTML = `<section class="hero"><h1>${names[view]}</h1>
+    ${credential ? '' : `<p class="muted">${invite ? 'You’ve been invited to dinner. Sign in to see the options and vote. If sign-in is blocked in your messaging app, open this link in Chrome or Safari.' : 'Make dinner plans and find a time that works for everyone.'}</p>`}
+    ${!credential || view === 'dashboard' ? `<div class="row"><button class="primary" data-action="${credential ? 'new' : 'choose-signin'}">${credential ? 'Plan an evening' : 'Sign in'}</button></div>` : ''}</section>
+    ${view === 'dashboard' ? dashboard() : view === 'wishlist' ? wishlist() : view === 'settings' ? settings() :
+      '<div class="stack">' + (state.meals.filter(isPolling).map(card).join('') || '<p class="muted">No open polls yet.</p>') + '</div>'}`;
+  document.querySelector('[data-view="settings"]').hidden = !credential;
   document.querySelectorAll('[data-view]').forEach(button => {
-    if (button.dataset.view===view) button.setAttribute('aria-current','page');
+    if (button.dataset.view === view) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
 }
@@ -306,7 +332,7 @@ function timeInput(value = '') {
   return `<div class="row"><label>Local date and time <input type="datetime-local" name="time" value="${escape(value)}"></label><button type="button" data-action="remove-time" aria-label="Remove time">Remove</button></div>`;
 }
 function chooseFlow() {
-  show('Plan a meal', `<div class="stack">
+  show('Plan an evening', `<div class="stack">
     <button data-action="flow" data-id="restaurant"><strong>I know the restaurant</strong><br><small>Pick the place first</small></button>
     <button data-action="flow" data-id="date"><strong>I know the date</strong><br><small>Set a time, then choose a place</small></button>
     <button data-action="flow" data-id="undecided"><strong>Help us decide</strong><br><small>Poll dates first, then restaurants</small></button></div>`);
@@ -465,14 +491,14 @@ function mealForm(wish, flow = 'restaurant') {
     <div class="stack" id="time-options">${timeInput().repeat(flow==='undecided'?3:1)}</div>
     <button type="button" data-action="add-time" ${flow==='undecided'?'':'hidden'}>Add a time option</button></fieldset>`;
   const venue = restaurantPicker(wish?.name);
-  show('Plan a meal', `<form class="stack" data-form="new" data-flow="${flow}">
+  show('Plan an evening', `<form class="stack" data-form="new" data-flow="${flow}">
     <p class="eyebrow">${{restaurant:'By restaurant',date:'By date',undecided:'Help us decide'}[flow]}</p>
     <label>Meal name <input name="title" maxlength="100" required value="${escape(wish ? 'Dinner at '+wish.name : 'Dinner')}"></label>
     <label>City or neighbourhood <input name="location" maxlength="120" value="${escape(wish?.location)}"></label>
     ${flow==='restaurant' ? venue+timeFields : timeFields+(flow==='date'?venue:'<small>After choosing a time, you can start a restaurant poll on this meal.</small>')}
     <label>Duration <select name="duration">${durations.map(m=>`<option value="${m}" ${m===90?'selected':''}>${durationLabel(m)}</option>`).join('')}</select></label>
     <fieldset class="stack"><legend>Invite guests</legend>
-      ${state.people.length ? choices(state.people,'contacts',wish?.interested || [],escape) : '<small>Add people in Connections, or enter guest names below.</small>'}
+      ${state.people.length ? choices(state.people,'contacts',wish?.interested || [],escape) : '<small>Enter guest names below. They’ll be available to select next time.</small>'}
       <label>Other guest names <input name="guests" maxlength="500" placeholder="Names separated by commas" value="${escape(wish?.interested.filter(p=>!state.people.includes(p)).join(', '))}"></label>
       <label class="option"><input type="checkbox" name="saveContacts"><span>Save new guest names to Connections</span></label>
       <small>Share the invite link after saving. Guests appear as joined when they open it and sign in.</small></fieldset>
@@ -516,7 +542,7 @@ function mealDetails(meal) {
       <button>Save meal details</button></form>` : ''}</div>`);
 }
 function peopleForm() {
-  show('Connections', `<form class="stack" data-form="people"><p class="muted">Keep a local list of people you plan meals with.</p><label>Names, separated by commas <input name="people" maxlength="800" value="${escape(state.people.join(', '))}"></label><button class="primary">Save connections</button></form>`);
+  show('Saved guests', `<form class="stack" data-form="people"><p class="muted">Keep a local list of people you plan meals with.</p><label>Names, separated by commas <input name="people" maxlength="800" value="${escape(state.people.join(', '))}"></label><button class="primary">Save guests</button></form>`);
 }
 function busyForm() {
   show('Calendar blocks', `<form class="stack" data-form="busy"><p class="muted">Add a block to see how conflicts appear in the time poll.</p>
@@ -548,7 +574,7 @@ document.addEventListener('click', event=>{
   const button = event.target.closest('button');
   if (!button) return;
   const { action, id, view: tab } = button.dataset;
-  if (tab) { view=tab; render(); window.scrollTo(0,0); return; }
+  if (tab) { view=tab; render(); window.scrollTo(0,0); refreshOnReturn(); return; }
   switch(action) {
     case 'close': if (restaurantReturn) closeRestaurantBrowser(); else panel.close(); break;
     case 'new': if (credential) chooseFlow(); else startSignIn(); break;
@@ -586,8 +612,6 @@ document.addEventListener('click', event=>{
       break;
     case 'signout':
       signOut(); break;
-    case 'refresh':
-      refresh().then(()=>message('Responses refreshed.')).catch(error=>message(error.message)); break;
     case 'refresh-meal': {
       const id = activeMeal.id;
       refresh().then(()=>{ if(panel.open) mealDetails(state.meals.find(meal=>meal.id===id)); }).catch(error=>message(error.message));
@@ -709,6 +733,9 @@ async function copyInvite(url) {
   try { await navigator.clipboard.writeText(url); message('Invite link copied.'); }
   catch { show('Share invite', `<label>Copy this link<input readonly value="${escape(url)}"></label>`); }
 }
+document.addEventListener('visibilitychange', refreshOnReturn);
+window.addEventListener('pageshow', event => { if (event.persisted) refreshOnReturn(); });
+
 render();
 if (sessionStorage.getItem(microsoftFlowKey)) resumeMicrosoft().catch(error=>message(error.message));
 else restoreSession().then(() => { if (openSignIn && !credential) chooseSignIn(); });

@@ -109,3 +109,12 @@ body[data-planner-theme] select {
 body[data-planner-theme] :is(.primary, button[aria-pressed="true"], button[aria-current="page"]) {
   color: var(--button-ink);
 }
+
+.settings-nav {
+  min-height: 44px;
+  background: transparent;
+  border-color: transparent;
+  padding-inline: .45rem;
+  color: var(--accent);
+}
+header nav { align-items: center; }
