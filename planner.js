@@ -671,8 +671,11 @@ async function syncMeal(action, payload, newContacts = []) {
 }
 
 function inviteUrl(meal) {
-  const url = new URL(location.pathname, location.origin);
-  url.hash = 'invite=' + meal.invite;
+  const hex = meal.invite.replaceAll('-', '');
+  const bytes = hex.match(/../g).map(pair => String.fromCharCode(parseInt(pair, 16))).join('');
+  const code = btoa(bytes).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+  const url = new URL('i.html', location.href);
+  url.search = code;
   return url.href;
 }
 async function copyInvite(url) {
