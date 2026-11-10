@@ -1,0 +1,21 @@
+.enkai-logo {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  width: clamp(78px, 13vw, 116px);
+  aspect-ratio: 1.7;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.enkai-logo img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 165%;
+  max-width: none;
+  height: auto;
+  display: block;
+  transform: translate(-50%, -54%);
+}
