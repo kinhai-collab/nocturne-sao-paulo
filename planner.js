@@ -304,7 +304,7 @@ function browseRestaurants(guest = false) {
         <label>Sort by <select data-restaurant-sort><option value="match">Best match</option><option value="popular">Popularity</option><option value="rating">Highest rating</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></label>
       </div>
     </form>
-    <p class="muted" data-restaurant-count role="status"></p>
+    <p class="muted" data-restaurant-count role="status" tabindex="-1"></p>
     <div class="stack" data-restaurant-results></div>
     <a data-google-search target="_blank" rel="noopener">Search Google Maps ↗</a>
     ${guest ? '<form class="stack" data-form="suggest"><label>Suggest a restaurant by name <input name="suggestion" required maxlength="120"></label><button>Add to poll</button></form>' : ''}
@@ -590,7 +590,17 @@ panel.addEventListener('submit',event=>{
       const newContacts = data.has('saveContacts') ? split(value('guests')) : [];
       syncMeal('create', { details }, newContacts); return;
     }
-    case 'restaurant-search': updateRestaurantResults(panel.querySelector('[data-restaurant-search]')); return;
+    case 'restaurant-search': {
+      const food = form.querySelector('[data-restaurant-search]');
+      const city = form.querySelector('[data-restaurant-city]');
+      updateRestaurantResults(food);
+      const summary = panel.querySelector('[data-restaurant-count]');
+      const terms = [food.value.trim(), city.value.trim()].filter(Boolean);
+      summary.textContent = (terms.length ? `Search results for ${terms.join(' in ')}. ` : 'All restaurants. ') + summary.textContent;
+      summary.focus({ preventScroll: true });
+      summary.scrollIntoView?.({ block: 'start' });
+      return;
+    }
     case 'suggest': suggestRestaurant(value('suggestion')); return;
     case 'vote': {
       syncMeal('vote', { id: activeMeal.id, vote: { times: data.getAll('times'), restaurants: data.getAll('restaurants') } }); return;
