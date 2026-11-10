@@ -898,5 +898,140 @@
     "restaurant": "pearl-morissette",
     "asset": "pearl-morissette-card.webp",
     "source": "https://restaurantpearlmorissette.com/img/01_Desktop/new2023/1.imageset/1@2x.jpg"
+  },
+  {
+    "restaurant": "dim-sum-king",
+    "asset": "dim-sum-king-card.webp",
+    "source": "https://cdn3.didevelop.com/public/cdn/180_7e9671d56a9070d2dfecced2aea9cf6c.webp"
+  },
+  {
+    "restaurant": "dim-sum-king",
+    "asset": "dim-sum-king-photo-1.webp",
+    "source": "https://cdn3.didevelop.com/public/cdn/180_7e9671d56a9070d2dfecced2aea9cf6c.webp"
+  },
+  {
+    "restaurant": "dim-sum-king",
+    "asset": "dim-sum-king-photo-2.webp",
+    "source": "https://cdn3.didevelop.com/public/product_images/3211/180_a009c6056919b11b064394b7183f5bde.webp"
+  },
+  {
+    "restaurant": "dim-sum-king",
+    "asset": "dim-sum-king-photo-3.webp",
+    "source": "https://cdn3.didevelop.com/public/cdn/180_3cf5fbb6a46808535384c0e1bebd92b0.webp"
+  },
+  {
+    "restaurant": "yu-richmond",
+    "asset": "yu-richmond-card.webp",
+    "source": "https://static1.squarespace.com/static/6515e1acd928dc099f1bb367/t/6672359c58a1d022e7715ba8/1718760877649/Yu+Seafood+Logo-2.png"
+  },
+  {
+    "restaurant": "yu-richmond",
+    "asset": "yu-richmond-photo-1.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/6515e1acd928dc099f1bb367/5a1c48e9-cd6f-4e5b-a9eb-e74585ec9ff5/WL__4525+copy.jpg"
+  },
+  {
+    "restaurant": "yu-richmond",
+    "asset": "yu-richmond-photo-2.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/6515e1acd928dc099f1bb367/dd208b3f-9dd2-4e8b-86e1-81eef9931215/WL__5593+copy.jpg"
+  },
+  {
+    "restaurant": "spring-sushi",
+    "asset": "spring-sushi-card.webp",
+    "source": "https://springsushi.com/toronto/wp-content/uploads/2024/12/SST-Logo-1.png"
+  },
+  {
+    "restaurant": "spring-sushi",
+    "asset": "spring-sushi-photo-1.webp",
+    "source": "https://springsushi.com/toronto/wp-content/uploads/2022/08/SpringSushi2964-scaled-1.jpg"
+  },
+  {
+    "restaurant": "spring-sushi",
+    "asset": "spring-sushi-photo-2.webp",
+    "source": "https://springsushi.com/toronto/wp-content/uploads/2023/03/Hako-Salmon-scaled.webp"
+  },
+  {
+    "restaurant": "spring-sushi",
+    "asset": "spring-sushi-photo-3.webp",
+    "source": "https://springsushi.com/toronto/wp-content/uploads/2023/03/Salmon-Tempura-Roll-3.webp"
+  },
+  {
+    "restaurant": "sushi-legend",
+    "asset": "sushi-legend-card.webp",
+    "source": "https://www.sushilegend.ca/img/logo.png"
+  },
+  {
+    "restaurant": "bcd-soon-tofu",
+    "asset": "bcd-soon-tofu-card.webp",
+    "source": "https://bukchangdongsoontofu.com/wp-content/uploads/2025/07/bdc-logo.png"
+  },
+  {
+    "restaurant": "daldongnae-yonge",
+    "asset": "daldongnae-yonge-card.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/64cb1211ed78b4775652cf45/e321bae4-a9e9-43c0-8b74-59283b529617/logo_white.png"
+  },
+  {
+    "restaurant": "daldongnae-yonge",
+    "asset": "daldongnae-yonge-photo-1.webp",
+    "source": "https://images.squarespace-cdn.com/content/64cb1211ed78b4775652cf45/1b7b2b76-c779-49f3-87d4-442fd2d0938c/DDN-Location-800x420-10.png"
+  },
+  {
+    "restaurant": "daldongnae-yonge",
+    "asset": "daldongnae-yonge-photo-2.webp",
+    "source": "https://images.squarespace-cdn.com/content/64cb1211ed78b4775652cf45/88ae5563-1451-41b3-a06f-cc9e94271363/DDN-Location-800x420-17.png"
+  },
+  {
+    "restaurant": "daldongnae-yonge",
+    "asset": "daldongnae-yonge-photo-3.webp",
+    "source": "https://images.squarespace-cdn.com/content/64cb1211ed78b4775652cf45/7f471242-680f-4e45-bb4d-63dbb418cc1c/DDN-Location-800x420-4.png"
+  },
+  {
+    "restaurant": "pai-uptown",
+    "asset": "pai-uptown-card.webp",
+    "source": "https://uptownyonge2.wpenginepowered.com/wp-content/uploads/2023/09/342733782_1270080813861410_2542711962612388862_n.jpg"
+  },
+  {
+    "restaurant": "pai-uptown",
+    "asset": "pai-uptown-photo-1.webp",
+    "source": "https://uptownyonge2.wpenginepowered.com/wp-content/uploads/2023/09/342733782_1270080813861410_2542711962612388862_n.jpg"
+  },
+  {
+    "restaurant": "pai-uptown",
+    "asset": "pai-uptown-photo-2.webp",
+    "source": "https://uptownyonge2.wpenginepowered.com/wp-content/uploads/2023/09/345296401_1284201455829019_6141439425955737133_n.jpg"
+  },
+  {
+    "restaurant": "pai-uptown",
+    "asset": "pai-uptown-photo-3.webp",
+    "source": "https://uptownyonge2.wpenginepowered.com/wp-content/uploads/2023/09/346788745_563833452557020_457273119179230746_n.jpg"
+  },
+  {
+    "restaurant": "pai-uptown",
+    "asset": "pai-uptown-photo-4.webp",
+    "source": "https://uptownyonge2.wpenginepowered.com/wp-content/uploads/2023/09/356990213_752959250165134_7197098868892493762_n.jpg"
+  },
+  {
+    "restaurant": "dragon-legend",
+    "asset": "dragon-legend-card.webp",
+    "source": "https://www.dragonlegend.ca/wp-content/uploads/2026/06/DL2606_VIP1_01-1.webp"
+  },
+  {
+    "restaurant": "dragon-legend",
+    "asset": "dragon-legend-photo-1.webp",
+    "source": "https://www.dragonlegend.ca/wp-content/uploads/2026/06/DL2606_VIP1_01-1.webp"
+  },
+  {
+    "restaurant": "dragon-legend",
+    "asset": "dragon-legend-photo-2.webp",
+    "source": "https://www.dragonlegend.ca/wp-content/uploads/2026/06/DL2606_VIP-2-768x576.webp"
+  },
+  {
+    "restaurant": "dragon-legend",
+    "asset": "dragon-legend-photo-3.webp",
+    "source": "https://www.dragonlegend.ca/wp-content/uploads/2022/05/AB-party-room-768x512.webp"
+  },
+  {
+    "restaurant": "dragon-legend",
+    "asset": "dragon-legend-photo-4.webp",
+    "source": "https://www.dragonlegend.ca/wp-content/uploads/2026/05/CD-party-room_3.webp"
   }
 ]
