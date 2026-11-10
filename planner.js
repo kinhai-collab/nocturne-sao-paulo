@@ -17,7 +17,49 @@ let anchor = new Date();
 let activeMeal = null;
 let activeWish = null;
 let noticeTimer;
+const rememberedSessionKey = 'nocturne-planner-session';
 let credential = '';
+
+function savedSession() {
+  try { return JSON.parse(localStorage.getItem(rememberedSessionKey)); }
+  catch { return null; }
+}
+function forgetSession() {
+  try { localStorage.removeItem(rememberedSessionKey); } catch {}
+}
+async function rememberSession() {
+  try {
+    const { token } = await api('remember');
+    localStorage.setItem(rememberedSessionKey, JSON.stringify({ token, provider }));
+    credential = token;
+  } catch {
+    message('Signed in for now. This browser could not remember your sign-in.');
+  }
+}
+async function restoreSession() {
+  const saved = savedSession();
+  if (!saved?.token) return;
+  credential = saved.token;
+  provider = saved.provider === 'microsoft' ? 'microsoft' : 'google';
+  try { await finishSignIn(); }
+  catch (error) { credential = ''; render(); message(error.message); }
+}
+async function signOut() {
+  const saved = savedSession();
+  if (saved?.token) {
+    credential = saved.token;
+    try { await api('signout'); }
+    catch (error) { if (credential) { message(error.message); return; } }
+  }
+  forgetSession();
+  credential = '';
+  state.meals = [];
+  window.google?.accounts?.id?.disableAutoSelect();
+  microsoftClient?.clearCache().catch(()=>{});
+  render();
+}
+
+const rememberSelected = () => root.querySelector('[data-remember-me]')?.checked === true;
 let provider = 'google';
 const microsoftFlowKey = 'nocturne-microsoft-flow';
 let microsoftClient;
@@ -35,6 +77,7 @@ async function api(action, payload = {}) {
   const data = await response.json().catch(() => ({}));
   if (response.ok && action === 'list' && !Array.isArray(data)) throw Error('Could not load your meals.');
   if (response.status === 401) {
+    if (credential === savedSession()?.token) forgetSession();
     credential = '';
     state.meals = [];
     if (panel.open) panel.close();
@@ -83,7 +126,7 @@ async function getMicrosoftClient() {
 }
 async function startMicrosoft(linking) {
   try {
-    sessionStorage.setItem(microsoftFlowKey, JSON.stringify({ invite, linking }));
+    sessionStorage.setItem(microsoftFlowKey, JSON.stringify({ invite, linking, remember: linking ? Boolean(savedSession()) : rememberSelected() }));
     const client = await getMicrosoftClient();
     await client.loginRedirect({ scopes: ['openid', 'profile'], prompt: 'select_account' });
   } catch (error) {
@@ -96,22 +139,24 @@ async function resumeMicrosoft() {
   if (!pending) return;
   sessionStorage.removeItem(microsoftFlowKey);
   try {
-    const { invite: savedInvite, linking } = JSON.parse(pending);
+    const { invite: savedInvite, linking, remember } = JSON.parse(pending);
     invite = savedInvite;
     const result = await (await getMicrosoftClient()).handleRedirectPromise();
     if (!result?.idToken) return;
     credential = result.idToken;
     provider = 'microsoft';
     await finishSignIn();
-    if (linking) await startSignIn(true);
+    if (linking) await startSignIn(true, remember);
+    else if (remember) await rememberSession();
   } catch (error) { message(error.message); }
 }
 
-async function startSignIn(linking = false) {
+async function startSignIn(linking = false, remember = rememberSelected()) {
   if (signingIn) return;
   signingIn = true;
   show(linking ? 'Link your Google account' : 'Sign in with Google',
-    '<div id="planner-google" class="stack"><p class="muted">Loading Google sign-in…</p></div>');
+    `<div id="planner-google" class="stack"><p class="muted">Loading Google sign-in…</p></div>
+    ${linking ? '' : `<label class="option"><input type="checkbox" data-google-remember ${remember?'checked':''}><span>Remember me on this browser for 30 days</span></label>`}`);
   try {
     if (!window.google?.accounts?.id) await new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -127,13 +172,16 @@ async function startSignIn(linking = false) {
         try {
           if (linking) {
             await api('link', { googleCredential: result.credential });
+            if (remember && !savedSession()) await rememberSession();
             await refresh();
             if (panel.open) panel.close();
             message('Accounts linked. Both sign-in methods now open the same planner.');
           } else {
+            const keepSignedIn = panel.querySelector('[data-google-remember]')?.checked === true;
             provider = 'google';
             credential = result.credential;
             await finishSignIn();
+            if (keepSignedIn) await rememberSession();
           }
         } catch (error) {
           if (!linking) credential = '';
@@ -214,7 +262,8 @@ function render() {
   const names = { dashboard: 'Your upcoming meals', polls: 'Open polls', wishlist: 'Your restaurant wish list' };
   root.innerHTML = `<section class="hero"><p class="eyebrow">Meal planner</p><h1>${names[view]}</h1>
     <p class="muted">${credential ? 'Share a poll link and see responses as guests vote.' : invite ? 'You’ve been invited to a meal. Sign in to view the options and vote. If Google sign-in is blocked in your messaging app, open this link in Chrome or Safari.' : 'Sign in to plan meals, invite guests, and collect responses.'}</p>
-    <div class="row">${credential ? '<button class="primary" data-action="new">Plan a meal</button><button data-action="refresh">Refresh responses</button><button data-action="signout">Sign out</button>' + (provider === 'google' ? '<button data-action="link-microsoft">Link Microsoft account</button>' : '<button data-action="link-google">Link Google account</button>') : '<button class="primary" data-action="signin">Sign in with Google</button><button data-action="microsoft">Sign in with Microsoft</button>'}<button data-action="people">Connections</button><button data-action="busy">Calendar blocks</button></div></section>
+    <div class="row">${credential ? '<button class="primary" data-action="new">Plan a meal</button><button data-action="refresh">Refresh responses</button><button data-action="signout">Sign out</button>' + (provider === 'google' ? '<button data-action="link-microsoft">Link Microsoft account</button>' : '<button data-action="link-google">Link Google account</button>') : '<button class="primary" data-action="signin">Sign in with Google</button><button data-action="microsoft">Sign in with Microsoft</button>'}<button data-action="people">Connections</button><button data-action="busy">Calendar blocks</button></div>
+    ${credential ? '' : '<label class="option"><input type="checkbox" data-remember-me><span>Remember me on this browser for 30 days</span></label>'}</section>
     ${view==='dashboard' ? dashboard() : view==='wishlist' ? wishlist() : '<div class="stack">'+(state.meals.filter(isPolling).map(card).join('') || '<p class="muted">No open polls yet.</p>')+'</div>'}`;
   document.querySelectorAll('[data-view]').forEach(button => {
     if (button.dataset.view===view) button.setAttribute('aria-current','page');
@@ -479,9 +528,12 @@ document.addEventListener('click', event=>{
     case 'signin': startSignIn(); break;
     case 'microsoft': startMicrosoft(false); break;
     case 'link-microsoft': startMicrosoft(true); break;
-    case 'link-google': startSignIn(true); break;
+    case 'link-google':
+      if (credential === savedSession()?.token) startMicrosoft(true);
+      else startSignIn(true);
+      break;
     case 'signout':
-      credential=''; state.meals=[]; window.google?.accounts?.id?.disableAutoSelect(); microsoftClient?.clearCache().catch(()=>{}); render(); break;
+      signOut(); break;
     case 'refresh':
       refresh().then(()=>message('Responses refreshed.')).catch(error=>message(error.message)); break;
     case 'refresh-meal': {
@@ -605,4 +657,5 @@ async function copyInvite(url) {
   catch { show('Share invite', `<label>Copy this link<input readonly value="${escape(url)}"></label>`); }
 }
 render();
-resumeMicrosoft().catch(error=>message(error.message));
+if (sessionStorage.getItem(microsoftFlowKey)) resumeMicrosoft().catch(error=>message(error.message));
+else restoreSession();

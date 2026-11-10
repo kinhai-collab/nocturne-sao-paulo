@@ -42,17 +42,34 @@ async function verifyGoogle(token: string) {
   return payload;
 }
 
+const sessions = 'meal_remembered_sessions';
+const sessionHash = async (token: string) => {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
 Deno.serve(async req => {
   if (req.headers.get('origin') !== origin) return reply({ error: 'Origin not allowed.' }, 403);
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (req.method !== 'POST') return reply({ error: 'Method not allowed.' }, 405);
   const credential = req.headers.get('authorization')?.match(/^Bearer ([\w.-]+)$/)?.[1];
   if (!credential || credential.length > 10000) return reply({ error: 'Sign in with Google to continue.' }, 401);
-  const microsoft = req.headers.get('authorization-provider') === 'microsoft';
+  const remembered = /^nocturne_[a-f0-9]{64}$/.test(credential);
+  let microsoft = req.headers.get('authorization-provider') === 'microsoft';
+  let tokenHash = '';
   let actor: string;
   let name: string;
   try {
-    if (microsoft) {
+    if (remembered) {
+      tokenHash = await sessionHash(credential);
+      const { data, error } = await db.from(sessions).select('account, display_name, microsoft')
+        .eq('token_hash', tokenHash).gt('expires_at', new Date().toISOString()).maybeSingle();
+      if (error) return reply({ error: 'Could not check your saved sign-in. Try again.' }, 503);
+      if (!data) return reply({ error: 'Your saved sign-in expired. Sign in again.' }, 401);
+      actor = data.account;
+      name = data.display_name;
+      microsoft = data.microsoft;
+    } else if (microsoft) {
       const { payload } = await jwtVerify(credential, microsoftKeys, {
         audience: microsoftAudience, issuer: microsoftIssuer, algorithms: ['RS256'],
         requiredClaims: ['sub', 'exp', 'iat', 'tid'],
@@ -73,9 +90,22 @@ Deno.serve(async req => {
     const raw = await req.text();
     if (raw.length > 24000) return reply({ error: 'Request is too large.' }, 413);
     const { action, id, invite, version, details, vote, restaurant, googleCredential } = JSON.parse(raw);
+    if (action === 'remember' && !remembered) {
+      const token = 'nocturne_' + (crypto.randomUUID() + crypto.randomUUID()).replaceAll('-', '');
+      const { error } = await db.from(sessions).insert({
+        token_hash: await sessionHash(token), account: actor, display_name: name, microsoft,
+      });
+      if (error) return reply({ error: 'Could not save your sign-in on this browser.' }, 503);
+      await db.from(sessions).delete().lt('expires_at', new Date().toISOString());
+      return reply({ token });
+    }
+    if (action === 'signout' && remembered) {
+      const { error } = await db.from(sessions).delete().eq('token_hash', tokenHash);
+      return error ? reply({ error: 'Could not revoke the saved sign-in.' }, 503) : reply({ ok: true });
+    }
     let payload;
     let linkedGoogle = null;
-    if (action === 'link' && microsoft && typeof googleCredential === 'string' && googleCredential.length <= 10000) {
+    if (action === 'link' && microsoft && !remembered && typeof googleCredential === 'string' && googleCredential.length <= 10000) {
       try { linkedGoogle = (await verifyGoogle(googleCredential)).sub; }
       catch { return reply({ error: 'Google account could not be verified. Try signing in again.' }, 400); }
       payload = {};
