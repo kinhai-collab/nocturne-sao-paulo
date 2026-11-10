@@ -72,7 +72,7 @@ Deno.serve(async req => {
   try {
     const raw = await req.text();
     if (raw.length > 24000) return reply({ error: 'Request is too large.' }, 413);
-    const { action, id, invite, version, details, vote, googleCredential } = JSON.parse(raw);
+    const { action, id, invite, version, details, vote, restaurant, googleCredential } = JSON.parse(raw);
     let payload;
     let linkedGoogle = null;
     if (action === 'link' && microsoft && typeof googleCredential === 'string' && googleCredential.length <= 10000) {
@@ -81,6 +81,7 @@ Deno.serve(async req => {
       payload = {};
     } else if (action === 'list') payload = {};
     else if (action === 'join' && typeof invite === 'string' && uuid.test(invite)) payload = { invite };
+    else if (action === 'suggest' && typeof id === 'string' && uuid.test(id) && typeof restaurant === 'string' && label(restaurant) && restaurant.length <= 120) payload = { id, restaurant };
     else if (action === 'vote' && typeof id === 'string' && uuid.test(id) &&
              list(vote?.times, 10, time) && list(vote?.restaurants, 30, label)) {
       payload = { id, vote: { times: vote.times, restaurants: vote.restaurants } };

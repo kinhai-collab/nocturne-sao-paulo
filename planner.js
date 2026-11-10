@@ -231,30 +231,78 @@ function chooseFlow() {
     <button data-action="flow" data-id="date"><strong>I know the date</strong><br><small>Set a time, then choose a place</small></button>
     <button data-action="flow" data-id="undecided"><strong>Help us decide</strong><br><small>Poll dates first, then restaurants</small></button></div>`);
 }
+let restaurantReturn = null;
+
 function restaurantPicker(value = '') {
-  return `<fieldset class="stack"><legend>Find a restaurant</legend>
-    <label>Search the Ontario guide <input type="search" data-restaurant-search placeholder="Name, cuisine, or neighbourhood"></label>
-    <div class="stack" data-restaurant-results></div>
-    <a data-google-search href="${maps('', '')}" target="_blank" rel="noopener">Search Google Maps ↗</a>
-    <label>Restaurant names, one per line <textarea name="restaurants" rows="3" maxlength="450" placeholder="Type a name or add one above">${escape(value)}</textarea></label>
+  return `<fieldset class="stack"><legend>Restaurant choices</legend>
+    <button type="button" data-action="browse-restaurants">Search restaurants</button>
+    <label>Restaurant names, one per line <textarea name="restaurants" rows="3" maxlength="450">${escape(value)}</textarea></label>
     <small>Use 3–5 choices for a restaurant poll. A single name sets the restaurant.</small></fieldset>`;
 }
+
+function browseRestaurants(guest = false) {
+  const input = guest ? null : panel.querySelector('[name=restaurants]');
+  const location = panel.querySelector('[name=location]')?.value || activeMeal?.location || '';
+  restaurantReturn = { nodes: [...panel.childNodes], input, guest, location, meal: activeMeal };
+  panel.classList.add('restaurant-browser');
+  show('Search restaurants', `<div class="stack">
+    <button type="button" data-action="return-restaurants">← Back to meal</button>
+    <label>Search by name, cuisine or neighbourhood <input type="search" data-restaurant-search autofocus></label>
+    <div class="stack" data-restaurant-results></div>
+    <a data-google-search target="_blank" rel="noopener">Search Google Maps ↗</a>
+    ${guest ? '<form class="stack" data-form="suggest"><label>Suggest a restaurant by name <input name="suggestion" required maxlength="120"></label><button>Add to poll</button></form>' : ''}
+  </div>`);
+  const search = panel.querySelector('[data-restaurant-search]');
+  updateRestaurantResults(search);
+  search.focus();
+}
+
+function closeRestaurantBrowser() {
+  const previous = restaurantReturn;
+  if (!previous) return;
+  restaurantReturn = null;
+  panel.classList.remove('restaurant-browser');
+  panel.replaceChildren(...previous.nodes);
+  panel.querySelector('[data-action=browse-restaurants], [data-action=suggest-restaurant]')?.focus();
+}
+
 function updateRestaurantResults(input) {
-  const fieldset = input.closest('fieldset');
+  const { input: names, guest, meal, location } = restaurantReturn;
   const query = input.value.trim().toLowerCase();
   const history = [...new Set(state.meals.filter(m => m.organizer && m.restaurant && ['Booked','Confirmed'].includes(m.status)).map(m => m.restaurant))];
-  const candidates = [...(window.BEYOND_RESTAURANTS || [])];
+  const candidates = [...(window.BEYOND_RESTAURANTS || []),
+    ...(window.RESTAURANTS || []).map(([id,name,stars,cuisine,priceLevel])=>({id,name,cuisine,priceLevel,area:'São Paulo'}))];
   const matches = candidates.filter(r => [r.name,r.cuisine,r.area].some(value => String(value || '').toLowerCase().includes(query)));
-  const thumbnail = restaurant => {
-    const src = window.RESTAURANT_MEDIA?.[restaurant.id]?.card;
-    return src ? `<img class="venue-thumb" src="${escape(src)}" alt="" loading="lazy">` : '';
+  const selected = new Set([...(meal?.restaurants || []), ...(names?.value.split('\n') || [])].map(name=>name.trim().toLowerCase()));
+  const card = (name, r) => {
+    const src = window.RESTAURANT_MEDIA?.[r?.id]?.card;
+    const added = selected.has(name.toLowerCase());
+    const preview = r ? [r.area, r.cuisine, r.rating ? '★ '+r.rating : '', r.price ? 'CA$'+r.price[0] : r.priceLevel || ''].filter(Boolean).join(' · ') : '';
+    return `<article class="card venue-result">
+      ${src ? `<img class="venue-thumb" src="${escape(src)}" alt="" loading="lazy">` : ''}
+      <div><h3>${escape(name)}</h3><small>${escape(preview)}</small><div><a href="${maps(name,r?.area || location)}" target="_blank" rel="noopener">View on Google Maps ↗</a></div></div>
+      <button type="button" data-action="pick-restaurant" data-name="${escape(name)}" aria-label="${added?'Added to poll':'Add to poll'}: ${escape(name)}" ${added || (guest && meal.suggested) ? 'disabled' : ''}>${added?'Added to poll':'Add to poll'}</button></article>`;
   };
-  const add = name => `<button type="button" data-action="pick-restaurant" data-name="${escape(name)}">Add ${escape(name)}</button>`;
-  fieldset.querySelector('[data-restaurant-results]').innerHTML =
-    (!query && history.length ? '<small>Booked before</small>'+history.slice(0,4).map(add).join('') : '') +
+  panel.querySelector('[data-restaurant-results]').innerHTML =
+    (!query && history.length ? '<small>Booked before</small>'+history.slice(0,4).map(name=>card(name,candidates.find(r=>r.name===name))).join('') : '') +
     '<small>'+ (query ? 'Guide results' : 'New to you · from the guide') +'</small>' +
-    (matches.filter(r => query || !history.includes(r.name)).slice(0,5).map(r => `<div class="row spread"><div class="row">${thumbnail(r)}<span>${escape(r.name)}<br><small>${escape(r.area)}${r.rating ? ' · ★ '+escape(r.rating) : ''}${r.price ? ' · CA$'+escape(r.price[0]) : ''}</small></span></div>${add(r.name)}</div>`).join('') || '<small>No matching guide entries.</small>');
-  fieldset.querySelector('[data-google-search]').href = maps(query || 'restaurants', panel.querySelector('[name=location]')?.value || activeMeal?.location || '');
+    (matches.filter(r => query || !history.includes(r.name)).slice(0,12).map(r=>card(r.name,r)).join('') || '<small>No matching guide entries.</small>');
+  panel.querySelector('[data-google-search]').href = maps(query || 'restaurants', location);
+}
+
+async function suggestRestaurant(name) {
+  const meal = restaurantReturn?.meal;
+  if (!meal || requestInFlight) return;
+  requestInFlight = true;
+  try {
+    await api('suggest', { id: meal.id, restaurant: name.trim() });
+    await refresh();
+    const updated = state.meals.find(item=>item.id===meal.id);
+    closeRestaurantBrowser();
+    mealDetails(updated);
+    message('Restaurant added to the poll. You can now vote for it.');
+  } catch(error) { message(error.message); }
+  finally { requestInFlight = false; }
 }
 function mealForm(wish, flow = 'restaurant') {
   activeWish = wish || null;
@@ -276,8 +324,6 @@ function mealForm(wish, flow = 'restaurant') {
       <label class="option"><input type="checkbox" name="saveContacts"><span>Save new guest names to Connections</span></label>
       <small>Share the invite link after saving. Guests appear as joined when they open it and sign in.</small></fieldset>
     <div class="row"><button type="button" data-action="new">Back</button><button class="primary">Save and get invite link</button></div></form>`);
-  const search = panel.querySelector('[data-restaurant-search]');
-  if (search) updateRestaurantResults(search);
 }
 
 function hasConflict(time, duration) {
@@ -304,6 +350,7 @@ function mealDetails(meal) {
     ${!meal.restaurant && !meal.restaurants.length ? '<p class="muted">Restaurant to be decided.</p>' : ''}
     ${meal.restaurant ? `<a href="${maps(meal.restaurant,meal.location)}" target="_blank" rel="noopener">Find ${escape(meal.restaurant)} on Google Maps ↗</a>` : ''}
     ${isPolling(meal) ? `<form class="stack card" data-form="vote"><h3>Respond to poll</h3>
+      ${!meal.organizer && !meal.restaurant && meal.restaurants.length ? (meal.suggested ? '<small>You’ve added your restaurant suggestion.</small>' : '<button type="button" data-action="suggest-restaurant">Suggest one restaurant</button>') : ''}
       ${!meal.selectedTime && meal.times.length ? `<fieldset><legend>Times that work</legend>${choices(meal.times,'times',vote.times,t=>escape(dateTime(t))+votesLabel('times',t)+(hasConflict(t,meal.duration)?' · ⚠ Calendar block overlaps':''))}</fieldset>` : ''}
       ${!meal.restaurant && meal.restaurants.length ? `<fieldset><legend>Restaurants you’d visit</legend>${choices(meal.restaurants,'restaurants',vote.restaurants,r=>escape(r)+votesLabel('restaurants',r))}</fieldset>` : ''}<button class="primary">Save response</button></form>` : ''}
     ${meal.organizer ? `<form class="stack card" data-form="manage"><h3>Organizer controls</h3>
@@ -314,8 +361,6 @@ function mealDetails(meal) {
       <label>Reservation status <select name="status">${statuses.map(s=>`<option ${s===meal.status?'selected':''}>${s}</option>`).join('')}</select></label>
       <label>Attending guests <input name="attending" maxlength="500" value="${escape(meal.attending.join(', '))}"></label>
       <button>Save meal details</button></form>` : ''}</div>`);
-  const search = panel.querySelector('[data-restaurant-search]');
-  if (search) updateRestaurantResults(search);
 }
 function peopleForm() {
   show('Connections', `<form class="stack" data-form="people"><p class="muted">Keep a local list of people you plan meals with.</p><label>Names, separated by commas <input name="people" maxlength="800" value="${escape(state.people.join(', '))}"></label><button class="primary">Save connections</button></form>`);
@@ -326,9 +371,10 @@ function busyForm() {
     <label>Start <input type="datetime-local" name="start" required></label><label>End <input type="datetime-local" name="end" required></label><button class="primary">Add block</button></form>`);
 }
 
+panel.addEventListener('close',()=>{ restaurantReturn=null; panel.classList.remove('restaurant-browser'); });
+panel.addEventListener('cancel',event=>{ if(restaurantReturn){ event.preventDefault(); closeRestaurantBrowser(); } });
 panel.addEventListener('input',event=>{
   if(event.target.matches('[data-restaurant-search]')) updateRestaurantResults(event.target);
-  if(event.target.matches('[name=location]')) { const search=panel.querySelector('[data-restaurant-search]'); if(search) updateRestaurantResults(search); }
 });
 panel.addEventListener('change',event=>{
   if(!event.target.matches('[name=dateMode]')) return;
@@ -344,17 +390,26 @@ document.addEventListener('click', event=>{
   const { action, id, view: tab } = button.dataset;
   if (tab) { view=tab; render(); window.scrollTo(0,0); return; }
   switch(action) {
-    case 'close': panel.close(); break;
+    case 'close': if (restaurantReturn) closeRestaurantBrowser(); else panel.close(); break;
     case 'range': days=Number(button.dataset.days); render(); break;
     case 'previous': anchor=moveDays(anchor,-days); render(); break;
     case 'next': anchor=moveDays(anchor,days); render(); break;
     case 'today': anchor=new Date(); render(); break;
     case 'new': if (credential) chooseFlow(); else startSignIn(); break;
     case 'flow': mealForm(null,id); break;
+    case 'browse-restaurants': browseRestaurants(); break;
+    case 'suggest-restaurant': browseRestaurants(true); break;
+    case 'return-restaurants': closeRestaurantBrowser(); break;
     case 'pick-restaurant': {
-      const input = button.closest('fieldset').querySelector('[name=restaurants]');
+      const { input, guest } = restaurantReturn;
+      if (guest) { suggestRestaurant(button.dataset.name); break; }
       const names = input.value.split('\n').map(name=>name.trim()).filter(Boolean);
-      if (!names.includes(button.dataset.name)) input.value = [...names,button.dataset.name].join('\n');
+      const limit = input.form.dataset.flow === 'restaurant' ? 1 : 5;
+      if (names.length >= limit) { message(limit===1?'One restaurant is already selected.':'You can add up to five restaurants.'); break; }
+      input.value = [...names,button.dataset.name].join('\n');
+      button.textContent = 'Added to poll';
+      button.setAttribute('aria-label','Added to poll: '+button.dataset.name);
+      button.disabled = true;
       break;
     }
     case 'signin': startSignIn(); break;
@@ -419,6 +474,7 @@ panel.addEventListener('submit',event=>{
       const newContacts = data.has('saveContacts') ? split(value('guests')) : [];
       syncMeal('create', { details }, newContacts); return;
     }
+    case 'suggest': suggestRestaurant(value('suggestion')); return;
     case 'vote': {
       syncMeal('vote', { id: activeMeal.id, vote: { times: data.getAll('times'), restaurants: data.getAll('restaurants') } }); return;
     }
