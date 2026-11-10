@@ -2,3 +2,6 @@
 # The function verifies Google's RS256 ID token itself before every vote.
 # Supabase session JWTs are not used for this Google-only login flow.
 verify_jwt = false
+
+[functions.meal-planner]
+verify_jwt = false

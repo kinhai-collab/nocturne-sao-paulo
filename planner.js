@@ -6,16 +6,94 @@ const notice = document.querySelector('#notice');
 const storageKey = 'nocturne-planner-preview-v1';
 const durations = [60, 90, 120, 150, 180, 240];
 const statuses = ['Unbooked', 'Booked', 'Confirmed', 'In-person booking only'];
-const blank = { meals: [], wishes: [], people: [], profile: '', busy: [] };
+const blank = { meals: [], wishes: [], people: [], busy: [] };
 let state;
 try { state = { ...blank, ...JSON.parse(localStorage.getItem(storageKey)) }; }
 catch { state = structuredClone(blank); }
+state.meals = [];
 let view = 'dashboard';
 let days = 3;
 let anchor = new Date();
 let activeMeal = null;
 let activeWish = null;
 let noticeTimer;
+let credential = '';
+let signingIn = false;
+let requestInFlight = false;
+let invite = new URLSearchParams(location.hash.slice(1)).get('invite');
+const endpoint = new URL('meal-planner', window.POLL_CONFIG.endpoint).href;
+
+async function api(action, payload = {}) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + credential },
+    body: JSON.stringify({ action, ...payload }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (response.ok && action === 'list' && !Array.isArray(data)) throw Error('Could not load your meals.');
+  if (response.status === 401) {
+    credential = '';
+    state.meals = [];
+    if (panel.open) panel.close();
+    render();
+  }
+  if (!response.ok) throw Error(data.error || 'Could not reach the meal planner.');
+  return data;
+}
+async function refresh() {
+  const meals = await api('list');
+  state.meals = meals;
+  render();
+}
+async function startSignIn() {
+  if (signingIn) return;
+  signingIn = true;
+  show('Sign in with Google', '<div id="planner-google" class="stack"><p class="muted">Loading Google sign-in…</p></div>');
+  try {
+    if (!window.google?.accounts?.id) await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      const timer = setTimeout(() => reject(Error('Google sign-in did not load. Try opening this link in Chrome or Safari.')), 12000);
+      script.onload = () => { clearTimeout(timer); resolve(); };
+      script.onerror = () => { clearTimeout(timer); reject(Error('Google sign-in did not load. Try opening this link in Chrome or Safari.')); };
+      document.head.append(script);
+    });
+    google.accounts.id.initialize({
+      client_id: window.POLL_CONFIG.googleClientId,
+      callback: async result => {
+        credential = result.credential;
+        try {
+          let joined;
+          if (invite) {
+            try { joined = await api('join', { invite }); }
+            catch (error) {
+              if (!credential) throw error;
+              if (!/unavailable|invalid/i.test(error.message)) throw error;
+              invite = null;
+              history.replaceState(null, '', location.pathname + location.search);
+              await refresh();
+              if (panel.open) panel.close();
+              message(error.message);
+              return;
+            }
+          }
+          await refresh();
+          if (joined) {
+            invite = null;
+            history.replaceState(null, '', location.pathname + location.search);
+            mealDetails(state.meals.find(meal => meal.id === joined.id));
+          } else if (panel.open) panel.close();
+        } catch (error) { credential = ''; message(error.message); }
+      },
+    });
+    const button = document.querySelector('#planner-google');
+    if (button) {
+      button.replaceChildren();
+      google.accounts.id.renderButton(button, { theme: 'outline', size: 'large', text: 'signin_with' });
+    }
+  } catch (error) { message(error.message); }
+  finally { signingIn = false; }
+}
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -32,27 +110,29 @@ const status = meal => meal.selectedTime ? meal.status : 'Polling';
 const durationLabel = minutes => minutes % 60 === 0 ? (minutes / 60) + ' hr' : minutes + ' min';
 
 function save() {
-  try { localStorage.setItem(storageKey, JSON.stringify(state)); }
+  try { const { wishes, people, busy } = state; localStorage.setItem(storageKey, JSON.stringify({ wishes, people, busy })); }
   catch { message('This browser could not save your changes.'); }
 }
 function message(text) {
-  notice.textContent = text;
+  const target = panel.open ? panel.querySelector('.dialog-notice') : notice;
+  if (!target) return;
+  target.textContent = text;
   clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => { notice.textContent = ''; }, 4200);
+  noticeTimer = setTimeout(() => { target.textContent = ''; }, 6500);
 }
 function show(title, body) {
-  panel.innerHTML = `<div class="row spread"><h2 id="panel-title">${escape(title)}</h2><button type="button" data-action="close" aria-label="Close">×</button></div>${body}`;
+  panel.innerHTML = `<div class="row spread"><h2 id="panel-title">${escape(title)}</h2><button type="button" data-action="close" aria-label="Close">×</button></div>${body}<p class="dialog-notice" role="status"></p>`;
   if (!panel.open) panel.showModal();
 }
 function statusPill(text) { return `<span class="pill">${escape(text)}</span>`; }
 
 function card(meal) {
-  const responses = Object.keys(meal.votes).length;
+  const responses = meal.organizer ? meal.responses.length : Number(Boolean(meal.myVote));
   const attendance = meal.attending.length;
   return `<article class="card stack"><div class="row spread"><h3>${escape(meal.title)}</h3>${statusPill(status(meal))}</div>
     <div class="muted">${meal.selectedTime ? escape(dateTime(meal.selectedTime)) + ' · ' + durationLabel(meal.duration) : meal.times.length + ' time options · ' + meal.restaurants.length + ' restaurant options'}</div>
     <div>${escape(meal.restaurant || meal.location || 'Restaurant to be decided')}</div>
-    <small>${meal.selectedTime ? attendance + ' attending' : responses + ' responses'} · ${meal.guests.length} invited${meal.selectedTime && attendance ? ' · ' + escape(meal.attending.join(', ')) : ''}</small>
+    <small>${meal.selectedTime ? attendance + ' attending' : meal.organizer ? responses + ' responses' : responses ? 'Response saved' : 'Awaiting your response'} · ${meal.joinedCount ?? 0} joined${meal.selectedTime && attendance ? ' · ' + escape(meal.attending.join(', ')) : ''}</small>
     <div class="row"><button data-action="meal" data-id="${meal.id}">${meal.selectedTime ? 'Meal details' : 'Open poll'}</button></div></article>`;
 }
 function dashboard() {
@@ -75,9 +155,9 @@ function wishlist() {
 }
 function render() {
   const names = { dashboard: 'Your upcoming meals', polls: 'Open polls', wishlist: 'Your restaurant wish list' };
-  root.innerHTML = `<section class="hero"><p class="eyebrow">Meal planner · Local preview</p><h1>${names[view]}</h1>
-    <p class="muted">Try the planning flow on this device. Accounts, shared responses and calendar sync are not connected in this preview.</p>
-    <div class="row"><button class="primary" data-action="new">Plan a meal</button><button data-action="people">Connections</button><button data-action="busy">Calendar blocks</button></div></section>
+  root.innerHTML = `<section class="hero"><p class="eyebrow">Meal planner</p><h1>${names[view]}</h1>
+    <p class="muted">${credential ? 'Share a poll link and see responses as guests vote.' : invite ? 'You’ve been invited to a meal. Sign in to view the options and vote. If Google sign-in is blocked in your messaging app, open this link in Chrome or Safari.' : 'Sign in to plan meals, invite guests, and collect responses.'}</p>
+    <div class="row">${credential ? '<button class="primary" data-action="new">Plan a meal</button><button data-action="refresh">Refresh responses</button><button data-action="signout">Sign out</button>' : '<button class="primary" data-action="signin">Sign in with Google</button>'}<button data-action="people">Connections</button><button data-action="busy">Calendar blocks</button></div></section>
     ${view==='dashboard' ? dashboard() : view==='wishlist' ? wishlist() : '<div class="stack">'+(state.meals.filter(isPolling).map(card).join('') || '<p class="muted">No open polls yet.</p>')+'</div>'}`;
   document.querySelectorAll('[data-view]').forEach(button => {
     if (button.dataset.view===view) button.setAttribute('aria-current','page');
@@ -96,9 +176,9 @@ function mealForm(wish) {
     <label>Duration <select name="duration">${durations.map(m=>`<option value="${m}" ${m===90?'selected':''}>${durationLabel(m)}</option>`).join('')}</select></label>
     <fieldset class="stack"><legend>Time options · up to 10</legend><div class="stack" id="time-options">${wish ? '' : timeInput()}</div><button type="button" data-action="add-time">Add a time option</button></fieldset>
     <label>Restaurant options, separated by commas <input name="restaurants" maxlength="450" value="${escape(wish?.name)}"></label>
-    <label>Guests, separated by commas <input name="guests" maxlength="500" value="${escape(wish?.interested.join(', '))}" list="connections"></label>
+    <label>Guest names for your plan, separated by commas <input name="guests" maxlength="500" value="${escape(wish?.interested.join(', '))}" list="connections"></label>
     <datalist id="connections">${state.people.map(p=>`<option value="${escape(p)}"></option>`).join('')}</datalist>
-    <small>Start with a time, a restaurant, or both.</small><button class="primary">Create poll</button></form>`);
+    <small>Start with a time, a restaurant, or both. Share the invite after creating the poll.</small><button class="primary">Create poll</button></form>`);
 }
 function hasConflict(time, duration) {
   const start = +new Date(time);
@@ -110,27 +190,28 @@ function choices(values, name, selected, label) {
 }
 function mealDetails(meal) {
   activeMeal = meal;
-  const person = state.profile;
-  const vote = Object.hasOwn(meal.votes,person) ? meal.votes[person] : { times: [], restaurants: [] };
-  const tally = (key, val) => Object.values(meal.votes).filter(v=>v[key].includes(val)).length;
+  const vote = meal.myVote || { times: [], restaurants: [] };
+  const tally = (key, val) => meal.organizer ? meal.responses.filter(r=>r.vote[key].includes(val)).length : 0;
+  const votesLabel = (key, val) => meal.organizer ? ' · '+tally(key,val)+' votes' : '';
   const guests = meal.guests.length ? escape(meal.guests.join(', ')) : 'None entered';
-  const options = meal.times.map(t=>`<option value="${escape(t)}" ${t===meal.selectedTime?'selected':''}>${escape(dateTime(t))} · ${tally('times',t)} votes</option>`).join('');
-  const restaurants = meal.restaurants.map(r=>`<option value="${escape(r)}" ${r===meal.restaurant?'selected':''}>${escape(r)} · ${tally('restaurants',r)} votes</option>`).join('');
+  const options = meal.times.map(t=>`<option value="${escape(t)}" ${t===meal.selectedTime?'selected':''}>${escape(dateTime(t))}${votesLabel('times',t)}</option>`).join('');
+  const restaurants = meal.restaurants.map(r=>`<option value="${escape(r)}" ${r===meal.restaurant?'selected':''}>${escape(r)}${votesLabel('restaurants',r)}</option>`).join('');
   show(meal.title, `<div class="stack"><div>${statusPill(status(meal))} · ${durationLabel(meal.duration)}</div>
     <p class="muted">Guests: ${guests}</p>
-    <div class="row"><button data-action="share">Share a preview copy</button><small>Recipients get a separate copy. Responses stay on their device.</small></div>
+    ${meal.organizer ? `<div class="row"><button data-action="share">Share invite</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(inviteUrl(meal))}" target="_blank" rel="noopener">WhatsApp</a><button data-action="refresh-meal">Refresh responses</button></div>
+    <section class="card stack"><h3>Guest responses · ${meal.responses.length}</h3>${meal.responses.map(({name,vote})=>`<div><strong>${escape(name)}</strong><div><small>Times: ${escape(vote.times.map(dateTime).join(', ') || 'None selected')}</small></div><div><small>Restaurants: ${escape(vote.restaurants.join(', ') || 'None selected')}</small></div></div>`).join('') || '<p class="muted">No responses yet.</p>'}</section>` : '<p class="muted">The organizer can see your Google display name and your choices.</p>'}
     ${meal.restaurant ? `<a href="${maps(meal.restaurant,meal.location)}" target="_blank" rel="noopener">Find ${escape(meal.restaurant)} on Google Maps ↗</a>` : ''}
-    ${isPolling(meal) ? `<form class="stack card" data-form="vote"><h3>Respond to poll</h3><label>Your name in this preview <input name="person" maxlength="80" value="${escape(person)}" required></label>
-      <fieldset><legend>Times that work</legend>${choices(meal.selectedTime?[]:meal.times,'times',vote.times,t=>escape(dateTime(t))+' · '+tally('times',t)+' votes'+(hasConflict(t,meal.duration)?' · ⚠ Calendar block overlaps':''))}</fieldset>
-      <fieldset><legend>Restaurants you’d visit</legend>${choices(meal.restaurant?[]:meal.restaurants,'restaurants',vote.restaurants,r=>escape(r)+' · '+tally('restaurants',r)+' votes')}</fieldset><button class="primary">Save response</button></form>` : ''}
-    <form class="stack card" data-form="manage"><h3>Organizer controls · preview</h3>
+    ${isPolling(meal) ? `<form class="stack card" data-form="vote"><h3>Respond to poll</h3>
+      <fieldset><legend>Times that work</legend>${choices(meal.selectedTime?[]:meal.times,'times',vote.times,t=>escape(dateTime(t))+votesLabel('times',t)+(hasConflict(t,meal.duration)?' · ⚠ Calendar block overlaps':''))}</fieldset>
+      <fieldset><legend>Restaurants you’d visit</legend>${choices(meal.restaurant?[]:meal.restaurants,'restaurants',vote.restaurants,r=>escape(r)+votesLabel('restaurants',r))}</fieldset><button class="primary">Save response</button></form>` : ''}
+    ${meal.organizer ? `<form class="stack card" data-form="manage"><h3>Organizer controls</h3>
       <label>Chosen date and time <select name="selectedTime"><option value="">Keep polling</option>${options}</select></label>
       <label>Add another time option <input type="datetime-local" name="newTime"></label>
       <label>Chosen restaurant <select name="restaurant"><option value="">Decide later</option>${restaurants}</select></label>
       <label>Add a restaurant option <input name="newRestaurant" maxlength="120"></label>
       <label>Booking status <select name="status">${statuses.map(s=>`<option ${s===meal.status?'selected':''}>${s}</option>`).join('')}</select></label>
       <label>Attending guests <input name="attending" maxlength="500" value="${escape(meal.attending.join(', '))}"></label>
-      <button>Save meal details</button></form></div>`);
+      <button>Save meal details</button></form>` : ''}</div>`);
 }
 function peopleForm() {
   show('Connections', `<form class="stack" data-form="people"><p class="muted">Keep a local list of people you plan meals with.</p><label>Names, separated by commas <input name="people" maxlength="800" value="${escape(state.people.join(', '))}"></label><button class="primary">Save connections</button></form>`);
@@ -152,13 +233,21 @@ document.addEventListener('click', event=>{
     case 'previous': anchor=moveDays(anchor,-days); render(); break;
     case 'next': anchor=moveDays(anchor,days); render(); break;
     case 'today': anchor=new Date(); render(); break;
-    case 'new': mealForm(); break;
+    case 'new': if (credential) mealForm(); else startSignIn(); break;
+    case 'signin': startSignIn(); break;
+    case 'signout':
+      credential=''; state.meals=[]; google.accounts.id.disableAutoSelect(); render(); break;
+    case 'refresh':
+      refresh().then(()=>message('Responses refreshed.')).catch(error=>message(error.message)); break;
+    case 'refresh-meal': {
+      const id = activeMeal.id;
+      refresh().then(()=>{ if(panel.open) mealDetails(state.meals.find(meal=>meal.id===id)); }).catch(error=>message(error.message));
+      break;
+    }
     case 'share': {
-      const { id, title, location, duration, times, restaurants } = activeMeal;
-      const url = new URL(window.location.href);
-      url.hash = 'preview=' + encodeURIComponent(JSON.stringify({ id, title, location, duration, times, restaurants }));
-      if(navigator.share) navigator.share({ title, url: url.href }).catch(error=>{if(error.name!=='AbortError') copyPreview(url.href);});
-      else copyPreview(url.href);
+      const url = inviteUrl(activeMeal);
+      if(navigator.share) navigator.share({ title: activeMeal.title, url }).catch(error=>{if(error.name!=='AbortError') copyInvite(url);});
+      else copyInvite(url);
       break;
     }
     case 'meal': mealDetails(state.meals.find(m=>m.id===id)); break;
@@ -178,7 +267,7 @@ document.addEventListener('click', event=>{
       activeWish=state.wishes.find(w=>w.id===id);
       show(activeWish.name,`<form class="stack" data-form="interest"><label>Interested guests, separated by commas <input name="people" maxlength="500" value="${escape(activeWish.interested.join(', '))}"></label><button class="primary">Save interest list</button></form>`);
       break;
-    case 'wish-date': mealForm(state.wishes.find(w=>w.id===id)); break;
+    case 'wish-date': if (credential) mealForm(state.wishes.find(w=>w.id===id)); else startSignIn(); break;
   }
 });
 
@@ -191,27 +280,23 @@ panel.addEventListener('submit',event=>{
       const times=[...new Set(data.getAll('time').filter(Boolean).map(t=>new Date(t).toISOString()))].sort();
       const restaurants=split(value('restaurants'));
       if(!value('title')||(!times.length&&!restaurants.length)) { message('Enter a meal name and at least one option.'); return; }
-      const meal={id:crypto.randomUUID(),title:value('title'),location:value('location'),duration:Number(value('duration')),
-        times,restaurants,guests:split(value('guests')),votes:{},status:statuses[0],selectedTime:'',restaurant:'',attending:[]};
-      state.meals.push(meal); view='polls'; save(); render(); mealDetails(meal); return;
+      const details={title:value('title'),location:value('location'),duration:Number(value('duration')),
+        times,restaurants,guests:split(value('guests')),status:statuses[0],selectedTime:'',restaurant:'',attending:[]};
+      syncMeal('create', { details }); return;
     }
     case 'vote': {
-      const person=value('person');
-      if(!person) return;
-      state.profile=person;
-      Object.defineProperty(activeMeal.votes,person,{value:{times:activeMeal.selectedTime?(Object.hasOwn(activeMeal.votes,person)?activeMeal.votes[person].times:[]):data.getAll('times'),restaurants:activeMeal.restaurant?(Object.hasOwn(activeMeal.votes,person)?activeMeal.votes[person].restaurants:[]):data.getAll('restaurants')},enumerable:true,writable:true,configurable:true});
-      save(); render(); mealDetails(activeMeal); message('Response saved on this device.'); return;
+      syncMeal('vote', { id: activeMeal.id, vote: { times: data.getAll('times'), restaurants: data.getAll('restaurants') } }); return;
     }
     case 'manage': {
-      const newTime=value('newTime'), restaurant=value('newRestaurant');
-      const time=newTime?new Date(newTime).toISOString():'';
-      if(time&&!activeMeal.times.includes(time)&&activeMeal.times.length>=10) { message('The poll already has 10 time options.'); return; }
-      if(time&&!activeMeal.times.includes(time)) activeMeal.times.push(time);
-      activeMeal.times.sort();
-      if(restaurant&&!activeMeal.restaurants.includes(restaurant)) activeMeal.restaurants.push(restaurant);
-      Object.assign(activeMeal,{selectedTime:value('selectedTime'),restaurant:value('restaurant'),status:value('status'),attending:split(value('attending'))});
-      if(activeMeal.selectedTime){anchor=new Date(activeMeal.selectedTime);view='dashboard';}
-      save(); render(); mealDetails(activeMeal); message('Meal details saved.'); return;
+      const newTime=value('newTime');
+      const time=newTime?new Date(newTime).toISOString():'', restaurant=value('newRestaurant');
+      const times=[...new Set([...activeMeal.times,...(time?[time]:[])])].sort();
+      if(times.length>10) { message('The poll already has 10 time options.'); return; }
+      const restaurants=[...new Set([...activeMeal.restaurants,...(restaurant?[restaurant]:[])])];
+      const details={...activeMeal,times,restaurants,selectedTime:value('selectedTime'),restaurant:value('restaurant'),
+        status:value('status'),attending:split(value('attending'))};
+      for (const key of ['id','version','invite','myVote','responses','organizer','joinedCount']) delete details[key];
+      syncMeal('manage', { id: activeMeal.id, version: activeMeal.version, details }); return;
     }
     case 'people': state.people=split(value('people')); break;
     case 'busy':
@@ -225,33 +310,32 @@ panel.addEventListener('submit',event=>{
   save(); panel.close(); render();
 });
 
-async function copyPreview(url) {
-  try { await navigator.clipboard.writeText(url); message('Preview link copied.'); }
-  catch { show('Share a preview copy', `<label>Copy this link<input readonly value="${escape(url)}"></label>`); }
-}
-
-function openPreviewLink() {
-  if (!location.hash.startsWith('#preview=')) return;
+async function syncMeal(action, payload) {
+  if (requestInFlight) return;
+  requestInFlight = true;
+  const buttons = panel.querySelectorAll('[type=submit], form button:not([type])');
+  buttons.forEach(button => { button.disabled = true; });
   try {
-    const entry=JSON.parse(decodeURIComponent(location.hash.slice(9)));
-    if (!/^[0-9a-f-]{36}$/i.test(entry.id)||typeof entry.title!=='string'||!entry.title.trim()||
-        entry.title.length>100||typeof entry.location!=='string'||entry.location.length>120||
-        !durations.includes(entry.duration)||!Array.isArray(entry.times)||entry.times.length>10||
-        entry.times.some(t=>typeof t!=='string'||t.length!==24||!t.endsWith('Z')||!Number.isFinite(+new Date(t)))||
-        !Array.isArray(entry.restaurants)||entry.restaurants.length>50||
-        entry.restaurants.some(r=>typeof r!=='string'||!r.trim()||r.length>450)||
-        (!entry.times.length&&!entry.restaurants.length)) throw Error('Invalid preview link');
-    let meal=state.meals.find(m=>m.id===entry.id);
-    if(!meal){
-      const {id,title,location:area,duration,times,restaurants}=entry;
-      meal={id,title,location:area,duration,times,restaurants,guests:[],votes:{},status:statuses[0],selectedTime:'',restaurant:'',attending:[]};
-      state.meals.push(meal);
-      save();
+    const { id } = await api(action, payload);
+    if (action === 'create') view = 'polls';
+    if (action === 'manage' && payload.details.selectedTime) {
+      anchor = new Date(payload.details.selectedTime);
+      view = 'dashboard';
     }
-    history.replaceState(null,'',location.pathname+location.search);
-    view='polls';render();mealDetails(meal);
-  } catch { message('This preview link could not be opened.'); }
+    await refresh();
+    if (panel.open) mealDetails(state.meals.find(meal => meal.id === id));
+    message(action === 'vote' ? 'Response saved for the organizer.' : 'Meal saved.');
+  } catch (error) { message(error.message); }
+  finally { requestInFlight = false; buttons.forEach(button => { button.disabled = false; }); }
 }
 
+function inviteUrl(meal) {
+  const url = new URL(location.pathname, location.origin);
+  url.hash = 'invite=' + meal.invite;
+  return url.href;
+}
+async function copyInvite(url) {
+  try { await navigator.clipboard.writeText(url); message('Invite link copied.'); }
+  catch { show('Share invite', `<label>Copy this link<input readonly value="${escape(url)}"></label>`); }
+}
 render();
-openPreviewLink();
