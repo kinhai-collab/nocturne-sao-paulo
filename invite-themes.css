@@ -70,6 +70,8 @@ body[data-invite-theme="after-hours"] {
 
 [data-invite-theme="after-hours"] .invite-cover img {
   object-position: center 54%;
+  /* Crop the white frame embedded in the restaurant photo. */
+  transform: scale(1.06);
 }
 
 .invite-content {
