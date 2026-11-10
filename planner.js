@@ -161,7 +161,8 @@ const moveDays = (date, count) => new Date(date.getFullYear(), date.getMonth(), 
 const split = text => [...new Set(String(text || '').split(/[,\n]/).map(item => item.trim()).filter(Boolean))];
 const maps = (restaurant, location) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([restaurant, location].filter(Boolean).join(' '));
 const isPolling = meal => !meal.selectedTime || (!meal.restaurant && meal.restaurants.length > 0);
-const status = meal => meal.selectedTime ? meal.status : 'Polling';
+const status = meal => !meal.selectedTime ? 'Choosing a date' :
+  !meal.restaurant ? 'Choosing a restaurant' : meal.status === 'Unbooked' ? 'Reservation needed' : meal.status;
 const durationLabel = minutes => minutes % 60 === 0 ? (minutes / 60) + ' hr' : minutes + ' min';
 
 function save() {
@@ -186,15 +187,16 @@ function card(meal) {
   const attendance = meal.attending.length;
   return `<article class="card stack"><div class="row spread"><h3>${escape(meal.title)}</h3>${statusPill(status(meal))}</div>
     <div class="muted">${meal.selectedTime ? escape(dateTime(meal.selectedTime)) + ' · ' + durationLabel(meal.duration) : meal.times.length + ' time options · ' + meal.restaurants.length + ' restaurant options'}</div>
-    <div>${escape(meal.restaurant || meal.location || 'Restaurant to be decided')}</div>
+    <div>${escape(meal.restaurant || (meal.restaurants.length ? meal.restaurants.join(' · ') : 'Restaurant to be decided'))}</div>
     <small>${meal.selectedTime ? attendance + ' attending' : meal.organizer ? responses + ' responses' : responses ? 'Response saved' : 'Awaiting your response'} · ${meal.joinedCount ?? 0} joined${meal.selectedTime && attendance ? ' · ' + escape(meal.attending.join(', ')) : ''}</small>
-    <div class="row"><button data-action="meal" data-id="${meal.id}">${meal.selectedTime ? 'Meal details' : 'Open poll'}</button></div></article>`;
+    <div class="row"><button data-action="meal" data-id="${meal.id}">${isPolling(meal) ? 'Open poll' : meal.organizer && !meal.restaurant ? 'Choose restaurants' : 'Meal details'}</button></div></article>`;
 }
 function dashboard() {
   const dates = Array.from({ length: days }, (_, i) => moveDays(anchor, i));
-  const scheduled = state.meals.filter(meal => meal.selectedTime);
-  const pending = state.meals.filter(meal => isPolling(meal));
-  return `<div class="row period spread"><div class="row" aria-label="Calendar range">${[1,3,7].map(n => `<button data-action="range" data-days="${n}" aria-pressed="${n===days}">${n===1?'Day':n+' days'}</button>`).join('')}</div>
+  const scheduled = state.meals.filter(meal => meal.organizer && meal.selectedTime);
+  const pending = state.meals.filter(meal => meal.organizer && !meal.selectedTime);
+  const invited = state.meals.filter(meal => !meal.organizer);
+  return `${credential ? `<section class="day"><h2>Invited to</h2><div class="stack">${invited.map(card).join('') || '<p class="muted">Meals you join through an invite link appear here.</p>'}</div></section>` : ''}<div class="row period spread"><div class="row" aria-label="Calendar range">${[1,3,7].map(n => `<button data-action="range" data-days="${n}" aria-pressed="${n===days}">${n===1?'Day':n+' days'}</button>`).join('')}</div>
     <div class="row"><button data-action="previous" aria-label="Previous dates">‹</button><button data-action="today">Today</button><button data-action="next" aria-label="Next dates">›</button></div></div>
     ${dates.map(date => {
       const start = +midnight(date), end = +moveDays(date, 1);
@@ -223,18 +225,61 @@ function render() {
 function timeInput(value = '') {
   return `<div class="row"><label>Local date and time <input type="datetime-local" name="time" value="${escape(value)}"></label><button type="button" data-action="remove-time" aria-label="Remove time">Remove</button></div>`;
 }
-function mealForm(wish) {
-  activeWish = wish || null;
-  show('Plan a meal', `<form class="stack" data-form="new">
-    <label>Meal name <input name="title" maxlength="100" required value="${escape(wish ? 'Dinner at '+wish.name : '')}"></label>
-    <label>City or neighbourhood <input name="location" maxlength="120" value="${escape(wish?.location)}"></label>
-    <label>Duration <select name="duration">${durations.map(m=>`<option value="${m}" ${m===90?'selected':''}>${durationLabel(m)}</option>`).join('')}</select></label>
-    <fieldset class="stack"><legend>Time options · up to 10</legend><div class="stack" id="time-options">${wish ? '' : timeInput()}</div><button type="button" data-action="add-time">Add a time option</button></fieldset>
-    <label>Restaurant options, separated by commas <input name="restaurants" maxlength="450" value="${escape(wish?.name)}"></label>
-    <label>Guest names for your plan, separated by commas <input name="guests" maxlength="500" value="${escape(wish?.interested.join(', '))}" list="connections"></label>
-    <datalist id="connections">${state.people.map(p=>`<option value="${escape(p)}"></option>`).join('')}</datalist>
-    <small>Start with a time, a restaurant, or both. Share the invite after creating the poll.</small><button class="primary">Create poll</button></form>`);
+function chooseFlow() {
+  show('Plan a meal', `<div class="stack">
+    <button data-action="flow" data-id="restaurant"><strong>I know the restaurant</strong><br><small>Pick the place first</small></button>
+    <button data-action="flow" data-id="date"><strong>I know the date</strong><br><small>Set a time, then choose a place</small></button>
+    <button data-action="flow" data-id="undecided"><strong>Help us decide</strong><br><small>Poll dates first, then restaurants</small></button></div>`);
 }
+function restaurantPicker(value = '') {
+  return `<fieldset class="stack"><legend>Find a restaurant</legend>
+    <label>Search the Ontario guide <input type="search" data-restaurant-search placeholder="Name, cuisine, or neighbourhood"></label>
+    <div class="stack" data-restaurant-results></div>
+    <a data-google-search href="${maps('', '')}" target="_blank" rel="noopener">Search Google Maps ↗</a>
+    <label>Restaurant names, one per line <textarea name="restaurants" rows="3" maxlength="450" placeholder="Type a name or add one above">${escape(value)}</textarea></label>
+    <small>Use 3–5 choices for a restaurant poll. A single name sets the restaurant.</small></fieldset>`;
+}
+function updateRestaurantResults(input) {
+  const fieldset = input.closest('fieldset');
+  const query = input.value.trim().toLowerCase();
+  const history = [...new Set(state.meals.filter(m => m.organizer && m.restaurant && ['Booked','Confirmed'].includes(m.status)).map(m => m.restaurant))];
+  const candidates = [...(window.BEYOND_RESTAURANTS || [])];
+  const matches = candidates.filter(r => [r.name,r.cuisine,r.area].some(value => String(value || '').toLowerCase().includes(query)));
+  const thumbnail = restaurant => {
+    const src = window.RESTAURANT_MEDIA?.[restaurant.id]?.card;
+    return src ? `<img class="venue-thumb" src="${escape(src)}" alt="" loading="lazy">` : '';
+  };
+  const add = name => `<button type="button" data-action="pick-restaurant" data-name="${escape(name)}">Add ${escape(name)}</button>`;
+  fieldset.querySelector('[data-restaurant-results]').innerHTML =
+    (!query && history.length ? '<small>Booked before</small>'+history.slice(0,4).map(add).join('') : '') +
+    '<small>'+ (query ? 'Guide results' : 'New to you · from the guide') +'</small>' +
+    (matches.filter(r => query || !history.includes(r.name)).slice(0,5).map(r => `<div class="row spread"><div class="row">${thumbnail(r)}<span>${escape(r.name)}<br><small>${escape(r.area)}${r.rating ? ' · ★ '+escape(r.rating) : ''}${r.price ? ' · CA$'+escape(r.price[0]) : ''}</small></span></div>${add(r.name)}</div>`).join('') || '<small>No matching guide entries.</small>');
+  fieldset.querySelector('[data-google-search]').href = maps(query || 'restaurants', panel.querySelector('[name=location]')?.value || activeMeal?.location || '');
+}
+function mealForm(wish, flow = 'restaurant') {
+  activeWish = wish || null;
+  activeMeal = null;
+  const timeFields = `<fieldset class="stack"><legend>${flow==='date'?'Set the date':'Choose a time'}</legend>
+    ${flow==='restaurant'?'<label>Who decides? <select name="dateMode"><option value="fixed">I’ll choose</option><option value="poll">Let guests decide</option></select></label>':''}
+    <div class="stack" id="time-options">${timeInput().repeat(flow==='undecided'?3:1)}</div>
+    <button type="button" data-action="add-time" ${flow==='undecided'?'':'hidden'}>Add a time option</button></fieldset>`;
+  const venue = restaurantPicker(wish?.name);
+  show('Plan a meal', `<form class="stack" data-form="new" data-flow="${flow}">
+    <p class="eyebrow">${{restaurant:'By restaurant',date:'By date',undecided:'Help us decide'}[flow]}</p>
+    <label>Meal name <input name="title" maxlength="100" required value="${escape(wish ? 'Dinner at '+wish.name : 'Dinner')}"></label>
+    <label>City or neighbourhood <input name="location" maxlength="120" value="${escape(wish?.location)}"></label>
+    ${flow==='restaurant' ? venue+timeFields : timeFields+(flow==='date'?venue:'<small>After choosing a time, you can start a restaurant poll on this meal.</small>')}
+    <label>Duration <select name="duration">${durations.map(m=>`<option value="${m}" ${m===90?'selected':''}>${durationLabel(m)}</option>`).join('')}</select></label>
+    <fieldset class="stack"><legend>Invite guests</legend>
+      ${state.people.length ? choices(state.people,'contacts',wish?.interested || [],escape) : '<small>Add people in Connections, or enter guest names below.</small>'}
+      <label>Other guest names <input name="guests" maxlength="500" placeholder="Names separated by commas" value="${escape(wish?.interested.filter(p=>!state.people.includes(p)).join(', '))}"></label>
+      <label class="option"><input type="checkbox" name="saveContacts"><span>Save new guest names to Connections</span></label>
+      <small>Share the invite link after saving. Guests appear as joined when they open it and sign in.</small></fieldset>
+    <div class="row"><button type="button" data-action="new">Back</button><button class="primary">Save and get invite link</button></div></form>`);
+  const search = panel.querySelector('[data-restaurant-search]');
+  if (search) updateRestaurantResults(search);
+}
+
 function hasConflict(time, duration) {
   const start = +new Date(time);
   const end = start + duration * 60000;
@@ -253,20 +298,24 @@ function mealDetails(meal) {
   const restaurants = meal.restaurants.map(r=>`<option value="${escape(r)}" ${r===meal.restaurant?'selected':''}>${escape(r)}${votesLabel('restaurants',r)}</option>`).join('');
   show(meal.title, `<div class="stack"><div>${statusPill(status(meal))} · ${durationLabel(meal.duration)}</div>
     <p class="muted">Guests: ${guests}</p>
+    ${meal.selectedTime ? `<p>${escape(dateTime(meal.selectedTime))}</p>` : ''}
     ${meal.organizer ? `<div class="row"><button data-action="share">Share invite</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(inviteUrl(meal))}" target="_blank" rel="noopener">WhatsApp</a><button data-action="refresh-meal">Refresh responses</button></div>
     <section class="card stack"><h3>Guest responses · ${meal.responses.length}</h3>${meal.responses.map(({name,vote})=>`<div><strong>${escape(name)}</strong><div><small>Times: ${escape(vote.times.map(dateTime).join(', ') || 'None selected')}</small></div><div><small>Restaurants: ${escape(vote.restaurants.join(', ') || 'None selected')}</small></div></div>`).join('') || '<p class="muted">No responses yet.</p>'}</section>` : '<p class="muted">The organizer can see your display name and your choices.</p>'}
+    ${!meal.restaurant && !meal.restaurants.length ? '<p class="muted">Restaurant to be decided.</p>' : ''}
     ${meal.restaurant ? `<a href="${maps(meal.restaurant,meal.location)}" target="_blank" rel="noopener">Find ${escape(meal.restaurant)} on Google Maps ↗</a>` : ''}
     ${isPolling(meal) ? `<form class="stack card" data-form="vote"><h3>Respond to poll</h3>
-      <fieldset><legend>Times that work</legend>${choices(meal.selectedTime?[]:meal.times,'times',vote.times,t=>escape(dateTime(t))+votesLabel('times',t)+(hasConflict(t,meal.duration)?' · ⚠ Calendar block overlaps':''))}</fieldset>
-      <fieldset><legend>Restaurants you’d visit</legend>${choices(meal.restaurant?[]:meal.restaurants,'restaurants',vote.restaurants,r=>escape(r)+votesLabel('restaurants',r))}</fieldset><button class="primary">Save response</button></form>` : ''}
+      ${!meal.selectedTime && meal.times.length ? `<fieldset><legend>Times that work</legend>${choices(meal.times,'times',vote.times,t=>escape(dateTime(t))+votesLabel('times',t)+(hasConflict(t,meal.duration)?' · ⚠ Calendar block overlaps':''))}</fieldset>` : ''}
+      ${!meal.restaurant && meal.restaurants.length ? `<fieldset><legend>Restaurants you’d visit</legend>${choices(meal.restaurants,'restaurants',vote.restaurants,r=>escape(r)+votesLabel('restaurants',r))}</fieldset>` : ''}<button class="primary">Save response</button></form>` : ''}
     ${meal.organizer ? `<form class="stack card" data-form="manage"><h3>Organizer controls</h3>
       <label>Chosen date and time <select name="selectedTime"><option value="">Keep polling</option>${options}</select></label>
       <label>Add another time option <input type="datetime-local" name="newTime"></label>
       <label>Chosen restaurant <select name="restaurant"><option value="">Decide later</option>${restaurants}</select></label>
-      <label>Add a restaurant option <input name="newRestaurant" maxlength="120"></label>
-      <label>Booking status <select name="status">${statuses.map(s=>`<option ${s===meal.status?'selected':''}>${s}</option>`).join('')}</select></label>
+      ${meal.selectedTime && !meal.restaurant ? restaurantPicker() : ''}
+      <label>Reservation status <select name="status">${statuses.map(s=>`<option ${s===meal.status?'selected':''}>${s}</option>`).join('')}</select></label>
       <label>Attending guests <input name="attending" maxlength="500" value="${escape(meal.attending.join(', '))}"></label>
       <button>Save meal details</button></form>` : ''}</div>`);
+  const search = panel.querySelector('[data-restaurant-search]');
+  if (search) updateRestaurantResults(search);
 }
 function peopleForm() {
   show('Connections', `<form class="stack" data-form="people"><p class="muted">Keep a local list of people you plan meals with.</p><label>Names, separated by commas <input name="people" maxlength="800" value="${escape(state.people.join(', '))}"></label><button class="primary">Save connections</button></form>`);
@@ -277,6 +326,18 @@ function busyForm() {
     <label>Start <input type="datetime-local" name="start" required></label><label>End <input type="datetime-local" name="end" required></label><button class="primary">Add block</button></form>`);
 }
 
+panel.addEventListener('input',event=>{
+  if(event.target.matches('[data-restaurant-search]')) updateRestaurantResults(event.target);
+  if(event.target.matches('[name=location]')) { const search=panel.querySelector('[data-restaurant-search]'); if(search) updateRestaurantResults(search); }
+});
+panel.addEventListener('change',event=>{
+  if(!event.target.matches('[name=dateMode]')) return;
+  const options = panel.querySelector('#time-options');
+  const poll = event.target.value==='poll';
+  panel.querySelector('[data-action=add-time]').hidden = !poll;
+  while(options.children.length>(poll?5:1)) options.lastElementChild.remove();
+  while(poll && options.children.length<3) options.insertAdjacentHTML('beforeend',timeInput());
+});
 document.addEventListener('click', event=>{
   const button = event.target.closest('button');
   if (!button) return;
@@ -288,7 +349,14 @@ document.addEventListener('click', event=>{
     case 'previous': anchor=moveDays(anchor,-days); render(); break;
     case 'next': anchor=moveDays(anchor,days); render(); break;
     case 'today': anchor=new Date(); render(); break;
-    case 'new': if (credential) mealForm(); else startSignIn(); break;
+    case 'new': if (credential) chooseFlow(); else startSignIn(); break;
+    case 'flow': mealForm(null,id); break;
+    case 'pick-restaurant': {
+      const input = button.closest('fieldset').querySelector('[name=restaurants]');
+      const names = input.value.split('\n').map(name=>name.trim()).filter(Boolean);
+      if (!names.includes(button.dataset.name)) input.value = [...names,button.dataset.name].join('\n');
+      break;
+    }
     case 'signin': startSignIn(); break;
     case 'microsoft': startMicrosoft(false); break;
     case 'link-microsoft': startMicrosoft(true); break;
@@ -314,7 +382,7 @@ document.addEventListener('click', event=>{
     case 'busy-remove': state.busy.splice(Number(id),1); save(); busyForm(); break;
     case 'add-time': {
       const options=document.querySelector('#time-options');
-      if(options.children.length>=10) { message('The poll already has 10 time options.'); break; }
+      if(options.children.length>=5) { message('Add up to five times.'); break; }
       options.insertAdjacentHTML('beforeend',timeInput());
       options.lastElementChild.querySelector('input').focus();
       break;
@@ -335,23 +403,35 @@ panel.addEventListener('submit',event=>{
   const value=name=>String(data.get(name)||'').trim();
   switch(form.dataset.form) {
     case 'new': {
+      const flow = form.dataset.flow;
+      const pollTime = flow==='undecided' || value('dateMode')==='poll';
       const times=[...new Set(data.getAll('time').filter(Boolean).map(t=>new Date(t).toISOString()))].sort();
-      const restaurants=split(value('restaurants'));
-      if(!value('title')||(!times.length&&!restaurants.length)) { message('Enter a meal name and at least one option.'); return; }
+      const restaurants=[...new Set(value('restaurants').split('\n').map(name=>name.trim()).filter(Boolean))];
+      if(!value('title')) { message('Enter a meal name.'); return; }
+      if(pollTime ? times.length<3 || times.length>5 : times.length!==1) {
+        message(pollTime?'Add three to five different times.':'Choose one date and time.'); return;
+      }
+      if(flow==='restaurant' && restaurants.length!==1) { message('Choose one restaurant.'); return; }
+      if(flow==='date' && (restaurants.length===2 || restaurants.length>5)) { message('Choose one restaurant or add three to five for a poll.'); return; }
       const details={title:value('title'),location:value('location'),duration:Number(value('duration')),
-        times,restaurants,guests:split(value('guests')),status:statuses[0],selectedTime:'',restaurant:'',attending:[]};
-      syncMeal('create', { details }); return;
+        times,restaurants,guests:[...new Set([...data.getAll('contacts'),...split(value('guests'))])],
+        status:statuses[0],selectedTime:pollTime?'':times[0],restaurant:restaurants.length===1?restaurants[0]:'',attending:[]};
+      const newContacts = data.has('saveContacts') ? split(value('guests')) : [];
+      syncMeal('create', { details }, newContacts); return;
     }
     case 'vote': {
       syncMeal('vote', { id: activeMeal.id, vote: { times: data.getAll('times'), restaurants: data.getAll('restaurants') } }); return;
     }
     case 'manage': {
       const newTime=value('newTime');
-      const time=newTime?new Date(newTime).toISOString():'', restaurant=value('newRestaurant');
+      const time=newTime?new Date(newTime).toISOString():'';
       const times=[...new Set([...activeMeal.times,...(time?[time]:[])])].sort();
-      if(times.length>10) { message('The poll already has 10 time options.'); return; }
-      const restaurants=[...new Set([...activeMeal.restaurants,...(restaurant?[restaurant]:[])])];
-      const details={...activeMeal,times,restaurants,selectedTime:value('selectedTime'),restaurant:value('restaurant'),
+      if(times.length>Math.max(5,activeMeal.times.length)) { message('Add up to five times.'); return; }
+      const additions=value('restaurants').split('\n').map(name=>name.trim()).filter(Boolean);
+      const restaurants=[...new Set([...activeMeal.restaurants,...additions])];
+      if(additions.length && !value('selectedTime')) { message('Choose the date before opening a restaurant poll.'); return; }
+      if(additions.length && (restaurants.length===2 || restaurants.length>5)) { message('Choose one restaurant or add three to five for a poll.'); return; }
+      const details={...activeMeal,times,restaurants,selectedTime:value('selectedTime'),restaurant:value('restaurant') || (additions.length && restaurants.length===1 ? restaurants[0] : ''),
         status:value('status'),attending:split(value('attending'))};
       for (const key of ['id','version','invite','myVote','responses','organizer','joinedCount']) delete details[key];
       syncMeal('manage', { id: activeMeal.id, version: activeMeal.version, details }); return;
@@ -368,14 +448,21 @@ panel.addEventListener('submit',event=>{
   save(); panel.close(); render();
 });
 
-async function syncMeal(action, payload) {
+async function syncMeal(action, payload, newContacts = []) {
   if (requestInFlight) return;
   requestInFlight = true;
   const buttons = panel.querySelectorAll('[type=submit], form button:not([type])');
   buttons.forEach(button => { button.disabled = true; });
   try {
     const { id } = await api(action, payload);
-    if (action === 'create') view = 'polls';
+    if (action === 'create') {
+      if (newContacts.length) {
+        state.people = [...new Set([...state.people,...newContacts])];
+        save();
+      }
+      view = payload.details.selectedTime ? 'dashboard' : 'polls';
+      if (payload.details.selectedTime) anchor = new Date(payload.details.selectedTime);
+    }
     if (action === 'manage' && payload.details.selectedTime) {
       anchor = new Date(payload.details.selectedTime);
       view = 'dashboard';
