@@ -12,8 +12,6 @@ try { state = { ...blank, ...JSON.parse(localStorage.getItem(storageKey)) }; }
 catch { state = structuredClone(blank); }
 state.meals = [];
 let view = 'dashboard';
-let days = 3;
-let anchor = new Date();
 let activeMeal = null;
 let activeWish = null;
 let noticeTimer;
@@ -203,9 +201,6 @@ const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
 }[char]));
 const format = (date, options) => new Intl.DateTimeFormat(undefined, options).format(new Date(date));
 const dateTime = date => format(date, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-const localDay = date => format(date, { weekday: 'long', month: 'short', day: 'numeric' });
-const midnight = date => new Date(date.getFullYear(), date.getMonth(), date.getDate());
-const moveDays = (date, count) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + count);
 const split = text => [...new Set(String(text || '').split(/[,\n]/).map(item => item.trim()).filter(Boolean))];
 const maps = (restaurant, location) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([restaurant, location].filter(Boolean).join(' '));
 const isPolling = meal => !meal.selectedTime || (!meal.restaurant && meal.restaurants.length > 0);
@@ -237,22 +232,33 @@ function card(meal) {
   return `<article class="card stack"><div class="row spread"><h3>${escape(meal.title)}</h3>${statusPill(status(meal))}</div>
     <div class="muted">${meal.selectedTime ? escape(dateTime(meal.selectedTime)) + ' · ' + durationLabel(meal.duration) : meal.times.length + ' time options · ' + meal.restaurants.length + ' restaurant options'}</div>
     <div>${escape(meal.restaurant || (meal.restaurants.length ? meal.restaurants.join(' · ') : 'Restaurant to be decided'))}</div>
-    <small>${meal.selectedTime ? attendance + ' attending' : meal.organizer ? responses + ' responses' : responses ? 'Response saved' : 'Awaiting your response'} · ${meal.joinedCount ?? 0} joined${meal.selectedTime && attendance ? ' · ' + escape(meal.attending.join(', ')) : ''}</small>
+    <small>${meal.selectedTime ? attendance + ' attending' : meal.organizer ? responses + ' responses' : responses ? 'Response saved' : 'Awaiting your response'} · ${meal.joinedCount ?? 0} joined${meal.organizer ? '' : ' · Guest'}${meal.selectedTime && attendance ? ' · ' + escape(meal.attending.join(', ')) : ''}</small>
     <div class="row"><button data-action="meal" data-id="${meal.id}">${isPolling(meal) ? 'Open poll' : meal.organizer && !meal.restaurant ? 'Choose restaurants' : 'Meal details'}</button></div></article>`;
 }
 function dashboard() {
-  const dates = Array.from({ length: days }, (_, i) => moveDays(anchor, i));
-  const scheduled = state.meals.filter(meal => meal.organizer && meal.selectedTime);
-  const pending = state.meals.filter(meal => meal.organizer && !meal.selectedTime);
-  const invited = state.meals.filter(meal => !meal.organizer);
-  return `${credential ? `<section class="day"><h2>Invited to</h2><div class="stack">${invited.map(card).join('') || '<p class="muted">Meals you join through an invite link appear here.</p>'}</div></section>` : ''}<div class="row period spread"><div class="row" aria-label="Calendar range">${[1,3,7].map(n => `<button data-action="range" data-days="${n}" aria-pressed="${n===days}">${n===1?'Day':n+' days'}</button>`).join('')}</div>
-    <div class="row"><button data-action="previous" aria-label="Previous dates">‹</button><button data-action="today">Today</button><button data-action="next" aria-label="Next dates">›</button></div></div>
-    ${dates.map(date => {
-      const start = +midnight(date), end = +moveDays(date, 1);
-      const meals = scheduled.filter(m => +new Date(m.selectedTime) >= start && +new Date(m.selectedTime) < end).sort((a,b) => +new Date(a.selectedTime) - +new Date(b.selectedTime));
-      return `<section class="day"><h2>${escape(localDay(date))}</h2><div class="stack">${meals.length ? meals.map(card).join('') : '<p class="muted">No meals scheduled.</p>'}</div></section>`;
-    }).join('')}
-    ${pending.length ? `<section class="day"><h2>Still polling</h2><div class="stack">${pending.map(card).join('')}</div></section>` : ''}`;
+  if (!credential) return '';
+
+  const now = Date.now();
+  const dated = state.meals
+    .filter(meal => meal.selectedTime)
+    .sort((a, b) => Date.parse(a.selectedTime) - Date.parse(b.selectedTime));
+  const upcoming = dated.filter(meal => Date.parse(meal.selectedTime) >= now);
+  const next = upcoming.find(meal => meal.restaurant);
+  const later = upcoming.filter(meal => meal !== next && !isPolling(meal));
+  const confirmed = later.filter(meal => meal.restaurant && ['Booked', 'Confirmed'].includes(meal.status));
+  const pending = later.filter(meal => !confirmed.includes(meal));
+  const polling = [...upcoming.filter(isPolling), ...state.meals.filter(meal => !meal.selectedTime)];
+  const past = dated.filter(meal => Date.parse(meal.selectedTime) < now).reverse();
+  const group = (title, meals) => meals.length
+    ? `<section class="meal-group"><h2>${title}</h2><div class="stack">${meals.map(card).join('')}</div></section>`
+    : '';
+
+  return `<section class="meal-group next-dinner"><h2>Next Dinner Date</h2>
+      ${next ? card(next) : '<p class="muted">Your next dinner will appear here once a date and restaurant are chosen.</p>'}</section>
+    ${group('Confirmed', confirmed)}
+    ${group('Pending', pending)}
+    ${group('Polling', polling)}
+    ${past.length ? `<details class="meal-group past-meals"><summary>Past meals</summary><div class="stack">${past.map(card).join('')}</div></details>` : ''}`;
 }
 function wishlist() {
   return `<div class="row spread"><h2>Places to try</h2><button class="primary" data-action="wish-new">Add a restaurant</button></div><div class="stack">
@@ -260,7 +266,7 @@ function wishlist() {
       <div class="row"><a class="button" href="${maps(w.name,w.location)}" target="_blank" rel="noopener">Find on Google Maps</a><button data-action="wish-interest" data-id="${w.id}">Interest list</button><button data-action="wish-date" data-id="${w.id}">It’s a Date</button></div></article>`).join('') || '<p class="muted">Save a restaurant you’d like to visit.</p>'}</div>`;
 }
 function render() {
-  const names = { dashboard: 'Your upcoming meals', polls: 'Open polls', wishlist: 'Your restaurant wish list' };
+  const names = { dashboard: 'Your meals', polls: 'Open polls', wishlist: 'Your restaurant wish list' };
   root.innerHTML = `<section class="hero"><p class="eyebrow">Meal planner</p><h1>${names[view]}</h1>
     <p class="muted">${credential ? 'Share a poll link and see responses as guests vote.' : invite ? 'You’ve been invited to a meal. Sign in to view the options and vote. If Google sign-in is blocked in your messaging app, open this link in Chrome or Safari.' : 'Sign in to plan meals, invite guests, and collect responses.'}</p>
     <div class="row">${credential ? '<button class="primary" data-action="new">Plan a meal</button><button data-action="refresh">Refresh responses</button><button data-action="signout">Sign out</button>' + (provider === 'google' ? '<button data-action="link-microsoft">Link Microsoft account</button>' : '<button data-action="link-google">Link Google account</button>') : '<button class="primary" data-action="signin">Sign in with Google</button><button data-action="microsoft">Sign in with Microsoft</button>'}<button data-action="people">Connections</button><button data-action="busy">Calendar blocks</button></div>
@@ -521,10 +527,6 @@ document.addEventListener('click', event=>{
   if (tab) { view=tab; render(); window.scrollTo(0,0); return; }
   switch(action) {
     case 'close': if (restaurantReturn) closeRestaurantBrowser(); else panel.close(); break;
-    case 'range': days=Number(button.dataset.days); render(); break;
-    case 'previous': anchor=moveDays(anchor,-days); render(); break;
-    case 'next': anchor=moveDays(anchor,days); render(); break;
-    case 'today': anchor=new Date(); render(); break;
     case 'new': if (credential) chooseFlow(); else startSignIn(); break;
     case 'flow': mealForm(null,id); break;
     case 'search-cuisine': {
@@ -659,10 +661,8 @@ async function syncMeal(action, payload, newContacts = []) {
         save();
       }
       view = payload.details.selectedTime ? 'dashboard' : 'polls';
-      if (payload.details.selectedTime) anchor = new Date(payload.details.selectedTime);
     }
     if (action === 'manage' && payload.details.selectedTime) {
-      anchor = new Date(payload.details.selectedTime);
       view = 'dashboard';
     }
     await refresh();
