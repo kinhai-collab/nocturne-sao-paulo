@@ -21,7 +21,8 @@ window.BEYOND_RESTAURANTS = [
     "rating": 4.4,
     "reviewCount": 3130,
     "maps": "https://www.google.com/maps/search/?api=1&query=PAI%20Uptown%202335%20Yonge%20St%20North%20Toronto%20Ontario",
-    "priceNote": "Example menu item; other dishes, tax, drinks and gratuity are separate."
+    "priceNote": "Example menu item; other dishes, tax, drinks and gratuity are separate.",
+    "booking": "https://www.paitoronto.com/contact"
   },
   {
     "id": "daldongnae-yonge",
@@ -33,15 +34,20 @@ window.BEYOND_RESTAURANTS = [
     "description": "Korean barbecue at 6034 Yonge St.",
     "suggestion": "Share pork belly or beef cuts cooked on the tabletop grill.",
     "tip": "Confirm minimum orders and availability for larger groups.",
-    "price": null,
-    "priceLabel": "Check current menu",
+    "price": [
+      20.99,
+      20.99
+    ],
+    "priceLabel": "Pork belly, one serving",
     "website": "https://www.daldongnaebbq.com/menu/",
-    "source": "https://www.daldongnaebbq.com/menu/",
+    "source": "https://www.daldongnaebbq.com/menu-northyork-1",
     "guide": "https://streetsoftoronto.com/streats/daldongnae-korean-bbq/",
     "reviewSource": "https://streetsoftoronto.com/streats/daldongnae-korean-bbq/",
     "rating": 4.4,
     "reviewCount": 3092,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Daldongnae%20Korean%20BBQ%206034%20Yonge%20St%20North%20York%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Daldongnae%20Korean%20BBQ%206034%20Yonge%20St%20North%20York%20Ontario",
+    "priceNote": "The table BBQ requires at least two servings per table and one serving per guest.",
+    "contact": "tel:+14162266034"
   },
   {
     "id": "spring-sushi",
@@ -53,15 +59,20 @@ window.BEYOND_RESTAURANTS = [
     "description": "Japanese AYCE at 10 Dundas St E Unit 500.",
     "suggestion": "Compare the lunch and dinner AYCE selections; try nigiri and rolls.",
     "tip": "Confirm weekend rates and whether sashimi is included.",
-    "price": null,
-    "priceLabel": "Check current menu",
+    "price": [
+      18,
+      18
+    ],
+    "priceLabel": "Promotional ramen set",
     "website": "https://springsushi.com/toronto/",
-    "source": "https://springsushi.com/toronto/",
+    "source": "https://springsushi.com/toronto/ramen-with-side-dish-at-18/",
     "guide": "https://restaurantguru.com/Spring-Sushi-Toronto",
     "reviewSource": "https://restaurantguru.com/Spring-Sushi-Toronto",
     "rating": 4.3,
     "reviewCount": 5212,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Spring%20Sushi%2010%20Dundas%20St%20E%20Unit%20500%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Spring%20Sushi%2010%20Dundas%20St%20E%20Unit%20500%20Toronto%20Ontario",
+    "booking": "https://springsushi.com/toronto/reservations-indoor-or-patio/",
+    "priceNote": "This is a published ramen promotion. Ask the Toronto location for the current all-you-can-eat rate."
   },
   {
     "id": "bcd-soon-tofu",
@@ -73,15 +84,20 @@ window.BEYOND_RESTAURANTS = [
     "description": "Korean at 5445 Yonge St.",
     "suggestion": "Try a bubbling soft tofu stew and choose your spice level.",
     "tip": "Use the Willowdale location at 5445 Yonge.",
-    "price": null,
-    "priceLabel": "Check current menu",
+    "price": [
+      16.95,
+      16.95
+    ],
+    "priceLabel": "Finch location soon tofu with rice and sides",
     "website": "https://bukchangdongsoontofu.com/contact/",
-    "source": "https://bukchangdongsoontofu.com/contact/",
+    "source": "https://bukchangdongsoontofu.com/menu/finch/",
     "guide": "https://streetsoftoronto.com/streats/buk-chang-dong-soon-tofu/",
     "reviewSource": "https://streetsoftoronto.com/streats/buk-chang-dong-soon-tofu/",
     "rating": 4.3,
     "reviewCount": 1677,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Buk%20Chang%20Dong%20Soon%20Tofu%205445%20Yonge%20St%20North%20York%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Buk%20Chang%20Dong%20Soon%20Tofu%205445%20Yonge%20St%20North%20York%20Ontario",
+    "priceNote": "Menu snapshot. Confirm the price and allow for applicable taxes, drinks and service.",
+    "contact": "https://bukchangdongsoontofu.com/contact/"
   },
   {
     "id": "dim-sum-king",
@@ -93,15 +109,20 @@ window.BEYOND_RESTAURANTS = [
     "description": "Cantonese dim sum at 421 Dundas St W.",
     "suggestion": "Order har gow, siu mai and rice noodle rolls to share.",
     "tip": "Check cart service hours and weekend waits.",
-    "price": null,
-    "priceLabel": "Check current menu",
+    "price": [
+      21.95,
+      21.95
+    ],
+    "priceLabel": "Example dish: beef fried rice noodles",
     "website": "https://dimsumkingtoronto.com/",
-    "source": "https://dimsumkingtoronto.com/",
+    "source": "https://dimsumkingtoronto.com/menu/",
     "guide": "https://www.bestinhood.com/toronto/food/best-dim-sum-restaurants-in-toronto/",
     "reviewSource": "https://www.bestinhood.com/toronto/food/best-dim-sum-restaurants-in-toronto/",
     "rating": 4.1,
     "reviewCount": 3942,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Dim%20Sum%20King%20421%20Dundas%20St%20W%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Dim%20Sum%20King%20421%20Dundas%20St%20W%20Toronto%20Ontario",
+    "priceNote": "This is the price of one menu item. Total depends on how many dishes you order and share.",
+    "contact": "tel:+14165513366"
   },
   {
     "id": "dragon-legend",
@@ -113,15 +134,20 @@ window.BEYOND_RESTAURANTS = [
     "description": "Pan-Asian buffet at 25 Lanark Rd.",
     "suggestion": "Look for the Peking duck station and rotating buffet dishes.",
     "tip": "Check which stations are open and compare lunch, dinner and weekend pricing.",
-    "price": null,
-    "priceLabel": "Check current menu",
+    "price": [
+      50.99,
+      55.99
+    ],
+    "priceLabel": "Adult dinner buffet, by day",
     "website": "https://www.dragonlegend.ca/buffet/",
     "source": "https://www.dragonlegend.ca/buffet/",
     "guide": "https://www.top-rated.online/cities/Markham/place/p/5277831/Dragon%2BLegend",
     "reviewSource": "https://www.top-rated.online/cities/Markham/place/p/5277831/Dragon%2BLegend",
     "rating": 4.0,
     "reviewCount": 7600,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Dragon%20Legend%2025%20Lanark%20Rd%20Markham%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Dragon%20Legend%2025%20Lanark%20Rd%20Markham%20Ontario",
+    "booking": "https://www.dragonlegend.ca/reservation/",
+    "priceNote": "Menu snapshot. Confirm the price and allow for applicable taxes, drinks and service."
   },
   {
     "id": "yu-richmond",
@@ -133,15 +159,20 @@ window.BEYOND_RESTAURANTS = [
     "description": "Cantonese dim sum and seafood at 270 West Beaver Creek Rd.",
     "suggestion": "Start with steamed dumplings and pan-fried radish cake.",
     "tip": "Select the Richmond Hill branch. Dim sum and dinner seafood have separate menus.",
-    "price": null,
-    "priceLabel": "Check current menu",
+    "price": [
+      20.92,
+      26.92
+    ],
+    "priceLabel": "Example: three standard dim sum plates plus tea",
     "website": "https://www.yuseafood.com/richmondhillhome",
-    "source": "https://www.yuseafood.com/richmondhillhome",
+    "source": "https://www.yuseafood.com/rhmenu",
     "guide": "https://streetsoftoronto.com/street-eats/yu-seafood/",
     "reviewSource": "https://streetsoftoronto.com/street-eats/yu-seafood/",
     "rating": 4.0,
     "reviewCount": 3780,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Yu%20Seafood%20270%20West%20Beaver%20Creek%20Rd%20Richmond%20Hill%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Yu%20Seafood%20270%20West%20Beaver%20Creek%20Rd%20Richmond%20Hill%20Ontario",
+    "booking": "https://www.yuseafood.com/rhreservations",
+    "priceNote": "Estimate uses three plates at CA$5.99–7.99 and the CA$2.95 per-person tea charge. Premium plates cost more."
   },
   {
     "id": "sushi-legend",
@@ -153,15 +184,20 @@ window.BEYOND_RESTAURANTS = [
     "description": "Japanese AYCE at 11 Ravel Rd Unit 3-4.",
     "suggestion": "Order a few pieces of nigiri and rolls at a time.",
     "tip": "Check lunch versus dinner inclusions and any leftovers policy.",
-    "price": null,
-    "priceLabel": "Check current menu",
+    "price": [
+      40.95,
+      43.95
+    ],
+    "priceLabel": "Adult dinner all-you-can-eat, by day",
     "website": "https://www.sushilegend.ca/",
     "source": "https://www.sushilegend.ca/",
     "guide": "https://restaurantguru.com/Sushi-Legend-Toronto-2",
     "reviewSource": "https://restaurantguru.com/Sushi-Legend-Toronto-2",
     "rating": 4.0,
     "reviewCount": 2210,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Sushi%20Legend%2011%20Ravel%20Rd%20Unit%203-4%20North%20York%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Sushi%20Legend%2011%20Ravel%20Rd%20Unit%203-4%20North%20York%20Ontario",
+    "booking": "https://gosnappy.io/reservation/reservation.html?storeId=2681",
+    "priceNote": "Menu snapshot. Confirm the price and allow for applicable taxes, drinks and service."
   },
   {
     "id": "richmond-station",
@@ -170,8 +206,8 @@ window.BEYOND_RESTAURANTS = [
     "area": "Toronto",
     "best": "Food",
     "description": "A downtown dining room with a seasonal menu and a signature Station Burger.",
-    "suggestion": "Try the Station Burger or ask about the chef\u2019s tasting menu.",
-    "tip": "Check the menu for the restaurant\u2019s service-inclusive pricing and tax treatment.",
+    "suggestion": "Try the Station Burger or ask about the chef’s tasting menu.",
+    "tip": "Check the menu for the restaurant’s service-inclusive pricing and tax treatment.",
     "price": [
       115,
       115
@@ -182,7 +218,8 @@ window.BEYOND_RESTAURANTS = [
     "guide": "https://richmondstation.ca/menu/",
     "priceNote": "Service is included. Tax and beverages are extra. The tasting menu requires full-table participation.",
     "address": "1 Richmond St W",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Richmond%20Station%201%20Richmond%20St%20W%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Richmond%20Station%201%20Richmond%20St%20W%20Toronto%20Ontario",
+    "booking": "https://www.opentable.ca/r/richmond-station-reservations-toronto"
   },
   {
     "id": "white-lily",
@@ -203,7 +240,8 @@ window.BEYOND_RESTAURANTS = [
     "guide": "https://www.whitelilydiner.ca/",
     "priceNote": "This is a listed takeout item price. Confirm dine-in pricing and availability.",
     "address": "678 Queen St E",
-    "maps": "https://www.google.com/maps/search/?api=1&query=White%20Lily%20Diner%20678%20Queen%20St%20E%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=White%20Lily%20Diner%20678%20Queen%20St%20E%20Toronto%20Ontario",
+    "contact": "https://whitelilydiner.ca/pages/location"
   },
   {
     "id": "star-akin",
@@ -216,12 +254,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Contemporary Asian at 51 Colborne St.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://www.google.com/maps/search/?api=1&query=aKin%2051%20Colborne%20St%20Toronto%20Ontario",
-    "source": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
+    "price": [
+      225,
+      225
+    ],
+    "priceLabel": "Dining-room blind tasting menu",
+    "website": "https://www.akintoronto.com/",
+    "source": "https://www.akintoronto.com/reservations",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=aKin%2051%20Colborne%20St%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=aKin%2051%20Colborne%20St%20Toronto%20Ontario",
+    "booking": "https://www.opentable.ca/r/akin-toronto",
+    "priceNote": "Menu snapshot. Confirm the price and allow for applicable taxes, drinks and service."
   },
   {
     "id": "star-alo",
@@ -234,12 +277,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Contemporary French at 163 Spadina Ave, 3rd floor.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://www.google.com/maps/search/?api=1&query=Alo%20163%20Spadina%20Ave%2C%203rd%20floor%20Toronto%20Ontario",
-    "source": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
+    "price": [
+      245,
+      245
+    ],
+    "priceLabel": "Published multi-course tasting experience",
+    "website": "https://alorestaurant.com/",
+    "source": "https://www.opentable.ca/r/alo-restaurant",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Alo%20163%20Spadina%20Ave%2C%203rd%20floor%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Alo%20163%20Spadina%20Ave%2C%203rd%20floor%20Toronto%20Ontario",
+    "booking": "https://www.opentable.ca/r/alo-restaurant",
+    "priceNote": "Menu snapshot. Confirm the price and allow for applicable taxes, drinks and service."
   },
   {
     "id": "star-danico",
@@ -252,12 +300,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Contemporary Italian at 440 College St.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://www.google.com/maps/search/?api=1&query=DaNico%20440%20College%20St%20Toronto%20Ontario",
-    "source": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
+    "price": [
+      240,
+      240
+    ],
+    "priceLabel": "Signature tasting menu",
+    "website": "https://www.danicotoronto.com/",
+    "source": "https://www.danicotoronto.com/menus/signature-tasting-menu",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=DaNico%20440%20College%20St%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=DaNico%20440%20College%20St%20Toronto%20Ontario",
+    "booking": "https://www.opentable.ca/r/danico-toronto",
+    "priceNote": "Menu snapshot. Confirm the price and allow for applicable taxes, drinks and service."
   },
   {
     "id": "star-don-alfonso-1890",
@@ -270,12 +323,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Italian at 1 Harbour Sq.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://www.google.com/maps/search/?api=1&query=Don%20Alfonso%201890%201%20Harbour%20Sq%20Toronto%20Ontario",
-    "source": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
+    "price": [
+      225,
+      225
+    ],
+    "priceLabel": "Signature tasting menu",
+    "website": "https://www.donalfonsotoronto.com/",
+    "source": "https://www.opentable.ca/r/don-alfonso-1890-toronto",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Don%20Alfonso%201890%201%20Harbour%20Sq%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Don%20Alfonso%201890%201%20Harbour%20Sq%20Toronto%20Ontario",
+    "booking": "https://www.opentable.ca/r/don-alfonso-1890-toronto",
+    "priceNote": "Menu snapshot. Confirm the price and allow for applicable taxes, drinks and service."
   },
   {
     "id": "star-edulis",
@@ -288,12 +346,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Seasonal tasting menu at 169 Niagara St.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://www.google.com/maps/search/?api=1&query=Edulis%20169%20Niagara%20St%20Toronto%20Ontario",
-    "source": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
+    "price": [
+      240,
+      240
+    ],
+    "priceLabel": "Reported multicourse dinner",
+    "website": "https://www.edulisrestaurant.com/",
+    "source": "https://www.silenth.ca/blogs/romantic-restaurants-toronto",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Edulis%20169%20Niagara%20St%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Edulis%20169%20Niagara%20St%20Toronto%20Ontario",
+    "booking": "https://www.exploretock.com/edulis/",
+    "priceNote": "Reported price. Confirm the current prepaid total and inclusions on Tock."
   },
   {
     "id": "star-enigma-yorkville",
@@ -306,12 +369,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Contemporary tasting menu at 23 Saint Thomas St.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://www.google.com/maps/search/?api=1&query=Enigma%20Yorkville%2023%20Saint%20Thomas%20St%20Toronto%20Ontario",
-    "source": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
+    "price": [
+      242,
+      242
+    ],
+    "priceLabel": "10-course tasting experience",
+    "website": "https://www.enigmayorkville.com/",
+    "source": "https://www.opentable.com/r/enigma-yorkville-toronto",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Enigma%20Yorkville%2023%20Saint%20Thomas%20St%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Enigma%20Yorkville%2023%20Saint%20Thomas%20St%20Toronto%20Ontario",
+    "booking": "https://www.opentable.com/r/enigma-yorkville-toronto",
+    "priceNote": "Menu snapshot. Confirm the price and allow for applicable taxes, drinks and service."
   },
   {
     "id": "star-kaiseki-yu-zen-hashimoto",
@@ -324,12 +392,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Japanese kaiseki at 6 Sakura Way.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://www.google.com/maps/search/?api=1&query=Kaiseki%20Yu-zen%20Hashimoto%206%20Sakura%20Way%20Toronto%20Ontario",
-    "source": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
+    "price": [
+      400,
+      400
+    ],
+    "priceLabel": "Eight-course kaiseki",
+    "website": "https://www.kaiseki.ca/welcome",
+    "source": "https://www.kaiseki.ca/price",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Kaiseki%20Yu-zen%20Hashimoto%206%20Sakura%20Way%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Kaiseki%20Yu-zen%20Hashimoto%206%20Sakura%20Way%20Toronto%20Ontario",
+    "booking": "https://www.exploretock.com/kaiseki-yu-zen-hashimoto",
+    "priceNote": "Menu snapshot. Confirm the price and allow for applicable taxes, drinks and service."
   },
   {
     "id": "star-kappo-sato",
@@ -342,12 +415,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Japanese kappo at 575 Mount Pleasant Rd.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://kapposato.com/contact.html",
+    "price": [
+      385,
+      385
+    ],
+    "priceLabel": "Twelve-course omakase",
+    "website": "https://kapposato.com/",
     "source": "https://kapposato.com/menu.html",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Kappo%20Sato%20575%20Mount%20Pleasant%20Rd%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Kappo%20Sato%20575%20Mount%20Pleasant%20Rd%20Toronto%20Ontario",
+    "booking": "https://www.opentable.ca/booking/experiences-availability?rid=1272160&restref=1272160&experienceId=721643",
+    "priceNote": "The restaurant adds 20% gratuity. Tax and drinks are also extra."
   },
   {
     "id": "star-osteria-giulia",
@@ -360,12 +438,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Coastal Italian at 134 Avenue Rd.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://www.google.com/maps/search/?api=1&query=Osteria%20Giulia%20134%20Avenue%20Rd%20Toronto%20Ontario",
-    "source": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
+    "price": [
+      58,
+      68
+    ],
+    "priceLabel": "Example: focaccia plus one pasta",
+    "website": "https://osteriagiulia.ca/",
+    "source": "https://osteriagiulia.ca/dinner/",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Osteria%20Giulia%20134%20Avenue%20Rd%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Osteria%20Giulia%20134%20Avenue%20Rd%20Toronto%20Ontario",
+    "booking": "https://osteriagiulia.ca/reservations/",
+    "priceNote": "Menu-based estimate. Includes CA$29 focaccia and one of the CA$29–39 pastas."
   },
   {
     "id": "star-quetzal",
@@ -387,7 +470,8 @@ window.BEYOND_RESTAURANTS = [
     "source": "https://quetzaltoronto.com/menu",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
     "maps": "https://www.google.com/maps/search/?api=1&query=Quetzal%20419%20College%20St%20Toronto%20Ontario",
-    "priceNote": "Starts at CA$160 per guest, before extras. The whole table participates."
+    "priceNote": "The official menu lists this as the starting price. Drinks, tax and service can raise the total.",
+    "booking": "https://www.opentable.ca/r/quetzal-toronto"
   },
   {
     "id": "star-restaurant-20-victoria",
@@ -400,12 +484,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Seasonal tasting menu at 20 Victoria St Unit 100.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://www.google.com/maps/search/?api=1&query=Restaurant%2020%20Victoria%2020%20Victoria%20St%20Unit%20100%20Toronto%20Ontario",
-    "source": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
+    "price": [
+      200,
+      200
+    ],
+    "priceLabel": "Reported seven-course dinner",
+    "website": "https://www.20victoria.com/",
+    "source": "https://tastingmenu.ca/restaurants/toronto/financial-district/restaurant-20-victoria",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Restaurant%2020%20Victoria%2020%20Victoria%20St%20Unit%20100%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Restaurant%2020%20Victoria%2020%20Victoria%20St%20Unit%20100%20Toronto%20Ontario",
+    "booking": "https://www.opentable.ca/r/restaurant-20-victoria-toronto",
+    "priceNote": "Reported price before tax and service. Confirm the current menu price when booking."
   },
   {
     "id": "star-shoushin",
@@ -418,12 +507,17 @@ window.BEYOND_RESTAURANTS = [
     "description": "Sushi omakase at 3328 Yonge St.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
+    "price": [
+      420,
+      420
+    ],
+    "priceLabel": "Reported Sakura omakase",
     "website": "https://www.shoushin.ca/",
-    "source": "https://www.shoushin.ca/",
+    "source": "https://www.novacircle.com/spots/north-america/canada/ontario/toronto-municipality/toronto/shoushin-72f467/about",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Shoushin%203328%20Yonge%20St%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Shoushin%203328%20Yonge%20St%20Toronto%20Ontario",
+    "booking": "https://www.exploretock.com/shoushin/",
+    "priceNote": "Reported price. Check the current menu and any charges on Tock."
   },
   {
     "id": "star-sushi-masaki-saito",
@@ -436,11 +530,16 @@ window.BEYOND_RESTAURANTS = [
     "description": "Sushi omakase at 88 Avenue Rd.",
     "suggestion": "Check the current menu and format before choosing a date.",
     "tip": "Confirm availability, dietary accommodation, and any deposit when booking.",
-    "price": null,
-    "priceLabel": "Check current menu",
-    "website": "https://www.google.com/maps/search/?api=1&query=Sushi%20Masaki%20Saito%2088%20Avenue%20Rd%20Toronto%20Ontario",
-    "source": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
+    "price": [
+      780,
+      780
+    ],
+    "priceLabel": "Omakase dinner",
+    "website": "https://www.masakisaito.ca/",
+    "source": "https://www.masakisaito.ca/menu/",
     "guide": "https://www.michelin.com/en/publications/products-and-services/the-michelin-guide-2026-toronto",
-    "maps": "https://www.google.com/maps/search/?api=1&query=Sushi%20Masaki%20Saito%2088%20Avenue%20Rd%20Toronto%20Ontario"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Sushi%20Masaki%20Saito%2088%20Avenue%20Rd%20Toronto%20Ontario",
+    "booking": "https://www.masakisaito.ca/book/",
+    "priceNote": "Menu snapshot. Confirm the price and allow for applicable taxes, drinks and service."
   }
 ];
