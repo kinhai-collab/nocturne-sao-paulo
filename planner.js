@@ -247,7 +247,14 @@ function browseRestaurants(guest = false) {
   panel.classList.add('restaurant-browser');
   show('Search restaurants', `<div class="stack">
     <button type="button" data-action="return-restaurants">← Back to meal</button>
-    <label>Search by name, cuisine or neighbourhood <input type="search" data-restaurant-search autofocus></label>
+    <form class="stack" data-form="restaurant-search">
+      <label>Search by name, cuisine or neighbourhood <input type="search" data-restaurant-search autocomplete="off" autofocus></label>
+      <div class="row" data-cuisine-suggestions aria-label="Cuisine suggestions"></div>
+      <div class="row spread"><button type="submit" class="primary">Search</button>
+        <label>Sort by <select data-restaurant-sort><option value="match">Best match</option><option value="popular">Popularity</option><option value="rating">Highest rating</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></label>
+      </div>
+    </form>
+    <p class="muted" data-restaurant-count role="status"></p>
     <div class="stack" data-restaurant-results></div>
     <a data-google-search target="_blank" rel="noopener">Search Google Maps ↗</a>
     ${guest ? '<form class="stack" data-form="suggest"><label>Suggest a restaurant by name <input name="suggestion" required maxlength="120"></label><button>Add to poll</button></form>' : ''}
@@ -266,27 +273,63 @@ function closeRestaurantBrowser() {
   panel.querySelector('[data-action=browse-restaurants], [data-action=suggest-restaurant]')?.focus();
 }
 
+const cuisineSuggestions = ['Sushi','Italian','Japanese','French','Korean','Thai','Chinese','Cantonese','Dim sum','Brazilian','Canadian','Seafood','Barbecue','Mexican','Pizza','Steakhouse'];
+const normalizeRestaurantText = value => String(value ?? '').normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().trim();
+
+function suggestCuisines(input) {
+  const query = normalizeRestaurantText(input.value);
+  const matches = query ? cuisineSuggestions.filter(cuisine => {
+    const name = normalizeRestaurantText(cuisine);
+    return name !== query && name.startsWith(query);
+  }) : [];
+  panel.querySelector('[data-cuisine-suggestions]').innerHTML = matches.map(cuisine =>
+    `<button type="button" data-action="search-cuisine" data-cuisine="${escape(cuisine)}">${escape(cuisine)}</button>`
+  ).join('');
+}
+
+function compareRestaurantPrices(a, b, direction) {
+  const rank = restaurant => restaurant.price?.length ? 0 : /^\$+$/.test(restaurant.priceLevel || '') ? 1 : 2;
+  const group = rank(a);
+  const difference = group - rank(b);
+  if (difference) return difference;
+  if (group === 0) return direction * (a.price[0] - b.price[0]);
+  if (group === 1) return direction * (a.priceLevel.length - b.priceLevel.length);
+  return 0;
+}
+
 function updateRestaurantResults(input) {
   const { input: names, guest, meal, location } = restaurantReturn;
-  const query = input.value.trim().toLowerCase();
+  const query = normalizeRestaurantText(input.value);
   const history = [...new Set(state.meals.filter(m => m.organizer && m.restaurant && ['Booked','Confirmed'].includes(m.status)).map(m => m.restaurant))];
   const candidates = [...(window.BEYOND_RESTAURANTS || []),
     ...(window.RESTAURANTS || []).map(([id,name,stars,cuisine,priceLevel])=>({id,name,cuisine,priceLevel,area:'São Paulo'}))];
-  const matches = candidates.filter(r => [r.name,r.cuisine,r.area].some(value => String(value || '').toLowerCase().includes(query)));
+  const words = query.split(/\s+/).filter(Boolean);
+  const matches = candidates.filter(restaurant => {
+    const searchable = normalizeRestaurantText([restaurant.name,restaurant.cuisine,restaurant.area,restaurant.best,restaurant.description].join(' '));
+    return words.every(word=>searchable.includes(word));
+  });
+  const sort = panel.querySelector('[data-restaurant-sort]').value;
+  const popularity = r => r.rating * Math.log1p(r.reviewCount || 0) || 0;
+  if (sort === 'popular') matches.sort((a,b)=>popularity(b)-popularity(a) || (b.rating || 0)-(a.rating || 0));
+  if (sort === 'rating') matches.sort((a,b)=>(b.rating || 0)-(a.rating || 0) || (b.reviewCount || 0)-(a.reviewCount || 0));
+  if (sort === 'low' || sort === 'high') matches.sort((a,b)=>compareRestaurantPrices(a,b,sort==='low'?1:-1));
+  panel.querySelector('[data-restaurant-count]').textContent = matches.length
+    ? `${matches.length} guide ${matches.length===1?'result':'results'}${sort==='popular'?' · Rating and review count':sort==='low'||sort==='high'?' · CAD prices first, then price levels':''}`
+    : 'No guide results. Try another search or open Google Maps.';
   const selected = new Set([...(meal?.restaurants || []), ...(names?.value.split('\n') || [])].map(name=>name.trim().toLowerCase()));
   const card = (name, r) => {
     const src = window.RESTAURANT_MEDIA?.[r?.id]?.card;
     const added = selected.has(name.toLowerCase());
-    const preview = r ? [r.area, r.cuisine, r.rating ? '★ '+r.rating : '', r.price ? 'CA$'+r.price[0] : r.priceLevel || ''].filter(Boolean).join(' · ') : '';
+    const preview = r ? [r.area, r.cuisine, r.rating ? '★ '+r.rating+(r.reviewCount?' ('+r.reviewCount.toLocaleString()+' reviews)':'') : '', r.price ? 'CA$'+r.price[0] : r.priceLevel || ''].filter(Boolean).join(' · ') : '';
     return `<article class="card venue-result">
       ${src ? `<img class="venue-thumb" src="${escape(src)}" alt="" loading="lazy">` : ''}
       <div><h3>${escape(name)}</h3><small>${escape(preview)}</small><div><a href="${maps(name,r?.area || location)}" target="_blank" rel="noopener">View on Google Maps ↗</a></div></div>
       <button type="button" data-action="pick-restaurant" data-name="${escape(name)}" aria-label="${added?'Added to poll':'Add to poll'}: ${escape(name)}" ${added || (guest && meal.suggested) ? 'disabled' : ''}>${added?'Added to poll':'Add to poll'}</button></article>`;
   };
   panel.querySelector('[data-restaurant-results]').innerHTML =
-    (!query && history.length ? '<small>Booked before</small>'+history.slice(0,4).map(name=>card(name,candidates.find(r=>r.name===name))).join('') : '') +
+    (!query && sort==='match' && history.length ? '<small>Booked before</small>'+history.slice(0,4).map(name=>card(name,candidates.find(r=>r.name===name))).join('') : '') +
     '<small>'+ (query ? 'Guide results' : 'New to you · from the guide') +'</small>' +
-    (matches.filter(r => query || !history.includes(r.name)).slice(0,12).map(r=>card(r.name,r)).join('') || '<small>No matching guide entries.</small>');
+    (matches.filter(r => query || sort!=='match' || !history.slice(0,4).includes(r.name)).map(r=>card(r.name,r)).join('') || '<small>No matching guide entries.</small>');
   panel.querySelector('[data-google-search]').href = maps(query || 'restaurants', location);
 }
 
@@ -374,9 +417,10 @@ function busyForm() {
 panel.addEventListener('close',()=>{ restaurantReturn=null; panel.classList.remove('restaurant-browser'); });
 panel.addEventListener('cancel',event=>{ if(restaurantReturn){ event.preventDefault(); closeRestaurantBrowser(); } });
 panel.addEventListener('input',event=>{
-  if(event.target.matches('[data-restaurant-search]')) updateRestaurantResults(event.target);
+  if(event.target.matches('[data-restaurant-search]')) { suggestCuisines(event.target); updateRestaurantResults(event.target); }
 });
 panel.addEventListener('change',event=>{
+  if(event.target.matches('[data-restaurant-sort]')) updateRestaurantResults(panel.querySelector('[data-restaurant-search]'));
   if(!event.target.matches('[name=dateMode]')) return;
   const options = panel.querySelector('#time-options');
   const poll = event.target.value==='poll';
@@ -397,6 +441,14 @@ document.addEventListener('click', event=>{
     case 'today': anchor=new Date(); render(); break;
     case 'new': if (credential) chooseFlow(); else startSignIn(); break;
     case 'flow': mealForm(null,id); break;
+    case 'search-cuisine': {
+      const search = panel.querySelector('[data-restaurant-search]');
+      search.value = button.dataset.cuisine;
+      suggestCuisines(search);
+      updateRestaurantResults(search);
+      search.focus();
+      break;
+    }
     case 'browse-restaurants': browseRestaurants(); break;
     case 'suggest-restaurant': browseRestaurants(true); break;
     case 'return-restaurants': closeRestaurantBrowser(); break;
@@ -474,6 +526,7 @@ panel.addEventListener('submit',event=>{
       const newContacts = data.has('saveContacts') ? split(value('guests')) : [];
       syncMeal('create', { details }, newContacts); return;
     }
+    case 'restaurant-search': updateRestaurantResults(panel.querySelector('[data-restaurant-search]')); return;
     case 'suggest': suggestRestaurant(value('suggestion')); return;
     case 'vote': {
       syncMeal('vote', { id: activeMeal.id, vote: { times: data.getAll('times'), restaurants: data.getAll('restaurants') } }); return;
