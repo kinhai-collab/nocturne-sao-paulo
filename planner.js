@@ -74,7 +74,7 @@ async function getMicrosoftClient() {
         redirectUri: new URL('planner.html', location.href).href,
         navigateToLoginRequestUrl: false,
       },
-      cache: { cacheLocation: 'memoryStorage' },
+      cache: { cacheLocation: 'sessionStorage' },
     });
     await client.initialize();
     microsoftClient = client;
@@ -294,7 +294,7 @@ document.addEventListener('click', event=>{
     case 'link-microsoft': startMicrosoft(true); break;
     case 'link-google': startSignIn(true); break;
     case 'signout':
-      credential=''; state.meals=[]; window.google?.accounts?.id?.disableAutoSelect(); render(); break;
+      credential=''; state.meals=[]; window.google?.accounts?.id?.disableAutoSelect(); microsoftClient?.clearCache().catch(()=>{}); render(); break;
     case 'refresh':
       refresh().then(()=>message('Responses refreshed.')).catch(error=>message(error.message)); break;
     case 'refresh-meal': {
@@ -398,3 +398,4 @@ async function copyInvite(url) {
 }
 render();
 resumeMicrosoft().catch(error=>message(error.message));
+
