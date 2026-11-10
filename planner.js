@@ -352,9 +352,11 @@ function updateRestaurantResults(input) {
   const query = normalizeRestaurantText(input.value);
   const history = [...new Set(state.meals.filter(m => m.organizer && m.restaurant && ['Booked','Confirmed'].includes(m.status)).map(m => m.restaurant))];
   const candidates = [...(window.BEYOND_RESTAURANTS || []),
-    ...(window.RESTAURANTS || []).map(([id,name,stars,cuisine,priceLevel])=>({id,name,cuisine,priceLevel,area:'São Paulo'}))];
+    ...(window.RESTAURANTS || []).map(({ price, ...restaurant }) => ({
+      ...restaurant, priceLevel: price, area: 'São Paulo',
+    }))];
   const cityInput = panel.querySelector('[data-restaurant-city]').value.trim();
-  const city = normalizeRestaurantText(cityInput);
+  const city = normalizeRestaurantText(cityInput.split(',')[0]);
   const words = query.split(/\s+/).filter(Boolean);
   const filtering = Boolean(city || query);
   const matches = candidates.filter(restaurant => {
