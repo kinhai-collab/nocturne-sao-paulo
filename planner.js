@@ -64,6 +64,22 @@ let microsoftClient;
 let signingIn = false;
 let requestInFlight = false;
 let invite = new URLSearchParams(location.hash.slice(1)).get('invite');
+const plannerUrl = new URL(location.href);
+const openSignIn = plannerUrl.searchParams.get('signin') === '1';
+function applyPlannerTheme(theme) {
+  if (!['supper-club', 'after-hours'].includes(theme)) return;
+  document.body.dataset.plannerTheme = theme;
+  const url = new URL(location.href);
+  url.searchParams.set('theme', theme);
+  history.replaceState(history.state, '', url);
+}
+applyPlannerTheme(plannerUrl.searchParams.get('theme'));
+if (openSignIn) {
+  const url = new URL(location.href);
+  url.searchParams.delete('signin');
+  history.replaceState(history.state, '', url);
+}
+
 const endpoint = new URL('meal-planner', window.POLL_CONFIG.endpoint).href;
 
 async function api(action, payload = {}) {
@@ -124,7 +140,7 @@ async function getMicrosoftClient() {
 }
 async function startMicrosoft(linking) {
   try {
-    sessionStorage.setItem(microsoftFlowKey, JSON.stringify({ invite, linking, remember: linking ? Boolean(savedSession()) : rememberSelected() }));
+    sessionStorage.setItem(microsoftFlowKey, JSON.stringify({ invite, linking, theme: document.body.dataset.plannerTheme, remember: linking ? Boolean(savedSession()) : rememberSelected() }));
     const client = await getMicrosoftClient();
     await client.loginRedirect({ scopes: ['openid', 'profile'], prompt: 'select_account' });
   } catch (error) {
@@ -137,16 +153,24 @@ async function resumeMicrosoft() {
   if (!pending) return;
   sessionStorage.removeItem(microsoftFlowKey);
   try {
-    const { invite: savedInvite, linking, remember } = JSON.parse(pending);
+    const { invite: savedInvite, linking, remember, theme } = JSON.parse(pending);
     invite = savedInvite;
     const result = await (await getMicrosoftClient()).handleRedirectPromise();
-    if (!result?.idToken) return;
+    applyPlannerTheme(theme);
+    if (!result?.idToken) return restoreSession();
     credential = result.idToken;
     provider = 'microsoft';
     await finishSignIn();
     if (linking) await startSignIn(true, remember);
     else if (remember) await rememberSession();
   } catch (error) { message(error.message); }
+}
+
+function chooseSignIn() {
+  show('Sign in to Enkai', `<div class="stack">
+    <button type="button" data-action="signin">Continue with Google</button>
+    <button type="button" data-action="microsoft">Continue with Microsoft</button>
+  </div>`);
 }
 
 async function startSignIn(linking = false, remember = rememberSelected()) {
@@ -269,7 +293,7 @@ function render() {
   const names = { dashboard: 'Your meals', polls: 'Open polls', wishlist: 'Your restaurant wish list' };
   root.innerHTML = `<section class="hero"><p class="eyebrow">Meal planner</p><h1>${names[view]}</h1>
     <p class="muted">${credential ? 'Share a poll link and see responses as guests vote.' : invite ? 'You’ve been invited to a meal. Sign in to view the options and vote. If Google sign-in is blocked in your messaging app, open this link in Chrome or Safari.' : 'Sign in to plan meals, invite guests, and collect responses.'}</p>
-    <div class="row">${credential ? '<button class="primary" data-action="new">Plan a meal</button><button data-action="refresh">Refresh responses</button><button data-action="signout">Sign out</button>' + (provider === 'google' ? '<button data-action="link-microsoft">Link Microsoft account</button>' : '<button data-action="link-google">Link Google account</button>') : '<button class="primary" data-action="signin">Sign in with Google</button><button data-action="microsoft">Sign in with Microsoft</button>'}<button data-action="people">Connections</button><button data-action="busy">Calendar blocks</button></div>
+    <div class="row">${credential ? '<button class="primary" data-action="new">Plan a meal</button><button data-action="refresh">Refresh responses</button><button data-action="signout">Sign out</button>' + (provider === 'google' ? '<button data-action="link-microsoft">Link Microsoft account</button>' : '<button data-action="link-google">Link Google account</button>') : '<button class="primary" data-action="choose-signin">Sign in</button>'}<button data-action="people">Connections</button><button data-action="busy">Calendar blocks</button></div>
     ${credential ? '' : '<label class="option"><input type="checkbox" data-remember-me><span>Remember me on this browser for 30 days</span></label>'}</section>
     ${view==='dashboard' ? dashboard() : view==='wishlist' ? wishlist() : '<div class="stack">'+(state.meals.filter(isPolling).map(card).join('') || '<p class="muted">No open polls yet.</p>')+'</div>'}`;
   document.querySelectorAll('[data-view]').forEach(button => {
@@ -552,6 +576,7 @@ document.addEventListener('click', event=>{
       button.disabled = true;
       break;
     }
+    case 'choose-signin': chooseSignIn(); break;
     case 'signin': startSignIn(); break;
     case 'microsoft': startMicrosoft(false); break;
     case 'link-microsoft': startMicrosoft(true); break;
@@ -686,4 +711,4 @@ async function copyInvite(url) {
 }
 render();
 if (sessionStorage.getItem(microsoftFlowKey)) resumeMicrosoft().catch(error=>message(error.message));
-else restoreSession();
+else restoreSession().then(() => { if (openSignIn && !credential) chooseSignIn(); });

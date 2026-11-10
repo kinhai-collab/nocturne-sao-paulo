@@ -26,36 +26,24 @@ if (Object.prototype.hasOwnProperty.call(themes, theme)) {
   comparison.href = '?preview=' + other;
   comparison.textContent = 'Try ' + themes[other].name;
 
+  const planner = new URL('planner.html', location.href);
+  planner.searchParams.set('theme', theme);
+  planner.searchParams.set('signin', '1');
+  document.querySelector('.invite-signin').href = planner.href;
+
   const vote = document.querySelector('#preview-vote');
-  const signIn = document.querySelector('#preview-signin');
   const form = document.querySelector('#sample-vote');
   const openVote = document.querySelector('#open-vote');
-  let votePending = false;
 
   openVote.addEventListener('click', () => vote.showModal());
-  document.querySelector('.invite-signin').addEventListener('click', () => {
-    signIn.returnValue = '';
-    signIn.showModal();
-  });
   form.addEventListener('change', () => {
     form.querySelector('[type=submit]').disabled = !form.querySelector(':checked');
   });
   form.addEventListener('submit', event => {
     event.preventDefault();
     if (!form.querySelector(':checked')) return;
-    votePending = true;
     vote.close();
-    signIn.returnValue = '';
-    signIn.showModal();
-  });
-  signIn.addEventListener('close', () => {
-    if (!votePending) return;
-    votePending = false;
-    if (['google', 'microsoft'].includes(signIn.returnValue)) {
-      openVote.textContent = 'Edit sample vote';
-      document.querySelector('.invite-footer').firstChild.textContent = 'Sample vote recorded ';
-    } else {
-      vote.showModal();
-    }
+    openVote.textContent = 'Edit sample vote';
+    document.querySelector('.invite-footer').firstChild.textContent = 'Sample vote recorded ';
   });
 }

@@ -77,3 +77,35 @@ dialog.restaurant-browser{width:min(100% - 1rem,52rem)}
   cursor: pointer;
   color: var(--muted);
 }
+
+body[data-planner-theme="supper-club"] {
+  color-scheme: light;
+  --bg: #fbf1e6;
+  --surface: #fff8f0;
+  --ink: #402626;
+  --muted: #6f4d4d;
+  --line: #dfc8be;
+  --accent: #7c3547;
+  --button-ink: #fff;
+}
+
+body[data-planner-theme="after-hours"] {
+  color-scheme: dark;
+  --bg: #241b18;
+  --surface: #30231e;
+  --ink: #ffedd9;
+  --muted: #d5bbaa;
+  --line: #73574b;
+  --accent: #efd1a6;
+  --button-ink: #2c1a13;
+}
+
+body[data-planner-theme] .dock,
+body[data-planner-theme] input,
+body[data-planner-theme] select {
+  background: var(--bg);
+}
+
+body[data-planner-theme] :is(.primary, button[aria-pressed="true"], button[aria-current="page"]) {
+  color: var(--button-ink);
+}

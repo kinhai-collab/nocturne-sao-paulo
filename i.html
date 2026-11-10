@@ -14,16 +14,16 @@
 <meta property="og:image:alt" content="A plated course from Tuju in São Paulo">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="planner.css">
-<script src="invite.js" defer></script>
+<script src="invite.js?v=auth1" defer></script>
 <link rel="stylesheet" href="enkai-brand.css">
-<link rel="stylesheet" href="invite-themes.css"></head>
+<link rel="stylesheet" href="invite-themes.css?v=auth1"></head>
 <body>
 <main><h1><span class="enkai-logo"><img src="assets/enkai-logo.jpg" alt="Enkai"></span></h1><p>You’re invited to a meal.</p><a id="open-invite" href="planner.html">Open the meal planner</a></main>
 <template id="invite-preview">
   <main class="invite-frame">
     <header class="invite-header">
       <span class="invite-wordmark">Enkai</span>
-      <button type="button" class="invite-signin">Sign in</button>
+      <a class="invite-signin" href="planner.html">Sign in</a>
     </header>
     <div class="invite-cover"><img alt="" width="960" height="640"></div>
     <section class="invite-content" aria-labelledby="invite-title">
@@ -48,16 +48,7 @@
         <label><input type="checkbox" name="time"> Saturday, 6:30 p.m.</label>
         <label><input type="checkbox" name="time"> Sunday, 6:00 p.m.</label>
       </fieldset>
-      <button class="invite-cta" type="submit" disabled>Continue</button>
-    </form>
-  </dialog>
-  <dialog class="invite-dialog" id="preview-signin" aria-labelledby="signin-title">
-    <form method="dialog" class="invite-dismiss"><button aria-label="Close" value="close">×</button></form>
-    <h2 id="signin-title">Sign in to Enkai</h2>
-    <p>In a real invite, you’d sign in here to save your vote. This preview uses a sample account.</p>
-    <form method="dialog" class="invite-providers">
-      <button value="google">Continue with Google</button>
-      <button value="microsoft">Continue with Microsoft</button>
+      <button class="invite-cta" type="submit" disabled>Save sample vote</button>
     </form>
   </dialog>
 </template>
