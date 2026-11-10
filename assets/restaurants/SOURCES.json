@@ -778,5 +778,125 @@
     "restaurant": "dona-onca",
     "asset": "dona-onca-photo-2.webp",
     "source": "https://bardadonaonca.com.br/wordpress/wp-content/uploads/2018/11/bg2.jpg"
+  },
+  {
+    "restaurant": "richmond-station",
+    "asset": "richmond-station-photo-1.webp",
+    "source": "https://richmondstation.ca/wp-content/uploads/2016/10/RS-1736-scaled.jpg"
+  },
+  {
+    "restaurant": "richmond-station",
+    "asset": "richmond-station-photo-2.webp",
+    "source": "https://richmondstation.ca/wp-content/uploads/2025/12/CM-Fried-Oyster-683x1024.jpg"
+  },
+  {
+    "restaurant": "richmond-station",
+    "asset": "richmond-station-photo-3.webp",
+    "source": "https://richmondstation.ca/wp-content/uploads/2023/07/2023_0502_16100700-1-1024x683.jpg"
+  },
+  {
+    "restaurant": "richmond-station",
+    "asset": "richmond-station-photo-4.webp",
+    "source": "https://richmondstation.ca/wp-content/uploads/2023/04/Food-Platter-Wedding-1024x684.jpg"
+  },
+  {
+    "restaurant": "richmond-station",
+    "asset": "richmond-station-photo-5.webp",
+    "source": "https://richmondstation.ca/wp-content/uploads/2023/04/IMG_5633-1-scaled-e1682426986625-1024x479.jpg"
+  },
+  {
+    "restaurant": "richmond-station",
+    "asset": "richmond-station-card.webp",
+    "source": "https://richmondstation.ca/wp-content/uploads/2016/10/RS-1736-scaled.jpg"
+  },
+  {
+    "restaurant": "white-lily",
+    "asset": "white-lily-photo-1.webp",
+    "source": "https://whitelilydiner.ca/cdn/shop/files/C0615D8A-D9B5-491A-AC58-AFA4E851A36E_720x.jpeg"
+  },
+  {
+    "restaurant": "white-lily",
+    "asset": "white-lily-photo-2.webp",
+    "source": "http://whitelilydiner.ca/cdn/shop/products/white-lily-standard-breakfast-653727_1200x1200.jpg?v=1607413338"
+  },
+  {
+    "restaurant": "white-lily",
+    "asset": "white-lily-card.webp",
+    "source": "https://cdn.shopify.com/s/files/1/0265/3893/4330/files/C3E7A6B1-3112-4871-8BA6-11DD5F649B6B.jpeg"
+  },
+  {
+    "restaurant": "berkeley-north",
+    "asset": "berkeley-north-photo-1.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5e962f067c1dd078f727754c/1654536262375-IA0D02R3E1OWETSIVOQ4/2e1e7066-33fe-465f-8122-88879b066bc4_rw_1200-2.jpg"
+  },
+  {
+    "restaurant": "berkeley-north",
+    "asset": "berkeley-north-photo-2.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5e962f067c1dd078f727754c/808bdcab-2001-4700-a0f0-0d12012a086d/IRY02125.jpg"
+  },
+  {
+    "restaurant": "berkeley-north",
+    "asset": "berkeley-north-card.webp",
+    "source": "https://images.squarespace-cdn.com/content/v1/5e962f067c1dd078f727754c/1654536262375-IA0D02R3E1OWETSIVOQ4/2e1e7066-33fe-465f-8122-88879b066bc4_rw_1200-2.jpg"
+  },
+  {
+    "restaurant": "fat-rabbit",
+    "asset": "fat-rabbit-photo-1.webp",
+    "source": "https://fat-rabbit.ca/cdn/shop/files/DSC_3557_2.webp"
+  },
+  {
+    "restaurant": "fat-rabbit",
+    "asset": "fat-rabbit-photo-2.webp",
+    "source": "https://fat-rabbit.ca/cdn/shop/files/FR_Header2.jpg"
+  },
+  {
+    "restaurant": "fat-rabbit",
+    "asset": "fat-rabbit-card.webp",
+    "source": "https://fat-rabbit.ca/cdn/shop/files/fatrabbit.jpg"
+  },
+  {
+    "restaurant": "langdon-hall",
+    "asset": "langdon-hall-photo-1.webp",
+    "source": "https://cdn.prod.website-files.com/68ace2ae73af86acd7b3b73f/69333b80b9761c7952e35175_dine-reservation-img.jpg"
+  },
+  {
+    "restaurant": "langdon-hall",
+    "asset": "langdon-hall-photo-2.webp",
+    "source": "https://cdn.prod.website-files.com/68ace2ae73af86acd7b3b73f%2F692e3924b305ce09cb0c30b9_dining-video-cropped_poster.0000000.jpg"
+  },
+  {
+    "restaurant": "langdon-hall",
+    "asset": "langdon-hall-photo-3.webp",
+    "source": "https://cdn.prod.website-files.com/68ace2ae73af86acd7b3b73f/6920783b82a0d1ca5b48152c_dining-panel-left-1-p-500.jpg"
+  },
+  {
+    "restaurant": "langdon-hall",
+    "asset": "langdon-hall-card.webp",
+    "source": "https://cdn.prod.website-files.com/68ace2ae73af86acd7b3b73f/691337bdf7fef3ee78350975_Langdon-Hall-Logo-Icon.png"
+  },
+  {
+    "restaurant": "pearl-morissette",
+    "asset": "pearl-morissette-photo-1.webp",
+    "source": "https://restaurantpearlmorissette.com/img/01_Desktop/new2023/1.imageset/1@2x.jpg"
+  },
+  {
+    "restaurant": "pearl-morissette",
+    "asset": "pearl-morissette-photo-2.webp",
+    "source": "https://restaurantpearlmorissette.com/img/01_Desktop/new2023/2.imageset/2@2x.jpg"
+  },
+  {
+    "restaurant": "pearl-morissette",
+    "asset": "pearl-morissette-photo-3.webp",
+    "source": "https://restaurantpearlmorissette.com/img/01_Desktop/new2023/3.imageset/3@2x.jpg"
+  },
+  {
+    "restaurant": "pearl-morissette",
+    "asset": "pearl-morissette-photo-4.webp",
+    "source": "https://restaurantpearlmorissette.com/img/01_Desktop/new2023/4.imageset/4@2x.jpg"
+  },
+  {
+    "restaurant": "pearl-morissette",
+    "asset": "pearl-morissette-card.webp",
+    "source": "https://restaurantpearlmorissette.com/img/01_Desktop/new2023/1.imageset/1@2x.jpg"
   }
 ]
