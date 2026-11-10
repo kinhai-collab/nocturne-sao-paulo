@@ -227,6 +227,7 @@ function message(text) {
 function show(title, body) {
   panel.innerHTML = `<div class="row spread"><h2 id="panel-title">${escape(title)}</h2><button type="button" data-action="close" aria-label="Close">×</button></div>${body}<p class="dialog-notice" role="status"></p>`;
   if (!panel.open) panel.showModal();
+  panel.scrollTop = 0;
 }
 function statusPill(text) { return `<span class="pill">${escape(text)}</span>`; }
 
@@ -292,12 +293,12 @@ function restaurantPicker(value = '') {
 function browseRestaurants(guest = false) {
   const input = guest ? null : panel.querySelector('[name=restaurants]');
   const location = panel.querySelector('[name=location]')?.value || activeMeal?.location || '';
-  restaurantReturn = { nodes: [...panel.childNodes], input, guest, location, meal: activeMeal, places: [] };
+  restaurantReturn = { nodes: [...panel.childNodes], scrollTop: panel.scrollTop, input, guest, location, meal: activeMeal, places: [] };
   panel.classList.add('restaurant-browser');
   show('Search restaurants', `<div class="stack">
     <button type="button" data-action="return-restaurants">← Back to meal</button>
     <form class="stack" data-form="restaurant-search">
-      <label>City <input type="search" required maxlength="120" data-restaurant-city placeholder="e.g. Toronto" autocomplete="off" autofocus></label>
+      <label>City <input type="search" required maxlength="120" data-restaurant-city placeholder="e.g. Toronto" autocomplete="off"></label>
       <label>Food type <input type="search" maxlength="100" data-restaurant-search placeholder="e.g. Sushi or Italian" autocomplete="off"></label>
       <div class="row" data-cuisine-suggestions aria-label="Cuisine suggestions"></div>
       <div class="row spread"><button type="submit" class="primary">Search</button>
@@ -315,7 +316,7 @@ function browseRestaurants(guest = false) {
   city.value = location;
   updateRestaurantResults(search);
   panel.querySelector('[data-restaurant-count]').textContent = 'Enter a city and select Search.';
-  city.focus();
+  if (matchMedia("(pointer: fine)").matches) city.focus();
 }
 
 function closeRestaurantBrowser() {
@@ -324,7 +325,8 @@ function closeRestaurantBrowser() {
   restaurantReturn = null;
   panel.classList.remove('restaurant-browser');
   panel.replaceChildren(...previous.nodes);
-  panel.querySelector('[data-action=browse-restaurants], [data-action=suggest-restaurant]')?.focus();
+  panel.scrollTop = previous.scrollTop;
+  panel.querySelector('[data-action=browse-restaurants], [data-action=suggest-restaurant]')?.focus({ preventScroll: true });
 }
 
 const cuisineSuggestions = ['Sushi','Italian','Japanese','French','Korean','Thai','Chinese','Cantonese','Dim sum','Brazilian','Canadian','Seafood','Barbecue','Mexican','Pizza','Steakhouse'];
