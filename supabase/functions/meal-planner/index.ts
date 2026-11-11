@@ -28,6 +28,12 @@ const list = (value: unknown, max: number, valid: (item: string) => boolean) =>
 const time = (item: string) => item.length === 24 && item.endsWith('Z') &&
   Number.isFinite(Date.parse(item)) && new Date(item).toISOString() === item;
 const label = (item: string) => item.trim().length > 0 && item.length <= 450;
+const validTimeZone = (zone: unknown) => {
+  if (typeof zone !== 'string' || !zone || zone.length > 100) return false;
+  try { new Intl.DateTimeFormat('en', { timeZone: zone }); return true; }
+  catch { return false; }
+};
+
 
 const displayName = (value: unknown, fallback: string) =>
   typeof value === 'string' && value.trim() ? value.trim().slice(0, 100) : fallback;
@@ -152,7 +158,7 @@ Deno.serve(async req => {
              list(vote?.times, 10, time) && list(vote?.restaurants, 30, label)) {
       payload = { id, vote: { times: vote.times, restaurants: vote.restaurants } };
     } else if (action === 'create' || action === 'manage') {
-      if (!details || !text(details.title, 100) || !details.title.trim() || !text(details.location, 120) ||
+      if (!details || (details.timeZone !== undefined && !validTimeZone(details.timeZone)) || !text(details.title, 100) || !details.title.trim() || !text(details.location, 120) ||
           ![60, 90, 120, 150, 180, 240].includes(details.duration) ||
           !list(details.times, 10, time) || !list(details.restaurants, 30, label) ||
           (!details.times.length && !details.restaurants.length) ||
@@ -164,7 +170,16 @@ Deno.serve(async req => {
         return reply({ error: 'Check the meal details and poll options.' }, 400);
       }
       const { title, location, duration, times, restaurants, guests, attending, status, selectedTime, restaurant } = details;
-      payload = { id, version, details: { title, location, duration, times, restaurants, guests, attending, status, selectedTime, restaurant } };
+      let timeZone = details.timeZone;
+      if (action === 'manage' && timeZone === undefined) {
+        const { data: existing, error: lookupError } = await db.from('meal_plans').select('details').eq('id', id).maybeSingle();
+        if (lookupError) return reply({ error: 'Could not check the dinner time zone. Please retry.' }, 503);
+        timeZone = existing?.details?.timeZone;
+      }
+      payload = { id, version, details: {
+        title, location, duration, times, restaurants, guests, attending, status, selectedTime, restaurant,
+        ...(timeZone ? { timeZone } : {}),
+      } };
     } else return reply({ error: 'Invalid planner request.' }, 400);
 
     const { data, error } = microsoft

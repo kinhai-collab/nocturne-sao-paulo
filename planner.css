@@ -126,3 +126,6 @@ header nav { align-items: center; }
   flex: 0 0 20px;
   accent-color: var(--accent);
 }
+
+.time-option > [hidden] { display: none; }
+.time-option { min-width: 0; }
