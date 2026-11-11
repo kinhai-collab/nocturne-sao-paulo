@@ -73,7 +73,7 @@ let guideBooking = restaurantName ? {
   name: restaurantName,
   location: plannerUrl.searchParams.get('location')?.trim().slice(0, 120),
 } : null;
-const openSignIn = Boolean(guideBooking) || plannerUrl.searchParams.get('signin') === '1';
+const openSignIn = Boolean(invite) || Boolean(guideBooking) || plannerUrl.searchParams.get('signin') === '1';
 function applyPlannerTheme(theme) {
   if (!['supper-club', 'after-hours'].includes(theme)) return;
   document.body.dataset.plannerTheme = theme;
@@ -127,11 +127,7 @@ async function refreshOnReturn() {
 async function finishSignIn() {
   let joined;
   if (invite) {
-    try { joined = await api('join', { invite }); }
-    catch (error) {
-      if (!credential || !/unavailable|invalid/i.test(error.message)) throw error;
-      message(error.message);
-    }
+    joined = await api('join', { invite });
     invite = null;
     history.replaceState(null, '', location.pathname + location.search);
   }
@@ -199,7 +195,8 @@ async function resumeMicrosoft() {
 }
 
 function chooseSignIn() {
-  show('Sign in to Enkai', `<div class="stack">
+  show(invite ? 'Join this dinner' : 'Sign in to Enkai', `<div class="stack">
+    ${invite ? '<p class="muted">Sign in to RSVP, vote on the options, and keep this dinner on your dashboard.</p>' : ''}
     <button type="button" data-action="signin">Continue with Google</button>
     <button type="button" data-action="microsoft">Continue with Microsoft</button>
     <label class="option"><input type="checkbox" data-remember-me><span>Remember me on this browser for 30 days</span></label>
@@ -283,14 +280,31 @@ function show(title, body) {
 }
 function statusPill(text) { return `<span class="pill">${escape(text)}</span>`; }
 
+const attendanceLabels = { going: 'Going', maybe: 'Maybe', declined: 'Can’t make it' };
+function attendingGuests(meal) {
+  const responses = meal.attendanceResponses || [];
+  return [
+    ...responses.filter(response => response.attendance === 'going').map(response => response.name),
+    ...meal.attending.filter(name => !responses.some(response => response.name === name)),
+  ];
+}
+function attendanceForm(meal) {
+  const selected = meal.myVote?.attendance;
+  return `<form class="stack card" data-form="rsvp"><h3>Will you be joining?</h3>
+    <fieldset><legend>Your RSVP</legend>${Object.entries(attendanceLabels).map(([value, label]) =>
+      `<label class="option"><input type="radio" name="attendance" value="${value}" ${selected === value ? 'checked' : ''} required><span>${label}</span></label>`).join('')}</fieldset>
+    ${selected ? `<p class="muted" role="status">Your RSVP is saved · ${attendanceLabels[selected]}</p>` : ''}
+    <button class="primary">${selected ? 'Update RSVP' : 'Save RSVP'}</button></form>`;
+}
+
 function card(meal) {
-  const responses = meal.organizer ? meal.responses.length : Number(Boolean(meal.myVote));
-  const attendance = meal.attending.length;
+  const responses = meal.organizer ? meal.responses.filter(item => item.vote.times.length || item.vote.restaurants.length).length : Number(Boolean(meal.myVote));
+  const attendance = attendingGuests(meal).length;
   return `<article class="card stack"><div class="row spread"><h3>${escape(meal.title)}</h3>${statusPill(status(meal))}</div>
     <div class="muted">${meal.selectedTime ? escape(dateTime(meal.selectedTime)) + ' · ' + durationLabel(meal.duration) : meal.times.length + ' time options · ' + meal.restaurants.length + ' restaurant options'}</div>
     <div>${escape(meal.restaurant || (meal.restaurants.length ? meal.restaurants.join(' · ') : 'Restaurant to be decided'))}</div>
-    <small>${meal.selectedTime ? attendance + ' attending' : meal.organizer ? responses + ' responses' : responses ? 'Response saved' : 'Awaiting your response'} · ${meal.joinedCount ?? 0} joined${meal.organizer ? '' : ' · Guest'}${meal.selectedTime && attendance ? ' · ' + escape(meal.attending.join(', ')) : ''}</small>
-    <div class="row"><button data-action="meal" data-id="${meal.id}">${isPolling(meal) ? 'Open poll' : meal.organizer && !meal.restaurant ? 'Choose restaurants' : 'Meal details'}</button></div></article>`;
+    <small>${meal.selectedTime ? attendance + ' attending' : meal.organizer ? responses + ' responses' : responses ? 'Response saved' : 'Awaiting your response'} · ${meal.joinedCount ?? 0} joined${meal.organizer ? '' : ' · ' + escape(attendanceLabels[meal.myVote?.attendance] || 'RSVP needed')}${meal.selectedTime && attendance ? ' · ' + escape(attendingGuests(meal).join(', ')) : ''}</small>
+    <div class="row"><button data-action="meal" data-id="${meal.id}">${!meal.organizer ? (isPolling(meal) ? 'RSVP & vote' : 'RSVP & details') : isPolling(meal) ? 'Open poll' : !meal.restaurant ? 'Choose restaurants' : 'Meal details'}</button></div></article>`;
 }
 function dashboard() {
   if (!credential) return '';
@@ -532,6 +546,10 @@ function choices(values, name, selected, label) {
   return values.map(value=>`<label class="option"><input type="checkbox" name="${name}" value="${escape(value)}" ${selected.includes(value)?'checked':''}><span>${label(value)}</span></label>`).join('') || '<p class="muted">No options yet.</p>';
 }
 function mealDetails(meal) {
+  if (!meal) {
+    show('Dinner unavailable', '<p>We could not find this dinner. Reopen your invitation or refresh your dashboard.</p>');
+    return;
+  }
   activeMeal = meal;
   const vote = meal.myVote || { times: [], restaurants: [] };
   const tally = (key, val) => meal.organizer ? meal.responses.filter(r=>r.vote[key].includes(val)).length : 0;
@@ -546,10 +564,12 @@ function mealDetails(meal) {
     <section class="card stack"><h3>Guest responses · ${meal.responses.length}</h3>${meal.responses.map(({name,vote})=>`<div><strong>${escape(name)}</strong><div><small>Times: ${escape(vote.times.map(dateTime).join(', ') || 'None selected')}</small></div><div><small>Restaurants: ${escape(vote.restaurants.join(', ') || 'None selected')}</small></div></div>`).join('') || '<p class="muted">No responses yet.</p>'}</section>` : '<p class="muted">The organizer can see your display name and your choices.</p>'}
     ${!meal.restaurant && !meal.restaurants.length ? '<p class="muted">Restaurant to be decided.</p>' : ''}
     ${meal.restaurant ? `<a href="${maps(meal.restaurant,meal.location)}" target="_blank" rel="noopener">Find ${escape(meal.restaurant)} on Google Maps ↗</a>` : ''}
-    ${isPolling(meal) ? `<form class="stack card" data-form="vote"><h3>Respond to poll</h3>
+    ${meal.organizer ? '' : attendanceForm(meal)}
+    ${meal.attendanceResponses?.length ? `<section class="card stack"><h3>Guest RSVPs</h3>${meal.attendanceResponses.map(response => `<p><strong>${escape(response.name)}</strong> · ${attendanceLabels[response.attendance]}</p>`).join('')}</section>` : ''}
+    ${isPolling(meal) ? `<form class="stack card" data-form="vote"><h3>Vote on the options</h3><p class="muted">Select every option that works for you. You can change your choices later.</p>
       ${!meal.organizer && !meal.restaurant && meal.restaurants.length ? (meal.suggested ? '<small>You’ve added your restaurant suggestion.</small>' : '<button type="button" data-action="suggest-restaurant">Suggest one restaurant</button>') : ''}
-      ${!meal.selectedTime && meal.times.length ? `<fieldset><legend>Times that work</legend>${choices(meal.times,'times',vote.times,t=>escape(dateTime(t))+votesLabel('times',t)+(hasConflict(t,meal.duration)?' · ⚠ Calendar block overlaps':''))}</fieldset>` : ''}
-      ${!meal.restaurant && meal.restaurants.length ? `<fieldset><legend>Restaurants you’d visit</legend>${choices(meal.restaurants,'restaurants',vote.restaurants,r=>escape(r)+votesLabel('restaurants',r))}</fieldset>` : ''}<button class="primary">Save response</button></form>` : ''}
+      ${!meal.selectedTime && meal.times.length ? `<fieldset><legend>Times that work · ${escape(Intl.DateTimeFormat().resolvedOptions().timeZone)}</legend>${choices(meal.times,'times',vote.times,t=>escape(dateTime(t))+votesLabel('times',t)+(hasConflict(t,meal.duration)?' · ⚠ Calendar block overlaps':''))}</fieldset>` : ''}
+      ${!meal.restaurant && meal.restaurants.length ? `<fieldset><legend>Restaurants you’d visit</legend>${choices(meal.restaurants,'restaurants',vote.restaurants,r=>escape(r)+votesLabel('restaurants',r))}</fieldset>` : ''}<button class="primary">Save votes</button></form>` : ''}
     ${meal.organizer ? `<form class="stack card" data-form="manage"><h3>Organizer controls</h3>
       <label>Chosen date and time <select name="selectedTime"><option value="">Keep polling</option>${options}</select></label>
       <label>Add another time option <input type="datetime-local" name="newTime"></label>
@@ -686,6 +706,9 @@ panel.addEventListener('submit',event=>{
     }
     case 'restaurant-search': searchGooglePlaces(form); return;
     case 'suggest': suggestRestaurant(value('suggestion')); return;
+    case 'rsvp': {
+      syncMeal('rsvp', { id: activeMeal.id, attendance: value('attendance') }); return;
+    }
     case 'vote': {
       syncMeal('vote', { id: activeMeal.id, vote: { times: data.getAll('times'), restaurants: data.getAll('restaurants') } }); return;
     }
@@ -734,7 +757,7 @@ async function syncMeal(action, payload, newContacts = []) {
     }
     await refresh();
     if (panel.open) mealDetails(state.meals.find(meal => meal.id === id));
-    message(action === 'vote' ? 'Response saved for the organizer.' : 'Meal saved.');
+    message(action === 'rsvp' ? 'Your RSVP is saved. The organizer can see your response.' : action === 'vote' ? 'Your votes are saved for the organizer.' : 'Meal saved.');
   } catch (error) { message(error.message); }
   finally { requestInFlight = false; buttons.forEach(button => { button.disabled = false; }); }
 }
@@ -744,7 +767,8 @@ function inviteUrl(meal) {
   const bytes = hex.match(/../g).map(pair => String.fromCharCode(parseInt(pair, 16))).join('');
   const code = btoa(bytes).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
   const url = new URL('i.html', location.href);
-  url.search = code;
+  url.searchParams.set('code', code);
+  if (document.body.dataset.plannerTheme) url.searchParams.set('theme', document.body.dataset.plannerTheme);
   return url.href;
 }
 async function copyInvite(url) {
