@@ -68,7 +68,12 @@ let signingIn = false;
 let requestInFlight = false;
 let invite = new URLSearchParams(location.hash.slice(1)).get('invite');
 const plannerUrl = new URL(location.href);
-const openSignIn = plannerUrl.searchParams.get('signin') === '1';
+const restaurantName = plannerUrl.searchParams.get('restaurant')?.trim().slice(0, 120);
+let guideBooking = restaurantName ? {
+  name: restaurantName,
+  location: plannerUrl.searchParams.get('location')?.trim().slice(0, 120),
+} : null;
+const openSignIn = Boolean(guideBooking) || plannerUrl.searchParams.get('signin') === '1';
 function applyPlannerTheme(theme) {
   if (!['supper-club', 'after-hours'].includes(theme)) return;
   document.body.dataset.plannerTheme = theme;
@@ -132,7 +137,15 @@ async function finishSignIn() {
   }
   await refresh();
   if (joined) mealDetails(state.meals.find(meal => meal.id === joined.id));
-  else if (panel.open) panel.close();
+  else if (guideBooking) {
+    const restaurant = guideBooking;
+    guideBooking = null;
+    const url = new URL(location.href);
+    url.searchParams.delete('restaurant');
+    url.searchParams.delete('location');
+    history.replaceState(history.state, '', url);
+    mealForm(restaurant);
+  } else if (panel.open) panel.close();
 }
 
 async function getMicrosoftClient() {
@@ -154,7 +167,7 @@ async function getMicrosoftClient() {
 }
 async function startMicrosoft(linking) {
   try {
-    sessionStorage.setItem(microsoftFlowKey, JSON.stringify({ invite, linking, theme: document.body.dataset.plannerTheme, remember: linking ? Boolean(savedSession()) : rememberSelected() }));
+    sessionStorage.setItem(microsoftFlowKey, JSON.stringify({ invite, linking, guideBooking, theme: document.body.dataset.plannerTheme, remember: linking ? Boolean(savedSession()) : rememberSelected() }));
     const client = await getMicrosoftClient();
     await client.loginRedirect({ scopes: ['openid', 'profile'], prompt: 'select_account' });
   } catch (error) {
@@ -167,11 +180,16 @@ async function resumeMicrosoft() {
   if (!pending) return;
   sessionStorage.removeItem(microsoftFlowKey);
   try {
-    const { invite: savedInvite, linking, remember, theme } = JSON.parse(pending);
+    const { invite: savedInvite, linking, remember, theme, guideBooking: savedBooking } = JSON.parse(pending);
     invite = savedInvite;
+    guideBooking = savedBooking ?? guideBooking;
     const result = await (await getMicrosoftClient()).handleRedirectPromise();
     applyPlannerTheme(theme);
-    if (!result?.idToken) return restoreSession();
+    if (!result?.idToken) {
+      await restoreSession();
+      if (guideBooking && !credential) chooseSignIn();
+      return;
+    }
     credential = result.idToken;
     provider = 'microsoft';
     await finishSignIn();
@@ -493,14 +511,14 @@ function mealForm(wish, flow = 'restaurant') {
   const venue = restaurantPicker(wish?.name);
   show('Plan an evening', `<form class="stack" data-form="new" data-flow="${flow}">
     <p class="eyebrow">${{restaurant:'By restaurant',date:'By date',undecided:'Help us decide'}[flow]}</p>
-    <label>Meal name <input name="title" maxlength="100" required value="${escape(wish ? 'Dinner at '+wish.name : 'Dinner')}"></label>
+    <label>Meal name <input name="title" maxlength="100" required value="${escape(wish ? ('Dinner at ' + wish.name).slice(0, 100) : 'Dinner')}"></label>
     <label>City or neighbourhood <input name="location" maxlength="120" value="${escape(wish?.location)}"></label>
     ${flow==='restaurant' ? venue+timeFields : timeFields+(flow==='date'?venue:'<small>After choosing a time, you can start a restaurant poll on this meal.</small>')}
     <label>Duration <select name="duration">${durations.map(m=>`<option value="${m}" ${m===90?'selected':''}>${durationLabel(m)}</option>`).join('')}</select></label>
     <fieldset class="stack"><legend>Invite guests</legend>
       ${state.people.length ? choices(state.people,'contacts',wish?.interested || [],escape) : '<small>Enter guest names below. They’ll be available to select next time.</small>'}
-      <label>Other guest names <input name="guests" maxlength="500" placeholder="Names separated by commas" value="${escape(wish?.interested.filter(p=>!state.people.includes(p)).join(', '))}"></label>
-      <label class="option"><input type="checkbox" name="saveContacts"><span>Save new guest names to Connections</span></label>
+      <label>Other guest names <input name="guests" maxlength="500" placeholder="Names separated by commas" value="${escape(wish?.interested?.filter(p=>!state.people.includes(p)).join(', '))}"></label>
+      <label class="option"><input type="checkbox" name="saveContacts"><span>Save these guests for next time</span></label>
       <small>Share the invite link after saving. Guests appear as joined when they open it and sign in.</small></fieldset>
     <div class="row"><button type="button" data-action="new">Back</button><button class="primary">Save and get invite link</button></div></form>`);
 }

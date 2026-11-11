@@ -1,0 +1,84 @@
+/* Location picker shared by the planner and dining guides. */
+button[data-guide] {
+  min-height: 44px;
+  padding: .4rem .5rem;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.guide-locations {
+  width: min(calc(100% - 1.5rem), 27rem);
+  max-width: 27rem;
+  margin: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.guide-locations form { float: right; }
+.guide-locations form button { min-width: 44px; min-height: 44px; }
+.guide-locations h2 { margin: .35rem 2.75rem .4rem 0; padding: 0; }
+.guide-location-type { color: var(--muted); }
+.guide-location-links { clear: both; display: grid; gap: .6rem; }
+.guide-location-links a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: .65rem .85rem;
+  border: 1px solid var(--line);
+  border-radius: .65rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.enkai-guide {
+  color-scheme: light;
+  --bg: #fbf1e6;
+  --surface: #fff8f0;
+  --ink: #402626;
+  --muted: #6f4d4d;
+  --line: #dfc8be;
+  --accent: #7c3547;
+  --on-accent: #fff;
+}
+
+.enkai-guide[data-guide-theme="after-hours"] {
+  color-scheme: dark;
+  --bg: #241b18;
+  --surface: #30231e;
+  --ink: #ffedd9;
+  --muted: #d5bbaa;
+  --line: #73574b;
+  --accent: #efd1a6;
+  --on-accent: #2c1a13;
+}
+
+.enkai-guide .restaurant { background: var(--surface); border-radius: 1rem; }
+.enkai-guide .beyond-feature,
+.enkai-guide .hero-photo,
+.enkai-guide .restaurant-identifier { border-radius: .85rem; }
+.enkai-guide .primary { color: var(--on-accent); }
+.enkai-guide .guide-book {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+}
+
+.enkai-guide .card-actions { flex-wrap: wrap; }
+.enkai-guide #michelin-starred,
+.enkai-guide #highly-reviewed { scroll-margin-top: 1rem; }
+
+@media (max-width: 600px) {
+  button[data-guide] { font-size: .875rem; }
+  .enkai-guide header nav { flex-wrap: wrap; justify-content: flex-start; align-items: center; }
+  .enkai-guide .card-actions { gap: .5rem; }
+}
