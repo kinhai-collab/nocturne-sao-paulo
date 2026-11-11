@@ -118,3 +118,11 @@ body[data-planner-theme] :is(.primary, button[aria-pressed="true"], button[aria-
   color: var(--accent);
 }
 header nav { align-items: center; }
+
+.option input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  flex: 0 0 20px;
+  accent-color: var(--accent);
+}
