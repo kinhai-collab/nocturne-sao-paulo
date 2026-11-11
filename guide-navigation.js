@@ -36,6 +36,9 @@
       '<h2 id="guide-location-title">Current locations</h2><p class="guide-location-type"></p>' +
       '<div class="guide-location-links"><a>São Paulo</a><a>Toronto &amp; Ontario</a></div>';
     document.body.append(dialog);
+    dialog.addEventListener('click', event => {
+      if (event.target.closest('a[href]')) dialog.close();
+    });
 
     document.addEventListener('click', event => {
       const trigger = event.target.closest('button[data-guide]');
