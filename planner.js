@@ -219,9 +219,11 @@ async function resumeMicrosoft() {
 
 function chooseSignIn() {
   show(invite ? 'Join this dinner' : 'Sign in to Enkai', `<div class="stack">
-    ${invite ? '<p class="muted">Sign in to save your response. Your host will see your name and choices.</p>' : '<p class="muted">Keep your invitations and dinner plans together.</p>'}
+    <p><strong>New to Enkai? No separate sign-up needed.</strong></p>
+    <p class="muted">Continue with Google or Outlook to keep your invitations and dinner plans together.</p>
+    ${invite ? '<small>Your host will see your name and choices when you respond.</small>' : ''}
     <div id="planner-google" class="stack"><p>Loading Google sign-in…</p></div>
-    <button type="button" data-action="microsoft">Continue with Microsoft</button><small>Personal Outlook, Hotmail or Microsoft account</small>
+    <button type="button" data-action="microsoft">Continue with Outlook / Microsoft</button><small>Use a personal Outlook, Hotmail or Microsoft account.</small>
     <label class="option"><input type="checkbox" data-remember-me><span>Keep me signed in for 30 days</span></label>
     <small>Otherwise, you’ll stay signed in in this tab for up to 24 hours. <a href="privacy.html">Privacy</a></small>
   </div>`);
