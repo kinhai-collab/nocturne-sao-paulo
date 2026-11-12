@@ -1,5 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 import { createRemoteJWKSet, jwtVerify } from 'npm:jose@6.2.12';
+import {calendarAction,canonicalAccount,saveCalendarEmail,runCalendarJobs} from '../_shared/calendar.ts';
+declare const EdgeRuntime: { waitUntil(task: Promise<unknown>): void };
 
 const origin = 'https://kinhai-collab.github.io';
 const audience = '701098268942-l2sf5ldelqt3b4q1jro8cppv18bcvdlq.apps.googleusercontent.com';
@@ -82,6 +84,7 @@ Deno.serve(async req => {
   let tokenHash = '';
   let actor: string;
   let name: string;
+  let verifiedEmail: unknown;
   try {
     if (remembered) {
       tokenHash = await sessionHash(credential);
@@ -100,16 +103,27 @@ Deno.serve(async req => {
       if (payload.tid !== microsoftTenant || !payload.sub || payload.sub.length > 255) throw Error('Invalid identity');
       actor = payload.sub;
       name = displayName(payload.name, 'Microsoft guest');
+      verifiedEmail = payload.email;
     } else {
       const google = await verifyGoogle(credential);
       actor = google.sub!;
       name = displayName(google.name, 'Google guest');
+      verifiedEmail = google.email;
     }
   } catch {
     return reply({ error: 'Sign-in expired or could not be verified. Sign in again.' }, 401);
   }
 
   try {
+    const canonical = await canonicalAccount(db,actor,microsoft);
+    if (!remembered && verifiedEmail) await saveCalendarEmail(db,canonical,verifiedEmail);
+    if (typeof input.action === 'string' && input.action.startsWith('calendar-')) {
+      try {
+        const result=await calendarAction(db,canonical,input);
+        if(input.action==='calendar-refresh')EdgeRuntime.waitUntil(runCalendarJobs(db).catch(()=>{}));
+        return reply(result);
+      } catch(error) {return reply({error:error instanceof Error?error.message:'Calendar request failed.'},400);}
+    }
     const { action, id, invite, version, details, vote, attendance, restaurant, googleCredential, city, food, persistent, photo, placeId } = input;
     if (action === 'photo') {
       if (typeof photo !== 'string' || photo.length > 2000 || !/^places\/[\w-]+\/photos\/[\w-]+$/.test(photo)) return reply({error:'Photo unavailable.'},400);
@@ -185,12 +199,12 @@ Deno.serve(async req => {
       (placeId === undefined || (typeof placeId === 'string' && /^[\w-]{1,255}$/.test(placeId)))) payload = { id, restaurant, ...(placeId?{placeId}:{}) };
     else if (action === 'rsvp' && typeof id === 'string' && uuid.test(id) &&
              ['going', 'maybe', 'declined'].includes(attendance)) {
-      payload = { id, attendance };
+      payload = { id, attendance, calendarAccept: input.calendarAccept === true };
     }
     else if (action === 'respond' && typeof id === 'string' && uuid.test(id) &&
              Number.isSafeInteger(version) && list(vote?.times, 10, time) && list(vote?.restaurants, 30, label) &&
              (attendance === undefined || ['going', 'maybe', 'declined'].includes(attendance))) {
-      payload = { id, version, vote, ...(attendance ? { attendance } : {}) };
+      payload = { id, version, vote, calendarAccept: input.calendarAccept === true, ...(attendance ? { attendance } : {}) };
     }
     else if (action === 'vote' && typeof id === 'string' && uuid.test(id) &&
              list(vote?.times, 10, time) && list(vote?.restaurants, 30, label)) {
@@ -223,6 +237,8 @@ Deno.serve(async req => {
       payload = { id, version, details: {
         title, location, duration, times, restaurants, guests, attending, status, selectedTime, restaurant,
         hostName,
+        calendarEnabled: details.calendarEnabled === true,
+        cancelled: details.cancelled === true,
         venues:(venues||[]).map((v:{name:string;placeId:string})=>({name:v.name,placeId:v.placeId})),
         ...(timeZone ? { timeZone } : {}),
       } };
@@ -234,6 +250,9 @@ Deno.serve(async req => {
     if (error) {
       console.error('Planner database operation failed', action, error.code);
       return reply({ error: 'The meal planner could not save or load this request. Please retry.' }, 503);
+    }
+    if(!data?.error&&['create','manage','respond','rsvp','join'].includes(action)) {
+      EdgeRuntime.waitUntil(runCalendarJobs(db,data.id,1).catch(()=>{}));
     }
     return reply(data, data?.error ? 409 : 200);
   } catch {

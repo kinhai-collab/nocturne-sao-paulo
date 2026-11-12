@@ -67,6 +67,7 @@ async function signOut() {
   sessionStorage.removeItem(planDraftKey); sessionStorage.removeItem(responseDraftKey);
   credential = '';
   state.meals = [];
+  calendarAccount=null;calendarStatusAt=0;calendarChecks.clear();
   view = 'dashboard';
   window.google?.accounts?.id?.disableAutoSelect();
   microsoftClient?.clearCache().catch(()=>{});
@@ -153,7 +154,13 @@ async function finishSignIn() {
     pendingMealId = joined.id;
     setMealAddress(joined.id);
   }
+  await loadCalendarStatus(true);
   await refresh();
+  if(Date.now()-calendarQueueAt>60000){calendarQueueAt=Date.now();api('calendar-refresh').catch(()=>{});}
+  if(calendarNotice) {
+    const clean=new URL(location.href);clean.searchParams.delete('calendar');history.replaceState(history.state,'',clean);
+    message(calendarNotice==='connected'?'Calendar connected.':calendarNotice==='cancelled'?'Calendar connection cancelled. You can still respond.':calendarNotice==='unavailable'?'Your calendar provider could not be reached. Try connecting again later in Settings. You can still vote and RSVP.':'Calendar connection was not completed. Try again in Settings.');
+  }
   if (pendingMealId) mealDetails(state.meals.find(meal => meal.id === pendingMealId));
   else if (guideBooking) {
     const restaurant = guideBooking;
@@ -288,8 +295,8 @@ const format = (date, options) => new Intl.DateTimeFormat(undefined, options).fo
 const dateTime = date => format(date, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const split = text => [...new Set(String(text || '').split(/[,\n]/).map(item => item.trim()).filter(Boolean))];
 const maps = (restaurant, location) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([restaurant, location].filter(Boolean).join(' '));
-const isPolling = meal => !meal.selectedTime || (!meal.restaurant && meal.restaurants.length > 0);
-const status = meal => !meal.selectedTime ? 'Choosing a date' :
+const isPolling = meal => !meal.cancelled && (!meal.selectedTime || (!meal.restaurant && meal.restaurants.length > 0));
+const status = meal => meal.cancelled ? 'Cancelled' : !meal.selectedTime ? 'Choosing a date' :
   !meal.restaurant ? 'Choosing a restaurant' : meal.status === 'Unbooked' ? 'Reservation needed' : meal.status;
 const durationLabel = minutes => minutes % 60 === 0 ? (minutes / 60) + ' hr' : minutes + ' min';
 const mealZone = meal => EnkaiTime.validZone(meal.timeZone) ? meal.timeZone : EnkaiTime.guessZone(meal.location) || 'UTC';
@@ -340,14 +347,14 @@ function dashboard() {
 
   const now = Date.now();
   const dated = state.meals
-    .filter(meal => meal.selectedTime)
+    .filter(meal => meal.selectedTime && !meal.cancelled)
     .sort((a, b) => Date.parse(a.selectedTime) - Date.parse(b.selectedTime));
   const upcoming = dated.filter(meal => Date.parse(meal.selectedTime) >= now);
   const next = upcoming.find(meal => meal.restaurant);
   const later = upcoming.filter(meal => meal !== next && !isPolling(meal));
   const confirmed = later.filter(meal => meal.restaurant && ['Booked', 'Confirmed'].includes(meal.status));
   const pending = later.filter(meal => !confirmed.includes(meal));
-  const polling = [...upcoming.filter(isPolling), ...state.meals.filter(meal => !meal.selectedTime)];
+  const polling = [...upcoming.filter(isPolling), ...state.meals.filter(meal => !meal.selectedTime && !meal.cancelled)];
   const past = dated.filter(meal => Date.parse(meal.selectedTime) < now).reverse();
   const group = (title, meals) => meals.length
     ? `<section class="meal-group"><h2>${title}</h2><div class="stack">${meals.map(card).join('')}</div></section>`
@@ -358,6 +365,7 @@ function dashboard() {
     ${group('Confirmed', confirmed)}
     ${group('Pending', pending)}
     ${group('Polling', polling)}
+    ${state.meals.some(meal=>meal.cancelled)?`<details class="meal-group"><summary>Cancelled dinners</summary><div class="stack">${state.meals.filter(meal=>meal.cancelled).map(card).join('')}</div></details>`:''}
     ${past.length ? `<details class="meal-group past-meals"><summary>Past meals</summary><div class="stack">${past.map(card).join('')}</div></details>` : ''}`;
 }
 function wishlist() {
@@ -373,7 +381,8 @@ function settings() {
   return `<div class="stack">
     <section class="card stack"><h2>Account</h2><div class="row">${link}<button data-action="signout">Sign out</button></div></section>
     <section class="card stack"><h2>Appearance</h2><div class="row"><button data-action="theme" data-id="supper-club">Supper Club</button><button data-action="theme" data-id="after-hours">After Hours</button></div></section>
-    <section class="card stack"><h2>Planning</h2><div class="row"><button data-action="people">Saved guests</button><button data-action="busy">Calendar blocks</button></div><small>Names and calendar blocks are saved on this device. Your Google or Outlook calendar isn’t connected.</small></section><a href="privacy.html">Privacy & account information</a>
+    ${calendarSettingsMarkup()}
+    <section class="card stack"><h2>Planning</h2><div class="row"><button data-action="people">Saved guests</button><button data-action="busy">Manual calendar blocks</button></div><small>Saved names and manual blocks stay on this device.</small></section><a href="privacy.html">Privacy & account information</a>
   </div>`;
 }
 function render() {
@@ -643,13 +652,14 @@ function mealDetails(meal) {
     </div>
     ${meal.organizer?`<section class="share-card stack"><h3>Invite your people</h3><div class="row"><button class="primary" data-action="share">Share invitation</button><button data-action="copy-invite">Copy link</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(meal.title+' · '+inviteUrl(meal))}" target="_blank" rel="noopener">WhatsApp</a></div><small>Guest names alone don’t send invitations. Share this link to invite them.</small></section>`:''}
     ${responseReceipt===meal.id?receiptView(meal):(!meal.organizer||isPolling(meal)?responseForm(meal):'')}
-    ${meal.selectedTime && meal.restaurant && meal.timeZone?'<button type="button" data-action="calendar">Add to calendar</button><small>Downloads a calendar event. Updates aren’t synced automatically.</small>':''}
+    ${calendarDinnerMarkup(meal)}
+    ${meal.selectedTime && meal.restaurant && meal.timeZone&&!meal.calendarEnabled&&!meal.cancelled?'<button type="button" data-action="calendar">Download calendar file</button><small>Manual fallback. This file does not sync updates.</small>':''}
     <details class="guest-details"><summary>People & responses · ${attendingGuests(meal).length} going</summary>
       <div class="stack"><p>Invited names: ${escape(meal.guests.join(', ')||'Invite by sharing the link')}</p>
       ${responses.map(r=>`<p><strong>${escape(r.name)}</strong> · ${attendanceLabels[r.attendance]}</p>`).join('')||'<p>No RSVPs yet.</p>'}
       ${meal.organizer?meal.responses.map(({name,vote})=>`<p><strong>${escape(name)}</strong><br><small>${escape(vote.times.map(t=>mealDateTime(t,meal)).join(' · ')||'No time choices')}<br>${escape(vote.restaurants.join(' · ')||'No restaurant choices')}</small></p>`).join(''):''}</div>
     </details>
-    ${meal.organizer?`<details class="organizer-details" ${meal.selectedTime&&!meal.restaurant&&!meal.restaurants.length?'open':''}><summary>Finalize the plan & reservation</summary>
+    ${meal.organizer&&!meal.cancelled?`<details class="organizer-details" ${meal.selectedTime&&!meal.restaurant&&!meal.restaurants.length?'open':''}><summary>Finalize the plan & reservation</summary>
       <form class="stack" data-form="manage"><p class="muted">Choose the group’s date and restaurant, then record the reservation separately.</p>
       ${timeZoneSelector(meal.timeZone||EnkaiTime.guessZone(meal.location))}
       <label>Dinner date<select name="selectedTime"><option value="">Keep polling</option>${options}</select></label>
@@ -658,12 +668,15 @@ function mealDetails(meal) {
       ${meal.selectedTime&&!meal.restaurant?restaurantPicker():''}
       <label>Restaurant reservation<select name="status">${statuses.map(s=>`<option value="${s}" ${s===meal.status?'selected':''}>${{'Unbooked':'Not reserved yet','Booked':'Reserved','Confirmed':'Reservation reconfirmed','In-person booking only':'Walk-in only'}[s]}</option>`).join('')}</select></label>
       <small>Enkai doesn’t make restaurant reservations. Update this after contacting the restaurant.</small>
+      <label class="option"><input type="checkbox" name="calendarEnabled" ${meal.calendarEnabled?'checked':''}><span>Send and update calendar invitations for this dinner</span></label><small>A connected organizer calendar is needed. Changing the time asks guests to confirm again. Turning this off cancels the calendar invitation.</small>
       <details><summary>Additional attendees</summary><label>Names without an app RSVP<input name="attending" maxlength="500" value="${escape(meal.attending.join(', '))}"></label></details>
-      <button class="primary">Save plan</button></form></details><button data-action="refresh-meal">Refresh responses</button>`:''}
+      <button class="primary">Save plan</button></form></details><button data-action="cancel-dinner">Cancel dinner</button>`:''}
+    <button data-action="calendar-refresh">Refresh responses & calendar</button>
     </div>`);
   restoreResponseDraft(meal);
   const manageForm=panel.querySelector('[data-form=manage]');
   if(manageForm) updateTimeInputs(manageForm);
+  checkDinnerCalendar(meal);
 }
 
 function peopleForm() {
@@ -859,7 +872,7 @@ panel.addEventListener('submit',event=>{
       const details={title:value('title'),location:value('location'),timeZone:destinationTimeZone,duration:Number(value('duration')),
         venues:JSON.parse(value('venues')||'[]').filter(v=>restaurants.includes(v.name)),
         times,restaurants,guests:[...new Set([...data.getAll('contacts'),...split(value('guests'))])],
-        status:statuses[0],selectedTime:pollTime?'':times[0],restaurant:restaurants.length===1?restaurants[0]:'',attending:[]};
+        status:statuses[0],selectedTime:pollTime?'':times[0],restaurant:restaurants.length===1?restaurants[0]:'',attending:[],calendarEnabled:data.has('calendarEnabled')};
       const newContacts = data.has('saveContacts') ? split(value('guests')) : [];
       syncMeal('create', { details }, newContacts); return;
     }
@@ -868,6 +881,7 @@ panel.addEventListener('submit',event=>{
     case 'respond': {
       persistOpenDraft();
       syncMeal('respond', {id:activeMeal.id, version:activeMeal.version,
+        calendarAccept:Boolean(activeMeal.selectedTime&&!activeMeal.organizer),
         ...(!activeMeal.organizer?{attendance:value('attendance')}:{}),
         vote:{times:activeMeal.selectedTime?(activeMeal.myVote?.times||[]):data.getAll('times'),
           restaurants:activeMeal.restaurant?(activeMeal.myVote?.restaurants||[]):data.getAll('restaurants')}});
@@ -892,7 +906,7 @@ panel.addEventListener('submit',event=>{
       if(additions.length && (restaurants.length>5)) { message('Choose up to five restaurants.'); return; }
       const details={...activeMeal,times,restaurants,timeZone:destinationTimeZone,selectedTime:data.has('useNewTime') && time ? time : value('selectedTime'),restaurant:value('restaurant') || (additions.length && restaurants.length===1 ? restaurants[0] : ''),
         venues:JSON.parse(value('venues')||JSON.stringify(activeMeal.venues||[])).filter(v=>restaurants.includes(v.name)),
-        status:value('status'),attending:split(value('attending'))};
+        status:value('status'),attending:split(value('attending')),calendarEnabled:data.has('calendarEnabled')};
       for (const key of ['id','version','invite','myVote','responses','organizer','joinedCount']) delete details[key];
       syncMeal('manage', { id: activeMeal.id, version: activeMeal.version, details }); return;
     }
@@ -954,8 +968,6 @@ async function copyInvite(url) {
   try { await navigator.clipboard.writeText(url); message('Invite link copied.'); }
   catch { show('Share invite', `<label>Copy this link<input readonly value="${escape(url)}"></label>`); }
 }
-document.addEventListener('visibilitychange', refreshOnReturn);
-window.addEventListener('pageshow', event => { if (event.persisted) refreshOnReturn(); });
 
 restoringSignIn=Boolean(savedSession()?.token || sessionStorage.getItem(microsoftFlowKey));
 render();

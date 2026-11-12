@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.meal-planner]
 verify_jwt = false
+
+[functions.calendar-callback]
+verify_jwt = false
+
+[functions.calendar-worker]
+verify_jwt = false

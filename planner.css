@@ -219,3 +219,22 @@ summary{cursor:pointer;min-height:44px;align-content:center;color:var(--accent)}
   .guest-response>.sticky-actions{position:fixed;left:0;right:0;bottom:0;padding:.75rem max(.75rem,env(safe-area-inset-right)) max(.75rem,env(safe-area-inset-bottom))}
 }
 #time-options>.time-option:only-child [data-action=remove-time]{display:none}
+/* Calendar states share theme variables and never rely on colour alone. */
+.calendar-time-option { display:grid; gap:.35rem; padding-bottom:.75rem; }
+.calendar-check { padding:0 .75rem .5rem; overflow-wrap:anywhere; }
+.calendar-check small { display:block; }
+.calendar-conflict { border:1px solid currentColor; border-radius:12px; padding:.55rem .75rem; }
+.calendar-conflict summary { min-height:44px; display:flex; align-items:center; cursor:pointer; font-weight:600; }
+.calendar-conflict p { margin:.4rem 0; }
+.calendar-warning { color:#99551f; }
+.calendar-clear { color:#3f6950; }
+[data-planner-theme="after-hours"] .calendar-warning { color:#edb878; }
+[data-planner-theme="after-hours"] .calendar-clear { color:#acd6b7; }
+.calendar-dinner,.calendar-provider { border:1px solid var(--line, #9e8c7955); border-radius:16px; padding:1rem; }
+.calendar-dinner p { margin:0; }
+.calendar-provider .row { flex-wrap:wrap; }
+.calendar-settings small,.calendar-dinner small { overflow-wrap:anywhere; }
+@media(max-width:600px){
+  #panel:has(.guest-response){scroll-padding-bottom:100px;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+  #panel:has(.guest-response) button,#panel:has(.guest-response) summary{scroll-margin-block:90px}
+}
