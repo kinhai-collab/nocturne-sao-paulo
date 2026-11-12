@@ -43,8 +43,14 @@
   ],
   "limitations": [
     "No physical iPhone Safari or Samsung Internet session was available",
-    "Google and Microsoft provider sign-in popups used local callback fixtures; live saved-session server paths were tested separately",
+    "Microsoft provider redirect completion was not yet verified; its saved-session server path and account-linking SQL were tested. Google provider completion was verified on the public site.",
     "Google supplied no photo references for the tested live search; photo UI was fixture-tested and Maps fallback remains available"
   ],
-  "production_test_data": "Temporary meals and sessions removed; existing meals untouched"
+  "production_test_data": "Temporary meals and sessions removed; existing meals untouched",
+  "published_check": {
+    "commit": "79a0749",
+    "github_pages_run": "43287506142",
+    "status": "success",
+    "google_sign_in": "Completed with the real Google provider on the public site; unchecked Remember me survived reload"
+  }
 }

@@ -20,6 +20,7 @@ const tabSessionKey = 'enkai-tab-session';
 let credential = '';
 let lastMealRefresh = 0;
 let autoRefreshing = false;
+let restoringSignIn = false;
 
 function savedSession() {
   try {
@@ -374,6 +375,10 @@ function settings() {
   </div>`;
 }
 function render() {
+  if(restoringSignIn) {
+    root.innerHTML='<section class="hero"><h1>Enkai</h1><p role="status">Opening your planner…</p></section>';
+    return;
+  }
   if (!credential && view==='settings') view='dashboard';
   const names={dashboard:'Your dates await',polls:'Needs your attention',wishlist:'Your saved places',settings:'Settings',discover:'Find your next table'};
   root.innerHTML=`<section class="hero"><h1>${!credential&&invite?'You’re invited':names[view]}</h1>
@@ -950,12 +955,13 @@ async function copyInvite(url) {
 document.addEventListener('visibilitychange', refreshOnReturn);
 window.addEventListener('pageshow', event => { if (event.persisted) refreshOnReturn(); });
 
+restoringSignIn=Boolean(savedSession()?.token || sessionStorage.getItem(microsoftFlowKey));
 render();
-if (sessionStorage.getItem(microsoftFlowKey)) resumeMicrosoft().catch(error=>message(error.message));
-else restoreSession().then(() => {
+const initialSignIn=sessionStorage.getItem(microsoftFlowKey) ? resumeMicrosoft().catch(error=>message(error.message)) : restoreSession().then(() => {
   if(!credential && invite) loadInvitation();
   else if(openSignIn && !credential) chooseSignIn();
 });
+initialSignIn.finally(()=>{restoringSignIn=false;render();});
 
 function downloadCalendar(meal) {
   if (!meal?.selectedTime || !meal.restaurant || !EnkaiTime.validZone(meal.timeZone)) {
