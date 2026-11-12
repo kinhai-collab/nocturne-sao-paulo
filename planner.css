@@ -129,3 +129,93 @@ header nav { align-items: center; }
 
 .time-option > [hidden] { display: none; }
 .time-option { min-width: 0; }
+
+/* One mobile interaction model, shared by Supper Club and After Hours. */
+[hidden]{display:none!important}
+html{scroll-padding-top:5rem}
+body:has(#panel[open]){overflow:hidden}
+body{line-height:1.5}
+header .brand{display:flex;align-items:center;gap:.6rem;letter-spacing:0;font:1.5rem Georgia,serif}
+header .brand .enkai-logo{width:50px;aspect-ratio:1.4}
+header{padding-block:.6rem}
+.hero{padding-block:1.1rem 1.5rem}
+.hero h1{font-size:clamp(2.1rem,6vw,3.6rem)}
+.hero>.primary{width:100%;max-width:26rem}
+button,.button{min-width:44px;min-height:48px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.panel-heading{position:sticky;top:-1rem;z-index:4;background:var(--bg);padding:.75rem 0;border-bottom:1px solid var(--line);margin-bottom:.8rem;flex-wrap:nowrap}
+.panel-heading h2{font-size:1.45rem;margin:0}
+.panel-heading button{flex-shrink:0}
+.dialog-notice{margin:0}
+.dialog-notice:not(:empty){padding:.8rem;border:1px solid var(--accent);border-radius:.6rem;margin-bottom:1rem;background:var(--surface)}
+.sticky-actions{position:sticky;bottom:-1rem;z-index:3;display:flex;gap:.6rem;padding:.8rem 0 max(.8rem,env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line);margin-top:.75rem}
+.sticky-actions .primary{flex:1}
+.wizard-step{min-height:12rem;padding-bottom:.5rem}
+.wizard-step h3{font:1.5rem Georgia,serif}
+.zone-setting{border:0;padding:.2rem 0}
+summary{cursor:pointer;min-height:44px;align-content:center;color:var(--accent)}
+.zone-setting label{padding-block:.5rem}
+.flow-choices button{text-align:left;padding:1rem}
+.flow-choices button small{display:inline-block;margin-top:.25rem}
+.dinner-facts{display:grid;gap:.4rem}
+.dinner-facts p{margin:0}
+.dinner-date{font-size:1.1rem;font-weight:650}
+.dinner-detail{gap:1.2rem}
+.share-card{padding:1rem;background:var(--surface);border:1px solid var(--line);border-radius:.8rem}
+.rsvp-options{display:grid;gap:.5rem}
+.rsvp-options .option{border:1px solid var(--line);border-radius:.6rem;padding:.5rem .7rem}
+.option:has(input:checked){background:var(--surface);outline:2px solid var(--accent);outline-offset:-2px;border-radius:.5rem}
+.poll-options .option{padding:.65rem .4rem}
+.poll-options .option span{display:grid;gap:.3rem}
+.conflict{font-size:.8rem}
+.venue-option{padding:.4rem 0;border-bottom:1px solid var(--line)}
+.venue-option>a{display:inline-block;min-height:44px;padding:.4rem 0;margin-left:2rem}
+.guest-details,.organizer-details{border-top:1px solid var(--line);padding-top:.5rem}
+.organizer-details>form{padding-top:1rem}
+.response-receipt{border-color:var(--accent)}
+.discovery-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.discovery-card{padding:0;overflow:hidden;text-align:left;color:var(--ink);border-radius:1rem}
+.discovery-card img{display:block;width:100%;height:170px;object-fit:cover}
+.discovery-card span{display:grid;padding:1rem;gap:.4rem}
+.discovery-card strong{font:1.5rem Georgia,serif}
+.discovery-card small{line-height:1.5}
+.dinner-photo{position:relative;margin:-1rem -1rem .2rem;overflow:hidden;border-radius:1rem 1rem 0 0}
+.dinner-photo img{display:block;width:100%;height:160px;object-fit:cover}
+.dinner-photo figcaption{position:absolute;bottom:0;right:0;background:#171b19c9;padding:.2rem .6rem;font-size:.7rem}
+.dinner-photo a{color:white}
+.restaurant-selected{display:flex;gap:.5rem;flex-wrap:wrap}
+.restaurant-selected button{font-size:.85rem}
+.search-footer{position:sticky;bottom:-1rem;padding:.8rem 0;background:var(--bg);z-index:3;border-top:1px solid var(--line)}
+.venue-result{align-items:start}
+.venue-result p{margin-block:.4rem}
+.venue-result .search-photo{width:100%;height:150px;object-fit:cover;border-radius:.6rem}
+.venue-result details{width:100%}
+.venue-result .photo-credit{font-size:.75rem}
+.invite-summary h2{font-size:2rem}
+@media(max-width:600px){
+  header{min-height:68px}
+  header nav{flex-wrap:nowrap}
+  main{padding-top:1rem}
+  #panel{height:100dvh;max-height:100dvh;border:0;border-radius:0;margin:0;padding-top:max(.6rem,env(safe-area-inset-top))}
+  .panel-heading{top:-.6rem}
+  .sticky-actions{bottom:calc(-1rem - env(safe-area-inset-bottom))}
+  .discovery-grid{grid-template-columns:1fr}
+  .discovery-card{display:grid;grid-template-columns:110px 1fr;min-height:130px}
+  .discovery-card img{height:100%;min-height:130px}
+  .discovery-card span{align-content:center}
+  .dock{gap:.4rem}
+  .dock button{font-size:.9rem}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+#panel[open]:has(.wizard){display:flex;flex-direction:column;overflow:hidden}
+#panel:has(.wizard)>.panel-heading{flex-shrink:0}
+#panel .wizard{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+#panel .wizard-step:not([hidden]){display:block;overflow-y:auto;flex:1;min-height:0;padding:.2rem .2rem 1rem;scrollbar-gutter:stable}
+#panel .wizard-step>*{margin-bottom:1rem}
+#panel .wizard .sticky-actions{position:static;flex-shrink:0;margin-top:auto}
+#panel:has(.wizard) .dialog-notice:not(:empty){max-height:7rem;overflow:auto}
+@media(max-width:600px){
+  .guest-response{padding-bottom:76px}
+  .guest-response>.sticky-actions{position:fixed;left:0;right:0;bottom:0;padding:.75rem max(.75rem,env(safe-area-inset-right)) max(.75rem,env(safe-area-inset-bottom))}
+}
+#time-options>.time-option:only-child [data-action=remove-time]{display:none}

@@ -80,6 +80,10 @@ window.EnkaiTime = (() => {
     const stamp = date => new Date(date).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
     const text = value => String(value || '').replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/[,;]/g, char => '\\' + char);
     const end = new Date(Date.parse(meal.selectedTime) + meal.duration * 60_000);
+    const venue=(meal.venues||[]).find(v=>v.name===meal.restaurant);
+    const map=new URL('https://www.google.com/maps/search/');
+    map.searchParams.set('api','1');map.searchParams.set('query',[meal.restaurant,meal.location].join(' '));
+    if(venue?.placeId)map.searchParams.set('query_place_id',venue.placeId);
     const lines = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Enkai//Dinner plans//EN', 'CALSCALE:GREGORIAN',
       'BEGIN:VEVENT', 'UID:' + meal.id + '@enkai', 'DTSTAMP:' + stamp(Date.now()),
@@ -88,7 +92,7 @@ window.EnkaiTime = (() => {
       'SUMMARY:' + text(meal.title),
       'LOCATION:' + text([meal.restaurant, meal.location].filter(Boolean).join(', ')),
       'DESCRIPTION:' + text('Destination time: ' + format(meal.selectedTime, meal.timeZone) + ' (' + meal.timeZone +
-        ')\nReservation: ' + meal.status),
+        ')\nReservation: ' + meal.status + '\nDirections: ' + map.href),
       'STATUS:' + (['Booked', 'Confirmed'].includes(meal.status) ? 'CONFIRMED' : 'TENTATIVE'),
       'END:VEVENT', 'END:VCALENDAR',
     ];

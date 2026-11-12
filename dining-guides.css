@@ -82,3 +82,29 @@ button[data-guide] {
   .enkai-guide header nav { flex-wrap: wrap; justify-content: flex-start; align-items: center; }
   .enkai-guide .card-actions { gap: .5rem; }
 }
+
+.enkai-guide .budget-price.within strong{color:#406345}
+.enkai-guide .budget-price.over strong{color:#8b4431}
+.enkai-guide[data-guide-theme="after-hours"] .budget-price.within strong{color:#bfd2b8}
+.enkai-guide[data-guide-theme="after-hours"] .budget-price.over strong{color:#f3b693}
+.enkai-guide .gallery-controls button{width:44px;height:44px;background:#171b1a9e;color:#fff}
+.enkai-guide .gallery-controls button:hover{background:#171b1adb;color:#fff}
+.app-dock{position:fixed;bottom:0;left:0;right:0;z-index:7;display:flex;justify-content:center;gap:.5rem;padding:.65rem 1rem max(.65rem,env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
+.app-dock a{flex:1;max-width:12rem;text-align:center;min-height:48px;padding:.6rem;text-decoration:none;border:1px solid var(--line);border-radius:.65rem;font:15px/1.6 system-ui,sans-serif}
+.app-dock [aria-current]{background:var(--accent);color:var(--on-accent)}
+.enkai-guide main{padding-bottom:6rem}
+.enkai-guide .ballot-fab{bottom:calc(5rem + env(safe-area-inset-bottom))}
+@media(max-width:600px){
+  .enkai-guide header{display:flex;flex-wrap:nowrap;align-items:center;gap:.5rem;padding-block:.6rem;min-height:68px}
+  .enkai-guide header nav{width:auto;justify-content:flex-end;flex-wrap:nowrap}
+  .enkai-guide .enkai-logo{width:60px}
+  .enkai-guide .filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}
+  .enkai-guide .filters label:first-child{grid-column:1/-1}
+  .enkai-guide .filters label{min-width:0}
+  .enkai-guide .filters select,.enkai-guide .filters input{min-width:0;width:100%;font-size:16px;min-height:48px}
+  .enkai-guide .filters button{min-height:48px}
+  .enkai-guide .filters label{font-size:12px;letter-spacing:.04em}
+  .enkai-guide .save{min-width:44px;min-height:44px}
+  .enkai-guide .card-actions>a,.enkai-guide .card-actions>button{min-height:44px;align-content:center}
+  .enkai-guide #sticky{bottom:calc(5rem + env(safe-area-inset-bottom))}
+}

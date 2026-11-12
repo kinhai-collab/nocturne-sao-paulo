@@ -11,29 +11,40 @@ let state;
 try { state = { ...blank, ...JSON.parse(localStorage.getItem(storageKey)) }; }
 catch { state = structuredClone(blank); }
 state.meals = [];
-let view = 'dashboard';
+let view = ['discover','wishlist','settings','polls'].includes(new URLSearchParams(location.search).get('view')) ? new URLSearchParams(location.search).get('view') : 'dashboard';
 let activeMeal = null;
 let activeWish = null;
 let noticeTimer;
 const rememberedSessionKey = 'nocturne-planner-session';
+const tabSessionKey = 'enkai-tab-session';
 let credential = '';
 let lastMealRefresh = 0;
 let autoRefreshing = false;
 
 function savedSession() {
-  try { return JSON.parse(localStorage.getItem(rememberedSessionKey)); }
+  try {
+    const tab=JSON.parse(sessionStorage.getItem(tabSessionKey));
+    if(tab)return tab;
+    const saved=JSON.parse(localStorage.getItem(rememberedSessionKey));
+    return saved ? {...saved,persistent:true} : null;
+  }
   catch { return null; }
 }
 function forgetSession() {
   try { localStorage.removeItem(rememberedSessionKey); } catch {}
+  try { sessionStorage.removeItem(tabSessionKey); } catch {}
 }
-async function rememberSession() {
+async function rememberSession(persistent = true) {
   try {
-    const { token } = await api('remember');
-    localStorage.setItem(rememberedSessionKey, JSON.stringify({ token, provider }));
+    const { token } = await api('remember', { persistent });
+    const saved = JSON.stringify({ token, provider, persistent });
+    forgetSession();
+    (persistent ? localStorage : sessionStorage).setItem(persistent ? rememberedSessionKey : tabSessionKey, saved);
     credential = token;
   } catch {
-    message('Signed in for now. This browser could not remember your sign-in.');
+    // Still survive a reload for the remaining lifetime of the provider token.
+    try { sessionStorage.setItem(tabSessionKey, JSON.stringify({ token: credential, provider, persistent: false })); } catch {}
+    message('Signed in for this visit. Longer sign-in could not be saved.');
   }
 }
 async function restoreSession() {
@@ -52,6 +63,7 @@ async function signOut() {
     catch (error) { if (credential) { message(error.message); return; } }
   }
   forgetSession();
+  sessionStorage.removeItem(planDraftKey); sessionStorage.removeItem(responseDraftKey);
   credential = '';
   state.meals = [];
   view = 'dashboard';
@@ -67,21 +79,26 @@ let microsoftClient;
 let signingIn = false;
 let requestInFlight = false;
 let invite = new URLSearchParams(location.hash.slice(1)).get('invite');
+let invitationPreview = null;
+let inviteError = '';
+let pendingMealId = new URLSearchParams(location.hash.slice(1)).get('meal');
 const plannerUrl = new URL(location.href);
 const restaurantName = plannerUrl.searchParams.get('restaurant')?.trim().slice(0, 120);
 let guideBooking = restaurantName ? {
   name: restaurantName,
   location: plannerUrl.searchParams.get('location')?.trim().slice(0, 120),
 } : null;
-const openSignIn = Boolean(invite) || Boolean(guideBooking) || plannerUrl.searchParams.get('signin') === '1';
+const openSignIn = Boolean(invite) || Boolean(pendingMealId) || Boolean(guideBooking) || plannerUrl.searchParams.get('signin') === '1';
 function applyPlannerTheme(theme) {
   if (!['supper-club', 'after-hours'].includes(theme)) return;
   document.body.dataset.plannerTheme = theme;
   const url = new URL(location.href);
   url.searchParams.set('theme', theme);
   history.replaceState(history.state, '', url);
+  const brand=document.querySelector('header .brand');
+  if(brand) {const home=new URL('planner.html',location.href);home.searchParams.set('theme',theme);brand.href=home;}
 }
-applyPlannerTheme(plannerUrl.searchParams.get('theme'));
+applyPlannerTheme(plannerUrl.searchParams.get('theme') || 'supper-club');
 if (openSignIn) {
   const url = new URL(location.href);
   url.searchParams.delete('signin');
@@ -102,8 +119,11 @@ async function api(action, payload = {}) {
     if (credential === savedSession()?.token) forgetSession();
     credential = '';
     state.meals = [];
+    persistOpenDraft();
+    if (activeMeal) pendingMealId = activeMeal.id;
     if (panel.open) panel.close();
     render();
+    chooseSignIn();
   }
   if (!response.ok) throw Error(data.error || 'Could not reach the meal planner.');
   return data;
@@ -129,10 +149,11 @@ async function finishSignIn() {
   if (invite) {
     joined = await api('join', { invite });
     invite = null;
-    history.replaceState(null, '', location.pathname + location.search);
+    pendingMealId = joined.id;
+    setMealAddress(joined.id);
   }
   await refresh();
-  if (joined) mealDetails(state.meals.find(meal => meal.id === joined.id));
+  if (pendingMealId) mealDetails(state.meals.find(meal => meal.id === pendingMealId));
   else if (guideBooking) {
     const restaurant = guideBooking;
     guideBooking = null;
@@ -163,7 +184,8 @@ async function getMicrosoftClient() {
 }
 async function startMicrosoft(linking) {
   try {
-    sessionStorage.setItem(microsoftFlowKey, JSON.stringify({ invite, linking, guideBooking, theme: document.body.dataset.plannerTheme, remember: linking ? Boolean(savedSession()) : rememberSelected() }));
+    persistOpenDraft();
+    sessionStorage.setItem(microsoftFlowKey, JSON.stringify({ invite, meal: pendingMealId, linking, guideBooking, theme: document.body.dataset.plannerTheme, remember: linking ? savedSession()?.persistent === true : rememberSelected() }));
     const client = await getMicrosoftClient();
     await client.loginRedirect({ scopes: ['openid', 'profile'], prompt: 'select_account' });
   } catch (error) {
@@ -176,8 +198,9 @@ async function resumeMicrosoft() {
   if (!pending) return;
   sessionStorage.removeItem(microsoftFlowKey);
   try {
-    const { invite: savedInvite, linking, remember, theme, guideBooking: savedBooking } = JSON.parse(pending);
+    const { invite: savedInvite, meal, linking, remember, theme, guideBooking: savedBooking } = JSON.parse(pending);
     invite = savedInvite;
+    pendingMealId = meal || pendingMealId;
     guideBooking = savedBooking ?? guideBooking;
     const result = await (await getMicrosoftClient()).handleRedirectPromise();
     applyPlannerTheme(theme);
@@ -188,25 +211,26 @@ async function resumeMicrosoft() {
     }
     credential = result.idToken;
     provider = 'microsoft';
-    await finishSignIn();
-    if (linking) await startSignIn(true, remember);
-    else if (remember) await rememberSession();
+    if (linking) { await finishSignIn(); await startSignIn(true, remember); }
+    else { await rememberSession(Boolean(remember)); await finishSignIn(); }
   } catch (error) { message(error.message); }
 }
 
 function chooseSignIn() {
   show(invite ? 'Join this dinner' : 'Sign in to Enkai', `<div class="stack">
-    ${invite ? '<p class="muted">Sign in to RSVP, vote on the options, and keep this dinner on your dashboard.</p>' : ''}
-    <button type="button" data-action="signin">Continue with Google</button>
-    <button type="button" data-action="microsoft">Continue with Microsoft</button>
-    <label class="option"><input type="checkbox" data-remember-me><span>Remember me on this browser for 30 days</span></label>
+    ${invite ? '<p class="muted">Sign in to save your response. Your host will see your name and choices.</p>' : '<p class="muted">Keep your invitations and dinner plans together.</p>'}
+    <div id="planner-google" class="stack"><p>Loading Google sign-in…</p></div>
+    <button type="button" data-action="microsoft">Continue with Microsoft</button><small>Personal Outlook, Hotmail or Microsoft account</small>
+    <label class="option"><input type="checkbox" data-remember-me><span>Keep me signed in for 30 days</span></label>
+    <small>Otherwise, you’ll stay signed in in this tab for up to 24 hours. <a href="privacy.html">Privacy</a></small>
   </div>`);
+  startSignIn(false, false, true);
 }
 
-async function startSignIn(linking = false, remember = rememberSelected()) {
+async function startSignIn(linking = false, remember = rememberSelected(), inline = false) {
   if (signingIn) return;
   signingIn = true;
-  show(linking ? 'Link your Google account' : 'Sign in with Google',
+  if (!inline) show(linking ? 'Link your Google account' : 'Sign in with Google',
     `<div id="planner-google" class="stack"><p class="muted">Loading Google sign-in…</p></div>
     ${linking ? '' : `<label class="option"><input type="checkbox" data-google-remember ${remember?'checked':''}><span>Remember me on this browser for 30 days</span></label>`}`);
   try {
@@ -224,16 +248,16 @@ async function startSignIn(linking = false, remember = rememberSelected()) {
         try {
           if (linking) {
             await api('link', { googleCredential: result.credential });
-            if (remember && !savedSession()) await rememberSession();
+            await rememberSession(remember);
             await refresh();
             if (panel.open) panel.close();
             message('Accounts linked. Both sign-in methods now open the same planner.');
           } else {
-            const keepSignedIn = panel.querySelector('[data-google-remember]')?.checked === true;
+            const keepSignedIn = panel.querySelector('[data-google-remember], [data-remember-me]')?.checked === true;
             provider = 'google';
             credential = result.credential;
+            await rememberSession(keepSignedIn);
             await finishSignIn();
-            if (keepSignedIn) await rememberSession();
           }
         } catch (error) {
           if (!linking) credential = '';
@@ -246,7 +270,11 @@ async function startSignIn(linking = false, remember = rememberSelected()) {
       button.replaceChildren();
       google.accounts.id.renderButton(button, { theme: 'outline', size: 'large', text: 'signin_with' });
     }
-  } catch (error) { message(error.message); }
+  } catch (error) {
+    const target = document.querySelector('#planner-google');
+    if (target) target.innerHTML = '<p>Google sign-in is unavailable. Open this page in Safari or Chrome, or try Microsoft.</p><button type="button" data-action="signin">Retry Google</button>';
+    message(error.message);
+  }
   finally { signingIn = false; }
 }
 
@@ -273,11 +301,12 @@ function message(text) {
   const target = panel.open ? panel.querySelector('.dialog-notice') : notice;
   if (!target) return;
   target.textContent = text;
+  if (panel.open) target.scrollIntoView({block:'nearest'});
   clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => { target.textContent = ''; }, 6500);
+  if (!panel.open) noticeTimer = setTimeout(() => { target.textContent = ''; }, 6500);
 }
 function show(title, body) {
-  panel.innerHTML = `<div class="row spread"><h2 id="panel-title">${escape(title)}</h2><button type="button" data-action="close" aria-label="Close">×</button></div>${body}<p class="dialog-notice" role="status"></p>`;
+  panel.innerHTML = `<div class="panel-heading row spread"><h2 id="panel-title">${escape(title)}</h2><button type="button" data-action="close" aria-label="Close">×</button></div><p class="dialog-notice" role="status"></p>${body}`;
   if (!panel.open) panel.showModal();
   panel.scrollTop = 0;
 }
@@ -291,23 +320,16 @@ function attendingGuests(meal) {
     ...meal.attending.filter(name => !responses.some(response => response.name === name)),
   ];
 }
-function attendanceForm(meal) {
-  const selected = meal.myVote?.attendance;
-  return `<form class="stack card" data-form="rsvp"><h3>Will you be joining?</h3>
-    <fieldset><legend>Your RSVP</legend>${Object.entries(attendanceLabels).map(([value, label]) =>
-      `<label class="option"><input type="radio" name="attendance" value="${value}" ${selected === value ? 'checked' : ''} required><span>${label}</span></label>`).join('')}</fieldset>
-    ${selected ? `<p class="muted" role="status">Your RSVP is saved · ${attendanceLabels[selected]}</p>` : ''}
-    <button class="primary">${selected ? 'Update RSVP' : 'Save RSVP'}</button></form>`;
-}
 
 function card(meal) {
   const responses = meal.organizer ? meal.responses.filter(item => item.vote.times.length || item.vote.restaurants.length).length : Number(Boolean(meal.myVote));
   const attendance = attendingGuests(meal).length;
-  return `<article class="card stack"><div class="row spread"><h3>${escape(meal.title)}</h3>${statusPill(status(meal))}</div>
+  const picture = venueImage(meal.restaurant, meal.location);
+  return `<article class="card stack dinner-card">${picture}<div class="row spread"><h3>${escape(meal.title)}</h3>${statusPill(status(meal))}</div>
     <div class="muted">${meal.selectedTime ? escape(mealDateTime(meal.selectedTime, meal)) + ' · ' + durationLabel(meal.duration) : meal.times.length + ' time options · ' + meal.restaurants.length + ' restaurant options'}</div>
     ${!meal.timeZone ? '<small>Destination time zone needs organizer confirmation</small>' : ''}
-    <div>${escape(meal.restaurant || (meal.restaurants.length ? meal.restaurants.join(' · ') : 'Restaurant to be decided'))}</div>
-    <small>${meal.selectedTime ? attendance + ' attending' : meal.organizer ? responses + ' responses' : responses ? 'Response saved' : 'Awaiting your response'} · ${meal.joinedCount ?? 0} joined${meal.organizer ? '' : ' · ' + escape(attendanceLabels[meal.myVote?.attendance] || 'RSVP needed')}${meal.selectedTime && attendance ? ' · ' + escape(attendingGuests(meal).join(', ')) : ''}</small>
+    <div>${escape(meal.restaurant || (meal.restaurants.length ? meal.restaurants.join(' · ') : 'Restaurant to be decided'))}</div><small>${escape(meal.location)} · ${escape(destinationLabel(meal))}</small>
+    <small>${meal.organizer ? attendance+' going · '+(meal.attendanceResponses||[]).filter(r=>r.attendance==='maybe').length+' maybe · '+Math.max(0,(meal.joinedCount||0)-(meal.attendanceResponses||[]).length)+' joined guests yet to RSVP' : 'Your response: '+escape(attendanceLabels[meal.myVote?.attendance] || 'Not sent yet')}</small>
     <div class="row"><button data-action="meal" data-id="${meal.id}">${!meal.organizer ? (isPolling(meal) ? 'RSVP & vote' : 'RSVP & details') : isPolling(meal) ? 'Open poll' : !meal.restaurant ? 'Choose restaurants' : 'Meal details'}</button></div></article>`;
 }
 function dashboard() {
@@ -336,7 +358,8 @@ function dashboard() {
     ${past.length ? `<details class="meal-group past-meals"><summary>Past meals</summary><div class="stack">${past.map(card).join('')}</div></details>` : ''}`;
 }
 function wishlist() {
-  return `<div class="row spread"><h2>Places to try</h2><button class="primary" data-action="wish-new">Add a restaurant</button></div><div class="stack">
+  syncGuideSaves();
+  return `<div class="row spread"><h2>Places to try</h2><button class="primary" data-action="wish-new">Add a restaurant</button></div><p class="muted">Saved on this device. Companion names are your own notes; they aren’t invitations or RSVPs.</p><div class="stack">
     ${state.wishes.map(w => `<article class="card stack"><h3>${escape(w.name)}</h3><small>${escape(w.location)} · ${w.interested.length} interested</small>
       <div class="row"><a class="button" href="${maps(w.name,w.location)}" target="_blank" rel="noopener">Find on Google Maps</a><button data-action="wish-interest" data-id="${w.id}">Interest list</button><button data-action="wish-date" data-id="${w.id}">It’s a Date</button></div></article>`).join('') || '<p class="muted">Save a restaurant you’d like to visit.</p>'}</div>`;
 }
@@ -346,30 +369,32 @@ function settings() {
     : '<button data-action="link-google">Link Google account</button>';
   return `<div class="stack">
     <section class="card stack"><h2>Account</h2><div class="row">${link}<button data-action="signout">Sign out</button></div></section>
-    <section class="card stack"><h2>Planning</h2><div class="row"><button data-action="people">Saved guests</button><button data-action="busy">Calendar blocks</button></div></section>
+    <section class="card stack"><h2>Appearance</h2><div class="row"><button data-action="theme" data-id="supper-club">Supper Club</button><button data-action="theme" data-id="after-hours">After Hours</button></div></section>
+    <section class="card stack"><h2>Planning</h2><div class="row"><button data-action="people">Saved guests</button><button data-action="busy">Calendar blocks</button></div><small>Names and calendar blocks are saved on this device. Your Google or Outlook calendar isn’t connected.</small></section><a href="privacy.html">Privacy & account information</a>
   </div>`;
 }
 function render() {
-  if (!credential && view === 'settings') view = 'dashboard';
-  const names = { dashboard: 'Your dates await', polls: 'Open polls', wishlist: 'Your restaurant wish list', settings: 'Settings' };
-  root.innerHTML = `<section class="hero"><h1>${names[view]}</h1>
-    ${credential ? '' : `<p class="muted">${invite ? 'You’ve been invited to dinner. Sign in to see the options and vote. If sign-in is blocked in your messaging app, open this link in Chrome or Safari.' : 'Make dinner plans and find a time that works for everyone.'}</p>`}
-    ${!credential || view === 'dashboard' ? `<div class="row"><button class="primary" data-action="${credential ? 'new' : 'choose-signin'}">${credential ? 'Plan an evening' : 'Sign in'}</button></div>` : ''}</section>
-    ${view === 'dashboard' ? dashboard() : view === 'wishlist' ? wishlist() : view === 'settings' ? settings() :
-      '<div class="stack">' + (state.meals.filter(isPolling).map(card).join('') || '<p class="muted">No open polls yet.</p>') + '</div>'}`;
-  document.querySelector('[data-view="settings"]').hidden = !credential;
-  document.querySelectorAll('[data-view]').forEach(button => {
-    if (button.dataset.view === view) button.setAttribute('aria-current', 'page');
+  if (!credential && view==='settings') view='dashboard';
+  const names={dashboard:'Your dates await',polls:'Needs your attention',wishlist:'Your saved places',settings:'Settings',discover:'Find your next table'};
+  root.innerHTML=`<section class="hero"><h1>${!credential&&invite?'You’re invited':names[view]}</h1>
+    ${!credential&&!invite?'<p class="muted">Good food. Your favourite people. Make a plan together.</p>':''}
+    ${view==='dashboard'&&!(invite&&!credential)?`<button class="primary" data-action="${credential?'new':'choose-signin'}">${credential?'Plan an evening':'Get started'}</button>`:''}
+    ${credential&&readPlanDraft()&&view==='dashboard'?'<button data-action="resume-plan">Continue your unfinished plan</button>':''}</section>
+    ${!credential&&invite?invitationLanding():view==='dashboard'?(credential?dashboard():discoverView()):view==='discover'?discoverView():view==='wishlist'?wishlist():view==='settings'?settings():
+      '<div class="stack">'+(state.meals.filter(isPolling).map(card).join('')||'<p>No open polls yet.</p>')+'</div>'}`;
+  document.querySelector('[data-view=settings]').hidden=!credential;
+  document.querySelectorAll('[data-view]').forEach(button=>{
+    if(button.dataset.view===view) button.setAttribute('aria-current','page');
     else button.removeAttribute('aria-current');
   });
 }
 
 function timeZoneSelector(selected = '') {
   const zones = [...new Set([...(selected ? [selected] : []), ...EnkaiTime.zones])];
-  return `<label>Destination time zone <select name="timeZone" required>
+  return `<details class="zone-setting" ${selected?'':'open'}><summary data-zone-summary>${selected?escape(zoneName(selected))+' time · Change':'Choose the destination time zone'}</summary><label>Destination time zone <select name="timeZone" required>
     <option value="">Choose the restaurant’s time zone</option>
-    ${zones.map(zone => `<option value="${escape(zone)}" ${zone === selected ? 'selected' : ''}>${escape(zone.replaceAll('_', ' '))}</option>`).join('')}
-  </select></label><small data-destination-time>All dinner times use the destination time zone.</small>`;
+    ${zones.map(zone => `<option value="${escape(zone)}" ${zone === selected ? 'selected' : ''}>${escape(zoneName(zone))} · ${escape(zone.split('/')[0])}</option>`).join('')}
+  </select></label></details><small data-destination-time>All dinner times use the destination time zone.</small>`;
 }
 function timeInput(value = '', name = 'time', removable = true) {
   return `<div class="stack time-option"><div class="row"><label>Destination date and time
@@ -381,7 +406,9 @@ function timeInput(value = '', name = 'time', removable = true) {
 function updateTimeInputs(form) {
   const zone = form.querySelector('[name=timeZone]')?.value;
   const hint = form.querySelector('[data-destination-time]');
-  if (hint) hint.textContent = zone ? 'Dinner times at the destination · ' + zone.replaceAll('_', ' ') : 'Choose the destination time zone before entering times.';
+  if (hint) hint.textContent = zone ? 'Times are in ' + zoneName(zone) + ', where you’ll meet.' : 'Enter a city, then confirm its time zone.';
+  const summary = form.querySelector('[data-zone-summary]');
+  if(summary) summary.textContent = zone ? zoneName(zone)+' time · Change' : 'Choose the destination time zone';
   for (const input of form.querySelectorAll('[name=time], [name=newTime]')) {
     input.disabled = !zone;
     const occurrence = input.closest('.time-option').querySelector('[data-occurrence]');
@@ -411,18 +438,21 @@ function readDestinationTime(input, zone) {
   return EnkaiTime.toInstant(input.value, zone, occurrence);
 }
 function chooseFlow() {
-  show('Plan an evening', `<div class="stack">
+  show('Plan an evening', `<div class="stack flow-choices">
+    ${readPlanDraft()?'<button class="primary" data-action="resume-plan">Continue your unfinished plan</button>':''}
     <button data-action="flow" data-id="restaurant"><strong>I know the restaurant</strong><br><small>Pick the place first</small></button>
     <button data-action="flow" data-id="date"><strong>I know the date</strong><br><small>Set a time, then choose a place</small></button>
     <button data-action="flow" data-id="undecided"><strong>Help us decide</strong><br><small>Poll dates first, then restaurants</small></button></div>`);
 }
 let restaurantReturn = null;
 
-function restaurantPicker(value = '') {
+function restaurantPicker(value = '', single = false) {
   return `<fieldset class="stack"><legend>Restaurant choices</legend>
     <button type="button" data-action="browse-restaurants">Search restaurants</button>
-    <label>Restaurant names, one per line <textarea name="restaurants" rows="3" maxlength="450">${escape(value)}</textarea></label>
-    <small>Use 3–5 choices for a restaurant poll. A single name sets the restaurant.</small></fieldset>`;
+    <div class="restaurant-selected" data-selected-restaurants></div>
+    <details ${value?'open':''}><summary>Enter or edit names yourself</summary><label>Restaurant names, one per line <textarea name="restaurants" rows="3" maxlength="450">${escape(value)}</textarea></label></details>
+    <input type="hidden" name="venues" value="${escape(JSON.stringify(activeMeal?.venues||[]))}">
+    <small>${single?'Choose the restaurant for this evening.':'Choose one place, or 2–5 for a poll.'}</small></fieldset>`;
 }
 
 function browseRestaurants(guest = false) {
@@ -445,6 +475,7 @@ function browseRestaurants(guest = false) {
     <small translate="no">Google Maps</small>
     <a data-google-search target="_blank" rel="noopener">Search Google Maps ↗</a>
     ${guest ? '<form class="stack" data-form="suggest"><label>Suggest a restaurant by name <input name="suggestion" required maxlength="120"></label><button>Add to poll</button></form>' : ''}
+    <div class="search-footer"><button type="button" class="primary" data-action="return-restaurants" data-search-done>Done</button></div>
   </div>`);
   const search = panel.querySelector('[data-restaurant-search]');
   const city = panel.querySelector('[data-restaurant-city]');
@@ -460,6 +491,8 @@ function closeRestaurantBrowser() {
   restaurantReturn = null;
   panel.classList.remove('restaurant-browser');
   panel.replaceChildren(...previous.nodes);
+  updateSelectedRestaurants();
+  persistOpenDraft();
   panel.scrollTop = previous.scrollTop;
   panel.querySelector('[data-action=browse-restaurants], [data-action=suggest-restaurant]')?.focus({ preventScroll: true });
 }
@@ -497,17 +530,22 @@ function updateRestaurantResults(input) {
   if (sort === 'popular') matches.sort((a,b)=>popularity(b)-popularity(a) || (b.rating || 0)-(a.rating || 0));
   if (sort === 'rating') matches.sort((a,b)=>(b.rating || 0)-(a.rating || 0) || (b.reviewCount || 0)-(a.reviewCount || 0));
   if (sort === 'low' || sort === 'high') matches.sort((a,b)=>compareRestaurantPrices(a,b,sort==='low'?1:-1));
-  const selected = new Set([...(meal?.restaurants || []), ...(names?.value.split('\n') || [])].map(name=>name.trim().toLowerCase()));
+  const selected = new Set([...(meal?.restaurants || []), ...(names?.value.split('\n') || [])].map(name=>name.trim().toLowerCase()).filter(Boolean));
   const card = (name, r) => {
     const address = r.address;
     const added = selected.has(name.toLowerCase());
-    const preview = r ? [r.area, r.cuisine, r.rating ? '★ '+r.rating+(r.reviewCount?' ('+r.reviewCount.toLocaleString()+' reviews)':'') : '', r.price ? 'CA$'+r.price[0] : r.priceLevel || ''].filter(Boolean).join(' · ') : '';
+    const preview = r ? [r.cuisine, r.rating ? '★ '+r.rating+(r.reviewCount?' ('+r.reviewCount.toLocaleString()+' reviews)':'') : '', r.priceLevel || 'Price not listed'].filter(Boolean).join(' · ') : '';
     return `<article class="card venue-result">
-      <div><h3>${escape(name)}</h3><small>${escape(preview)}</small><p>${escape(address)}</p><div><a href="${maps(name,r.address || location)}" target="_blank" rel="noopener">View on Google Maps ↗</a></div>${r.attributions.map(item=>`<small>${escape(item.provider)}</small>`).join('')}</div>
+      ${r.photo?'<div class="photo-preview" data-photo-index="'+restaurantReturn.places.indexOf(r)+'">'+(r.loadedPhoto?placePhotoMarkup(r):'<button type="button" data-action="load-photo" data-photo-index="'+restaurantReturn.places.indexOf(r)+'">View restaurant photo</button>')+'</div>':venueImage(name,cityInput)}
+      <div><h3>${escape(name)}</h3><small>${escape(preview)}</small><p>${escape(address)}</p>
+      ${r.hours?.length?'<details><summary>Opening hours</summary><small>'+r.hours.map(escape).join('<br>')+'</small></details>':'<small>Check opening hours with the restaurant</small>'}
+      <div><a href="${escape(venueMaps(name,{location:r.address||location,venues:r.placeId?[{name,placeId:r.placeId}]:[]}))}" target="_blank" rel="noopener">Reviews & location ↗</a></div>${r.attributions.map(item=>`<small>${escape(item.provider)}</small>`).join('')}</div>
       <button type="button" data-action="pick-restaurant" data-name="${escape(name)}" data-city="${escape(cityInput)}" aria-label="${added?'Added to poll':'Add to poll'}: ${escape(name)}" ${added || (guest && meal.suggested) ? 'disabled' : ''}>${added?'Added to poll':'Add to poll'}</button></article>`;
   };
   panel.querySelector('[data-restaurant-results]').innerHTML = matches.map(r=>card(r.name,r)).join('');
   panel.querySelector('[data-google-search]').href = maps(input.value.trim() || 'restaurants', cityInput || location);
+  const done=panel.querySelector('[data-search-done]');
+  if(done) done.textContent=guest?'Back to your response':'Done'+(selected.size?' · '+selected.size+' selected':'');
 }
 
 const googlePriceLevels = {
@@ -531,6 +569,7 @@ async function searchGooglePlaces(form) {
     if (search !== restaurantReturn) return;
     search.places = places.filter(place=>place.displayName?.text).map(place=>({
       name: place.displayName.text, cuisine: place.primaryTypeDisplayName?.text,
+      placeId:place.id,photo:place.photos?.[0],hours:place.regularOpeningHours?.weekdayDescriptions,
       area: place.formattedAddress, address: place.formattedAddress,
       rating: place.rating, reviewCount: place.userRatingCount,
       priceLevel: googlePriceLevels[place.priceLevel], attributions: place.attributions || [],
@@ -548,12 +587,13 @@ async function searchGooglePlaces(form) {
   }
 }
 
-async function suggestRestaurant(name) {
+async function suggestRestaurant(name, placeId) {
   const meal = restaurantReturn?.meal;
   if (!meal || requestInFlight) return;
   requestInFlight = true;
   try {
-    await api('suggest', { id: meal.id, restaurant: name.trim() });
+    persistOpenDraft();
+    await api('suggest', { id: meal.id, restaurant: name.trim(), ...(placeId?{placeId}:{}) });
     await refresh();
     const updated = state.meals.find(item=>item.id===meal.id);
     closeRestaurantBrowser();
@@ -562,29 +602,7 @@ async function suggestRestaurant(name) {
   } catch(error) { message(error.message); }
   finally { requestInFlight = false; }
 }
-function mealForm(wish, flow = 'restaurant') {
-  activeWish = wish || null;
-  activeMeal = null;
-  const timeFields = `<fieldset class="stack"><legend>${flow==='date'?'Set the date':'Choose a time'}</legend>
-    ${flow==='restaurant'?'<label>Who decides? <select name="dateMode"><option value="fixed">I’ll choose</option><option value="poll">Let guests decide</option></select></label>':''}
-    <div class="stack" id="time-options">${timeInput().repeat(flow==='undecided'?3:1)}</div>
-    <button type="button" data-action="add-time" ${flow==='undecided'?'':'hidden'}>Add a time option</button></fieldset>`;
-  const venue = restaurantPicker(wish?.name);
-  show('Plan an evening', `<form class="stack" data-form="new" data-flow="${flow}">
-    <p class="eyebrow">${{restaurant:'By restaurant',date:'By date',undecided:'Help us decide'}[flow]}</p>
-    <label>Meal name <input name="title" maxlength="100" required value="${escape(wish ? ('Dinner at ' + wish.name).slice(0, 100) : 'Dinner')}"></label>
-    <label>City or neighbourhood <input name="location" maxlength="120" value="${escape(wish?.location)}"></label>
-    ${timeZoneSelector(EnkaiTime.guessZone(wish?.location))}
-    ${flow==='restaurant' ? venue+timeFields : timeFields+(flow==='date'?venue:'<small>After choosing a time, you can start a restaurant poll on this meal.</small>')}
-    <label>Duration <select name="duration">${durations.map(m=>`<option value="${m}" ${m===90?'selected':''}>${durationLabel(m)}</option>`).join('')}</select></label>
-    <fieldset class="stack"><legend>Invite guests</legend>
-      ${state.people.length ? choices(state.people,'contacts',wish?.interested || [],escape) : '<small>Enter guest names below. They’ll be available to select next time.</small>'}
-      <label>Other guest names <input name="guests" maxlength="500" placeholder="Names separated by commas" value="${escape(wish?.interested?.filter(p=>!state.people.includes(p)).join(', '))}"></label>
-      <label class="option"><input type="checkbox" name="saveContacts"><span>Save these guests for next time</span></label>
-      <small>Share the invite link after saving. Guests appear as joined when they open it and sign in.</small></fieldset>
-    <div class="row"><button type="button" data-action="new">Back</button><button class="primary">Save and get invite link</button></div></form>`);
-  updateTimeInputs(panel.querySelector('[data-form="new"]'));
-}
+function mealForm(wish, flow = 'restaurant') { openPlan(wish, flow); }
 
 function hasConflict(time, duration) {
   const start = +new Date(time);
@@ -600,41 +618,47 @@ function mealDetails(meal) {
     return;
   }
   activeMeal = meal;
+  setMealAddress(meal.id);
   const vote = meal.myVote || { times: [], restaurants: [] };
   const tally = (key, val) => meal.organizer ? meal.responses.filter(r=>r.vote[key].includes(val)).length : 0;
-  const votesLabel = (key, val) => meal.organizer ? ' · '+tally(key,val)+' votes' : '';
-  const guests = meal.guests.length ? escape(meal.guests.join(', ')) : 'None entered';
-  const options = meal.times.map(t=>`<option value="${escape(t)}" ${t===meal.selectedTime?'selected':''}>${escape(mealDateTime(t, meal))}${votesLabel('times',t)}</option>`).join('');
-  const restaurants = meal.restaurants.map(r=>`<option value="${escape(r)}" ${r===meal.restaurant?'selected':''}>${escape(r)}${votesLabel('restaurants',r)}</option>`).join('');
-  show(meal.title, `<div class="stack"><div>${statusPill(status(meal))} · ${durationLabel(meal.duration)}</div>
-    <p class="muted">Guests: ${guests}</p>
-    <p class="muted">Destination time zone · ${escape(mealZone(meal))}</p>
-    ${!meal.timeZone ? '<p class="muted">The organizer needs to confirm the destination time zone and dinner time for this existing plan.</p>' : ''}
-    ${meal.selectedTime ? `<p>${escape(mealDateTime(meal.selectedTime, meal))}</p>` : ''}
-    ${meal.selectedTime && meal.restaurant && meal.timeZone ? '<button type="button" data-action="calendar">Add to calendar</button>' : ''}
-    ${meal.organizer ? `<div class="row"><button data-action="share">Share invite</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(inviteUrl(meal))}" target="_blank" rel="noopener">WhatsApp</a><button data-action="refresh-meal">Refresh responses</button></div>
-    <section class="card stack"><h3>Guest responses · ${meal.responses.length}</h3>${meal.responses.map(({name,vote})=>`<div><strong>${escape(name)}</strong><div><small>Times: ${escape(vote.times.map(time => mealDateTime(time, meal)).join(', ') || 'None selected')}</small></div><div><small>Restaurants: ${escape(vote.restaurants.join(', ') || 'None selected')}</small></div></div>`).join('') || '<p class="muted">No responses yet.</p>'}</section>` : '<p class="muted">The organizer can see your display name and your choices.</p>'}
-    ${!meal.restaurant && !meal.restaurants.length ? '<p class="muted">Restaurant to be decided.</p>' : ''}
-    ${meal.restaurant ? `<a href="${maps(meal.restaurant,meal.location)}" target="_blank" rel="noopener">Find ${escape(meal.restaurant)} on Google Maps ↗</a>` : ''}
-    ${meal.organizer ? '' : attendanceForm(meal)}
-    ${meal.attendanceResponses?.length ? `<section class="card stack"><h3>Guest RSVPs</h3>${meal.attendanceResponses.map(response => `<p><strong>${escape(response.name)}</strong> · ${attendanceLabels[response.attendance]}</p>`).join('')}</section>` : ''}
-    ${isPolling(meal) ? `<form class="stack card" data-form="vote"><h3>Vote on the options</h3><p class="muted">Select every option that works for you. You can change your choices later.</p>
-      ${!meal.organizer && !meal.restaurant && meal.restaurants.length ? (meal.suggested ? '<small>You’ve added your restaurant suggestion.</small>' : '<button type="button" data-action="suggest-restaurant">Suggest one restaurant</button>') : ''}
-      ${!meal.selectedTime && meal.times.length ? `<fieldset><legend>Times that work · ${escape(mealZone(meal))}</legend>${choices(meal.times,'times',vote.times,t=>escape(mealDateTime(t, meal))+votesLabel('times',t)+(hasConflict(t,meal.duration)?' · ⚠ Calendar block overlaps':''))}</fieldset>` : ''}
-      ${!meal.restaurant && meal.restaurants.length ? `<fieldset><legend>Restaurants you’d visit</legend>${choices(meal.restaurants,'restaurants',vote.restaurants,r=>escape(r)+votesLabel('restaurants',r))}</fieldset>` : ''}<button class="primary">Save votes</button></form>` : ''}
-    ${meal.organizer ? `<form class="stack card" data-form="manage"><h3>Organizer controls</h3>
-      ${timeZoneSelector(meal.timeZone || EnkaiTime.guessZone(meal.location))}
-      <label>Chosen date and time <select name="selectedTime"><option value="">Keep polling</option>${options}</select></label>
-      ${timeInput('', 'newTime', false)}
-      <label class="option"><input type="checkbox" name="useNewTime"><span>Use the new time as the dinner time</span></label>
-      <label>Chosen restaurant <select name="restaurant"><option value="">Decide later</option>${restaurants}</select></label>
-      ${meal.selectedTime && !meal.restaurant ? restaurantPicker() : ''}
-      <label>Reservation status <select name="status">${statuses.map(s=>`<option ${s===meal.status?'selected':''}>${s}</option>`).join('')}</select></label>
-      <label>Attending guests <input name="attending" maxlength="500" value="${escape(meal.attending.join(', '))}"></label>
-      <button>Save meal details</button></form>` : ''}</div>`);
-  const manageForm = panel.querySelector('[data-form=manage]');
-  if (manageForm) updateTimeInputs(manageForm);
+  const options = meal.times.map(t=>`<option value="${escape(t)}" ${t===meal.selectedTime?'selected':''}>${escape(mealDateTime(t,meal))} · ${tally('times',t)} votes</option>`).join('');
+  const restaurants = meal.restaurants.map(r=>`<option value="${escape(r)}" ${r===meal.restaurant?'selected':''}>${escape(r)} · ${tally('restaurants',r)} votes</option>`).join('');
+  const responses = meal.attendanceResponses || [];
+  show(meal.title, `<div class="stack dinner-detail">
+    <div class="dinner-facts"><p class="eyebrow">${meal.organizer?'Your plan':'You’re invited'}</p>
+      <h3>${escape(meal.restaurant || 'Choosing a restaurant together')}</h3>
+      <p>${escape(meal.location)}${meal.selectedTime?' · '+durationLabel(meal.duration):''}</p>
+      <p class="dinner-date">${meal.selectedTime?escape(mealDateTime(meal.selectedTime,meal)):'Choose the times that work for you'}</p>
+      <small>${escape(destinationLabel(meal))}</small>${localTimeNote(meal)}
+      ${!meal.timeZone?'<p class="muted">Your host needs to confirm the destination time zone for this existing plan.</p>':''}
+      <p>${statusPill(status(meal))}</p>
+      ${meal.restaurant?`<a href="${venueMaps(meal.restaurant,meal)}" target="_blank" rel="noopener">Restaurant reviews & directions ↗</a>`:''}
+    </div>
+    ${meal.organizer?`<section class="share-card stack"><h3>Invite your people</h3><div class="row"><button class="primary" data-action="share">Share invitation</button><button data-action="copy-invite">Copy link</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(meal.title+' · '+inviteUrl(meal))}" target="_blank" rel="noopener">WhatsApp</a></div><small>Guest names alone don’t send invitations. Share this link to invite them.</small></section>`:''}
+    ${responseReceipt===meal.id?receiptView(meal):(!meal.organizer||isPolling(meal)?responseForm(meal):'')}
+    ${meal.selectedTime && meal.restaurant && meal.timeZone?'<button type="button" data-action="calendar">Add to calendar</button><small>Downloads a calendar event. Updates aren’t synced automatically.</small>':''}
+    <details class="guest-details"><summary>People & responses · ${attendingGuests(meal).length} going</summary>
+      <div class="stack"><p>Invited names: ${escape(meal.guests.join(', ')||'Invite by sharing the link')}</p>
+      ${responses.map(r=>`<p><strong>${escape(r.name)}</strong> · ${attendanceLabels[r.attendance]}</p>`).join('')||'<p>No RSVPs yet.</p>'}
+      ${meal.organizer?meal.responses.map(({name,vote})=>`<p><strong>${escape(name)}</strong><br><small>${escape(vote.times.map(t=>mealDateTime(t,meal)).join(' · ')||'No time choices')}<br>${escape(vote.restaurants.join(' · ')||'No restaurant choices')}</small></p>`).join(''):''}</div>
+    </details>
+    ${meal.organizer?`<details class="organizer-details" ${meal.selectedTime&&!meal.restaurant&&!meal.restaurants.length?'open':''}><summary>Finalize the plan & reservation</summary>
+      <form class="stack" data-form="manage"><p class="muted">Choose the group’s date and restaurant, then record the reservation separately.</p>
+      ${timeZoneSelector(meal.timeZone||EnkaiTime.guessZone(meal.location))}
+      <label>Dinner date<select name="selectedTime"><option value="">Keep polling</option>${options}</select></label>
+      <details><summary>Add or change the time</summary>${timeInput('','newTime',false)}<label class="option"><input type="checkbox" name="useNewTime"><span>Use this as the dinner time</span></label></details>
+      <label>Restaurant<select name="restaurant"><option value="">Decide later</option>${restaurants}</select></label>
+      ${meal.selectedTime&&!meal.restaurant?restaurantPicker():''}
+      <label>Restaurant reservation<select name="status">${statuses.map(s=>`<option value="${s}" ${s===meal.status?'selected':''}>${{'Unbooked':'Not reserved yet','Booked':'Reserved','Confirmed':'Reservation reconfirmed','In-person booking only':'Walk-in only'}[s]}</option>`).join('')}</select></label>
+      <small>Enkai doesn’t make restaurant reservations. Update this after contacting the restaurant.</small>
+      <details><summary>Additional attendees</summary><label>Names without an app RSVP<input name="attending" maxlength="500" value="${escape(meal.attending.join(', '))}"></label></details>
+      <button class="primary">Save plan</button></form></details><button data-action="refresh-meal">Refresh responses</button>`:''}
+    </div>`);
+  restoreResponseDraft(meal);
+  const manageForm=panel.querySelector('[data-form=manage]');
+  if(manageForm) updateTimeInputs(manageForm);
 }
+
 function peopleForm() {
   show('Saved guests', `<form class="stack" data-form="people"><p class="muted">Keep a local list of people you plan meals with.</p><label>Names, separated by commas <input name="people" maxlength="800" value="${escape(state.people.join(', '))}"></label><button class="primary">Save guests</button></form>`);
 }
@@ -645,6 +669,16 @@ function busyForm() {
 }
 
 panel.addEventListener('close',()=>{ restaurantReturn=null; panel.classList.remove('restaurant-browser'); });
+panel.addEventListener('input',persistOpenDraft);
+panel.addEventListener('change',persistOpenDraft);
+panel.addEventListener('cancel',()=>persistOpenDraft());
+window.addEventListener('popstate',()=>{
+  persistOpenDraft();
+  const id=new URLSearchParams(location.hash.slice(1)).get('meal');
+  pendingMealId=id;
+  if(credential&&id) mealDetails(state.meals.find(m=>m.id===id));
+  else if(panel.open) panel.close();
+});
 panel.addEventListener('cancel',event=>{ if(restaurantReturn){ event.preventDefault(); closeRestaurantBrowser(); } });
 panel.addEventListener('input',event=>{
   if (event.target.matches('[name=location]')) {
@@ -652,10 +686,12 @@ panel.addEventListener('input',event=>{
     const zone = form?.querySelector('[name=timeZone]');
     if (zone && zone.dataset.manual !== 'true') {
       zone.value = EnkaiTime.guessZone(event.target.value);
+      const setting=zone.closest('details');if(setting)setting.open=!zone.value;
       updateTimeInputs(form);
     }
   }
   if (event.target.matches('[name=time], [name=newTime]')) updateTimeInputs(event.target.form);
+  if(event.target.matches('[name=restaurants]')) updateSelectedRestaurants();
 
   const search = panel.querySelector('[data-restaurant-search]');
   if (event.target === search) {
@@ -664,6 +700,7 @@ panel.addEventListener('input',event=>{
   } else if (event.target.matches('[data-restaurant-city]')) {
     updateRestaurantResults(search);
   }
+  persistOpenDraft();
 });
 panel.addEventListener('change',event=>{
   if (event.target.matches('[name=timeZone]')) {
@@ -677,17 +714,31 @@ panel.addEventListener('change',event=>{
   const poll = event.target.value==='poll';
   panel.querySelector('[data-action=add-time]').hidden = !poll;
   while(options.children.length>(poll?5:1)) options.lastElementChild.remove();
-  while(poll && options.children.length<3) options.insertAdjacentHTML('beforeend',timeInput());
+  while(poll && options.children.length<2) options.insertAdjacentHTML('beforeend',timeInput());
   updateTimeInputs(options.closest('form'));
 });
 document.addEventListener('click', event=>{
   const button = event.target.closest('button');
   if (!button) return;
   const { action, id, view: tab } = button.dataset;
-  if (tab) { view=tab; render(); window.scrollTo(0,0); refreshOnReturn(); return; }
+  if (tab) { navigatePlanner(tab); return; }
   switch(action) {
-    case 'close': if (restaurantReturn) closeRestaurantBrowser(); else panel.close(); break;
-    case 'new': if (credential) chooseFlow(); else startSignIn(); break;
+    case 'close': if (restaurantReturn) closeRestaurantBrowser(); else {persistOpenDraft(); panel.close(); setMealAddress('',true); render();} break;
+    case 'retry-invite': loadInvitation(); break;
+    case 'theme': applyPlannerTheme(id); render(); break;
+    case 'load-photo': showPlacePhoto(button); break;
+    case 'photo-fallback': window.open(maps(button.dataset.name,button.dataset.city),'_blank','noopener'); break;
+    case 'remove-restaurant': {
+      const input=panel.querySelector('[name=restaurants]');
+      input.value=input.value.split('\n').filter(name=>name.trim()!==button.dataset.name).join('\n');
+      updateSelectedRestaurants();persistOpenDraft();break;
+    }
+    case 'resume-plan': openPlan(null,'restaurant',true); break;
+    case 'plan-next': if(validatePlanStep()){wizardStep++;renderWizard();} break;
+    case 'plan-back': persistOpenDraft(); if(wizardStep){wizardStep--;renderWizard();}else chooseFlow(); break;
+    case 'edit-response': responseReceipt=''; mealDetails(activeMeal); break;
+    case 'copy-invite': copyInvite(inviteUrl(activeMeal)); break;
+    case 'new': if (credential) chooseFlow(); else chooseSignIn(); break;
     case 'flow': mealForm(null,id); break;
     case 'search-cuisine': {
       const search = panel.querySelector('[data-restaurant-search]');
@@ -702,11 +753,14 @@ document.addEventListener('click', event=>{
     case 'return-restaurants': closeRestaurantBrowser(); break;
     case 'pick-restaurant': {
       const { input, guest } = restaurantReturn;
-      if (guest) { suggestRestaurant(button.dataset.name); break; }
+      const picked=restaurantReturn.places.find(r=>r.name===button.dataset.name);
+      if (guest) { suggestRestaurant(button.dataset.name,picked?.placeId); break; }
       const names = input.value.split('\n').map(name=>name.trim()).filter(Boolean);
       const limit = input.form.dataset.flow === 'restaurant' ? 1 : 5;
       if (names.length >= limit) { message(limit===1?'One restaurant is already selected.':'You can add up to five restaurants.'); break; }
       input.value = [...names,button.dataset.name].join('\n');
+      const venues=input.form.querySelector('[name=venues]');
+      if(venues&&picked?.placeId) venues.value=JSON.stringify([...JSON.parse(venues.value||'[]').filter(v=>v.name!==picked.name),{name:picked.name,placeId:picked.placeId}]);
       const destination = input.form.querySelector('[name=location]');
       const zone = input.form.querySelector('[name=timeZone]');
       if (button.dataset.city && destination && (input.form.dataset.flow === 'restaurant' || !destination.value)) {
@@ -717,6 +771,9 @@ document.addEventListener('click', event=>{
       button.textContent = 'Added to poll';
       button.setAttribute('aria-label','Added to poll: '+button.dataset.name);
       button.disabled = true;
+      persistOpenDraft();
+      if(limit===1) closeRestaurantBrowser();
+      else updateRestaurantResults(panel.querySelector('[data-restaurant-search]'));
       break;
     }
     case 'choose-signin': chooseSignIn(); break;
@@ -730,8 +787,13 @@ document.addEventListener('click', event=>{
     case 'signout':
       signOut(); break;
     case 'refresh-meal': {
+      persistOpenDraft();
       const id = activeMeal.id;
       refresh().then(()=>{ if(panel.open) mealDetails(state.meals.find(meal=>meal.id===id)); }).catch(error=>message(error.message));
+      break;
+    }
+    case 'reload-dinner': {
+      refresh().then(()=>mealDetails(state.meals.find(m=>m.id===id))).catch(error=>message(error.message));
       break;
     }
     case 'share': {
@@ -741,7 +803,7 @@ document.addEventListener('click', event=>{
       break;
     }
     case 'calendar': downloadCalendar(activeMeal); break;
-    case 'meal': mealDetails(state.meals.find(m=>m.id===id)); break;
+    case 'meal': responseReceipt=''; mealDetails(state.meals.find(m=>m.id===id)); break;
     case 'people': peopleForm(); break;
     case 'busy': busyForm(); break;
     case 'busy-remove': state.busy.splice(Number(id),1); save(); busyForm(); break;
@@ -764,7 +826,7 @@ document.addEventListener('click', event=>{
       activeWish=state.wishes.find(w=>w.id===id);
       show(activeWish.name,`<form class="stack" data-form="interest"><label>Interested guests, separated by commas <input name="people" maxlength="500" value="${escape(activeWish.interested.join(', '))}"></label><button class="primary">Save interest list</button></form>`);
       break;
-    case 'wish-date': if (credential) mealForm(state.wishes.find(w=>w.id===id)); else startSignIn(); break;
+    case 'wish-date': if (credential) mealForm(state.wishes.find(w=>w.id===id)); else chooseSignIn(); break;
   }
 });
 
@@ -777,16 +839,18 @@ panel.addEventListener('submit',event=>{
   switch(form.dataset.form) {
     case 'new': {
       const flow = form.dataset.flow;
+      if(form.classList.contains('wizard') && wizardStep < form.querySelectorAll('[data-step]').length-1){if(validatePlanStep()){wizardStep++;renderWizard();}return;}
       const pollTime = flow==='undecided' || value('dateMode')==='poll';
       const times=[...new Set(Array.from(form.querySelectorAll('[name=time]')).filter(input=>input.value).map(input=>readDestinationTime(input,destinationTimeZone)))].sort();
       const restaurants=[...new Set(value('restaurants').split('\n').map(name=>name.trim()).filter(Boolean))];
       if(!value('title')) { message('Enter a meal name.'); return; }
-      if(pollTime ? times.length<3 || times.length>5 : times.length!==1) {
-        message(pollTime?'Add three to five different times.':'Choose one date and time.'); return;
+      if(pollTime ? times.length<2 || times.length>5 : times.length!==1) {
+        message(pollTime?'Add two to five different times.':'Choose one date and time.'); return;
       }
       if(flow==='restaurant' && restaurants.length!==1) { message('Choose one restaurant.'); return; }
-      if(flow==='date' && (restaurants.length===2 || restaurants.length>5)) { message('Choose one restaurant or add three to five for a poll.'); return; }
+      if(flow==='date' && (restaurants.length>5)) { message('Choose up to five restaurants.'); return; }
       const details={title:value('title'),location:value('location'),timeZone:destinationTimeZone,duration:Number(value('duration')),
+        venues:JSON.parse(value('venues')||'[]').filter(v=>restaurants.includes(v.name)),
         times,restaurants,guests:[...new Set([...data.getAll('contacts'),...split(value('guests'))])],
         status:statuses[0],selectedTime:pollTime?'':times[0],restaurant:restaurants.length===1?restaurants[0]:'',attending:[]};
       const newContacts = data.has('saveContacts') ? split(value('guests')) : [];
@@ -794,6 +858,14 @@ panel.addEventListener('submit',event=>{
     }
     case 'restaurant-search': searchGooglePlaces(form); return;
     case 'suggest': suggestRestaurant(value('suggestion')); return;
+    case 'respond': {
+      persistOpenDraft();
+      syncMeal('respond', {id:activeMeal.id, version:activeMeal.version,
+        ...(!activeMeal.organizer?{attendance:value('attendance')}:{}),
+        vote:{times:activeMeal.selectedTime?(activeMeal.myVote?.times||[]):data.getAll('times'),
+          restaurants:activeMeal.restaurant?(activeMeal.myVote?.restaurants||[]):data.getAll('restaurants')}});
+      return;
+    }
     case 'rsvp': {
       syncMeal('rsvp', { id: activeMeal.id, attendance: value('attendance') }); return;
     }
@@ -810,8 +882,9 @@ panel.addEventListener('submit',event=>{
       const additions=value('restaurants').split('\n').map(name=>name.trim()).filter(Boolean);
       const restaurants=[...new Set([...activeMeal.restaurants,...additions])];
       if(additions.length && !value('selectedTime')) { message('Choose the date before opening a restaurant poll.'); return; }
-      if(additions.length && (restaurants.length===2 || restaurants.length>5)) { message('Choose one restaurant or add three to five for a poll.'); return; }
+      if(additions.length && (restaurants.length>5)) { message('Choose up to five restaurants.'); return; }
       const details={...activeMeal,times,restaurants,timeZone:destinationTimeZone,selectedTime:data.has('useNewTime') && time ? time : value('selectedTime'),restaurant:value('restaurant') || (additions.length && restaurants.length===1 ? restaurants[0] : ''),
+        venues:JSON.parse(value('venues')||JSON.stringify(activeMeal.venues||[])).filter(v=>restaurants.includes(v.name)),
         status:value('status'),attending:split(value('attending'))};
       for (const key of ['id','version','invite','myVote','responses','organizer','joinedCount']) delete details[key];
       syncMeal('manage', { id: activeMeal.id, version: activeMeal.version, details }); return;
@@ -834,8 +907,13 @@ async function syncMeal(action, payload, newContacts = []) {
   requestInFlight = true;
   const buttons = panel.querySelectorAll('[type=submit], form button:not([type])');
   buttons.forEach(button => { button.disabled = true; });
+  let savedId;
   try {
     const { id } = await api(action, payload);
+    savedId=id;
+    setMealAddress(id,true);
+    if(action==='respond') {sessionStorage.removeItem(responseDraftKey);responseReceipt=id;}
+    if(action==='create') sessionStorage.removeItem(planDraftKey);
     if (action === 'create') {
       if (newContacts.length) {
         state.people = [...new Set([...state.people,...newContacts])];
@@ -848,8 +926,11 @@ async function syncMeal(action, payload, newContacts = []) {
     }
     await refresh();
     if (panel.open) mealDetails(state.meals.find(meal => meal.id === id));
-    message(action === 'rsvp' ? 'Your RSVP is saved. The organizer can see your response.' : action === 'vote' ? 'Your votes are saved for the organizer.' : 'Meal saved.');
-  } catch (error) { message(error.message); }
+    message(action === 'respond' ? 'Your complete response is saved.' : action === 'rsvp' ? 'Your RSVP is saved. The organizer can see your response.' : action === 'vote' ? 'Your votes are saved for the organizer.' : 'Meal saved.');
+  } catch (error) {
+    if(savedId && credential) show('Saved — reconnect to continue','<p>Your changes were saved, but the updated dinner could not be loaded.</p><button class="primary" data-action="reload-dinner" data-id="'+escape(savedId)+'">Open the saved dinner</button>');
+    message(error.message);
+  }
   finally { requestInFlight = false; buttons.forEach(button => { button.disabled = false; }); }
 }
 
@@ -871,7 +952,10 @@ window.addEventListener('pageshow', event => { if (event.persisted) refreshOnRet
 
 render();
 if (sessionStorage.getItem(microsoftFlowKey)) resumeMicrosoft().catch(error=>message(error.message));
-else restoreSession().then(() => { if (openSignIn && !credential) chooseSignIn(); });
+else restoreSession().then(() => {
+  if(!credential && invite) loadInvitation();
+  else if(openSignIn && !credential) chooseSignIn();
+});
 
 function downloadCalendar(meal) {
   if (!meal?.selectedTime || !meal.restaurant || !EnkaiTime.validZone(meal.timeZone)) {

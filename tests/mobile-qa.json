@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-12",
+  "themes": [
+    "supper-club",
+    "after-hours"
+  ],
+  "mobile_viewports": [
+    {
+      "width": 360,
+      "height": 800
+    },
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 414,
+      "height": 896
+    }
+  ],
+  "browser": "Codex in-app browser, responsive viewport",
+  "ui_fixtures": "Isolated local API and Google callback fixtures; no real invitations sent",
+  "passed": [
+    "Unified attendance and poll response with confirmation",
+    "Editing a fixed-dinner RSVP",
+    "Unchecked remember choice survives tab reload",
+    "Expired session preserves and restores unsaved response",
+    "Saved response survives failed refresh without resubmitting",
+    "Restaurant-first, date-first and undecided planning",
+    "Two-stage date then restaurant poll",
+    "Unfinished plan resumes after reload",
+    "Guest single restaurant suggestion preserves unsaved choices",
+    "Food suggestions, explicit search, price sorting, hours and attributed photo UI",
+    "Guide filters, slideshow, plan-versus-reserve links",
+    "Guide favourites appear in planner Saved",
+    "No horizontal overflow at tested mobile widths",
+    "Live Supabase Google/Microsoft saved-session paths, join deduplication and response visibility",
+    "Atomic database validation, outsider rejection, stale version rejection",
+    "Account-linking SQL regression preserves one response",
+    "Live Google Places search returns 20 results with hours",
+    "Sign-out revokes saved session",
+    "Destination zone, DST gaps and overlaps, calendar UTC output"
+  ],
+  "limitations": [
+    "No physical iPhone Safari or Samsung Internet session was available",
+    "Google and Microsoft provider sign-in popups used local callback fixtures; live saved-session server paths were tested separately",
+    "Google supplied no photo references for the tested live search; photo UI was fixture-tested and Maps fallback remains available"
+  ],
+  "production_test_data": "Temporary meals and sessions removed; existing meals untouched"
+}

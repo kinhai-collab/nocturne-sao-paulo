@@ -10,7 +10,7 @@
 
   function themedLink(path) {
     const target = new URL(path, url);
-    target.searchParams.set('theme', theme);
+    target.searchParams.set('theme', document.body?.dataset.plannerTheme || theme);
     return target;
   }
 
@@ -18,15 +18,39 @@
     const target = themedLink('planner.html');
     target.searchParams.set('restaurant', restaurant);
     target.searchParams.set('location', location);
-    return '<a class="button primary guide-book" href="' + target.href.replaceAll('&', '&amp;') + '">Book here</a>';
+    return '<a class="button primary guide-book" href="' + target.href.replaceAll('&', '&amp;') + '">Plan dinner here</a>';
   };
 
   document.addEventListener('DOMContentLoaded', () => {
+    for(const brand of document.querySelectorAll('header a.brand, header a:has(.enkai-logo)')) {
+      brand.href=themedLink('planner.html');
+      brand.setAttribute('aria-label','Enkai home');
+    }
     if (document.body.classList.contains('enkai-guide')) {
       document.body.dataset.guideTheme = theme;
       for (const link of document.querySelectorAll('header a[href="planner.html"]')) {
         link.href = themedLink('planner.html');
       }
+      const nav=document.querySelector('header nav');
+      if(nav) nav.innerHTML='<button data-guide="michelin" aria-haspopup="dialog">Michelin</button><button data-guide="good" aria-haspopup="dialog">Good Eats</button>';
+      const dock=document.createElement('nav');
+      dock.className='app-dock';dock.setAttribute('aria-label','Enkai');
+      dock.innerHTML='<a href="'+themedLink('planner.html')+'">Home</a><a aria-current="page" href="'+themedLink('planner.html?view=discover')+'">Discover</a><a href="'+themedLink('planner.html?view=wishlist')+'">Saved</a>';
+      document.body.append(dock);
+      const clarifyLinks=()=>{
+        for(const a of document.querySelectorAll('#app a[href]')) {
+          const target=new URL(a.href,location.href);
+          if(target.origin===location.origin && /\/(index|beyond|ontario|planner)\.html$/.test(target.pathname)) {
+            target.searchParams.set('theme',theme);
+            if(a.href!==target.href)a.href=target.href;
+          }
+        }
+        for(const a of document.querySelectorAll('.card-actions a, #detail-content a')) {
+          if(/^(Book a table|Book externally|Website & reservations)/.test(a.textContent.trim())) a.textContent='Reserve with restaurant ↗';
+        }
+      };
+      new MutationObserver(clarifyLinks).observe(document.querySelector('#app')||document.body,{childList:true,subtree:true});
+      clarifyLinks();
     }
 
     const dialog = document.createElement('dialog');
