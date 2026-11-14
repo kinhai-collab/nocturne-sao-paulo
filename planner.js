@@ -644,6 +644,7 @@ function mealDetails(meal) {
   const responses = meal.attendanceResponses || [];
   show(meal.title, `<div class="stack dinner-detail">
     <div class="dinner-facts"><p class="eyebrow">${meal.organizer?'Your plan':'You’re invited'}</p>
+      ${dinnerPhotoMarkup(meal)}
       <h3>${escape(meal.restaurant || 'Choosing a restaurant together')}</h3>
       <p>${escape(meal.location)}${meal.selectedTime?' · '+durationLabel(meal.duration):''}</p>
       <p class="dinner-date">${meal.selectedTime?escape(mealDateTime(meal.selectedTime,meal)):'Choose the times that work for you'}</p>
@@ -679,6 +680,7 @@ function mealDetails(meal) {
   const manageForm=panel.querySelector('[data-form=manage]');
   if(manageForm) updateTimeInputs(manageForm);
   checkDinnerCalendar(meal);
+  loadDinnerPhoto(panel,{id:meal.id});
 }
 
 function peopleForm() {
@@ -958,7 +960,7 @@ async function syncMeal(action, payload, newContacts = []) {
 }
 
 function inviteUrl(meal) {
-  return EnkaiInvites.url(meal,{base:location.href,theme:document.body.dataset.plannerTheme,venue:meal.restaurant?guideVenue(meal.restaurant,meal.location):null});
+  return EnkaiInvites.url(meal,{base:location.href,theme:document.body.dataset.plannerTheme,venue:meal.restaurant?guideVenue(meal.restaurant,meal.location):null,previewBase:window.POLL_CONFIG.invitePreviewBase});
 }
 function invitationMessage(meal) { return EnkaiInvites.message(meal,inviteUrl(meal)); }
 async function copyInvite(content) {

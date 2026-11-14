@@ -1,0 +1,28 @@
+# Live invitation previews
+
+This small Node service is separate from the main GitHub Pages app. No Google,
+Supabase, calendar, or GitHub secret is needed here. It calls only the existing
+capability-protected public invitation summary/photo actions. It does not store
+Google content. Humans redirect immediately to the GitHub app with the original
+invite and theme. Recognized message crawlers receive server-rendered metadata
+and a fresh Google-hosted image, restaurant website preview image, or an honest
+generic fallback. Google Places currently returns no photos in the tested live
+responses. Billing was left unchanged as requested. The live restaurant website
+fallback was verified against Richmond Station and is credited distinctly.
+
+Deploy this directory as the project root on an existing Vercel account, with no
+framework/build command. Then set `POLL_CONFIG.invitePreviewBase` in the main app
+to `https://<verified-host>/i`. Test both themes with a disposable live-search
+restaurant invitation before enabling that setting. Keep the endpoint inactive
+until deployment is verified. A Netlify adapter can use the same core renderer.
+
+GitHub Pages alone cannot emit different Open Graph tags per query parameter.
+Supabase's default function domain rewrites HTML to plain text; its custom-domain
+option also works but requires a domain and provider configuration. Do not point
+sharing at an unconfigured server or publish Google photos into this repository.
+
+The app displays Google Maps/author credits and direct source links when supplied.
+Chat previews are thumbnails; opening the invitation shows the attributed photo.
+WhatsApp controls its own preview rendering/caching and can disable previews.
+The original 900-search/month cap and existing 900-photo/month cap remain separate.
+Photo resolutions also have a per-dinner limit of 5/minute and 30/day.

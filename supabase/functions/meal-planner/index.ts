@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 import { createRemoteJWKSet, jwtVerify } from 'npm:jose@6.2.12';
 import {calendarAction,canonicalAccount,saveCalendarEmail,runCalendarJobs} from '../_shared/calendar.ts';
+import {selectedPlaceId,freshPlacePhoto} from '../_shared/place-photo.ts';
 declare const EdgeRuntime: { waitUntil(task: Promise<unknown>): void };
 
 const origin = 'https://kinhai-collab.github.io';
@@ -56,6 +57,17 @@ const sessionHash = async (token: string) => {
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 };
 
+async function dinnerPhoto(plan: any) {
+  const placeId = selectedPlaceId(plan.details);
+  if (!placeId) return reply({photo:null});
+  const key = Deno.env.get('GOOGLE_PLACES_API_KEY');
+  if (!key) return reply({error:'Restaurant photo unavailable.'},503);
+  const {data:reserved,error} = await db.rpc('meal_reserve_invitation_photo',{plan_id:plan.id});
+  if (error || !reserved) return reply({error:'View restaurant photos on Google Maps.'},429);
+  try { return reply(await freshPlacePhoto(placeId,key)); }
+  catch { return reply({error:'View restaurant photos on Google Maps.'},502); }
+}
+
 Deno.serve(async req => {
   if (req.headers.get('origin') !== origin) return reply({ error: 'Origin not allowed.' }, 403);
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
@@ -68,14 +80,15 @@ Deno.serve(async req => {
     if (!input || typeof input !== 'object' || Array.isArray(input)) return reply({error:'Invalid planner request.'},400);
   } catch { return reply({ error: 'Could not read the planner request.' }, 400); }
   // An unguessable invitation link reveals only the dinner summary, never membership or responses.
-  if (input.action === 'preview') {
+  if (input.action === 'preview' || input.action === 'preview-photo') {
     if (typeof input.invite !== 'string' || !uuid.test(input.invite)) return reply({ error: 'This invitation is unavailable.' }, 404);
-    const { data, error } = await db.from('meal_plans').select('details').eq('invite', input.invite).maybeSingle();
+    const { data, error } = await db.from('meal_plans').select('id,details').eq('invite', input.invite).maybeSingle();
     if (error) return reply({ error: 'Could not load this invitation. Please retry.' }, 503);
     if (!data) return reply({ error: 'This invitation is unavailable. Ask the host for a new link.' }, 404);
+    if (input.action === 'preview-photo') return dinnerPhoto(data);
     const d = data.details;
     return reply({ title: d.title, location: d.location, restaurant: d.restaurant, selectedTime: d.selectedTime,
-      timeZone: d.timeZone, duration: d.duration, hostName: d.hostName?.split(/\s+/)[0] || 'Your host' });
+      timeZone: d.timeZone, duration: d.duration, hasPhoto:Boolean(selectedPlaceId(d)), hostName: d.hostName?.split(/\s+/)[0] || 'Your host' });
   }
   const credential = req.headers.get('authorization')?.match(/^Bearer ([\w.-]+)$/)?.[1];
   if (!credential || credential.length > 10000) return reply({ error: 'Sign in with Google or Microsoft to continue.' }, 401);
@@ -116,6 +129,18 @@ Deno.serve(async req => {
 
   try {
     const canonical = await canonicalAccount(db,actor,microsoft);
+    if (input.action === 'dinner-photo') {
+      if (typeof input.id !== 'string' || !uuid.test(input.id)) return reply({error:'Dinner unavailable.'},404);
+      const {data:plan,error} = await db.from('meal_plans').select('id,owner,details').eq('id',input.id).maybeSingle();
+      if (error) return reply({error:'Restaurant photo unavailable.'},503);
+      if (!plan) return reply({error:'Dinner unavailable.'},404);
+      if (plan.owner !== canonical) {
+        const {data:member,error:memberError} = await db.from('meal_plan_members').select('meal_id').eq('meal_id',plan.id).eq('account',canonical).maybeSingle();
+        if (memberError) return reply({error:'Restaurant photo unavailable.'},503);
+        if (!member) return reply({error:'Open the invitation to join this dinner first.'},403);
+      }
+      return dinnerPhoto(plan);
+    }
     if (!remembered && verifiedEmail) await saveCalendarEmail(db,canonical,verifiedEmail);
     if (typeof input.action === 'string' && input.action.startsWith('calendar-')) {
       try {

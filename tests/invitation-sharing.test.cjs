@@ -30,6 +30,16 @@ test('Unknown restaurants have a generic preview; invalid invitations cannot cre
   assert.throws(()=>sharing.url({...meal,invite:'not-an-invite'},{base:'https://example.com/'}));
   assert(!sharing.title({...meal,hostName:'Your host'}).startsWith('Your invited'));
 });
+test('Live-search restaurants use a verified configured service, with safe static fallback',()=>{
+  const live={...meal,version:3,venues:[{name:meal.restaurant,placeId:'ChIJ_live'}]};
+  for(const theme of ['supper-club','after-hours']) {
+    const shared=new URL(sharing.url(live,{base:'https://example.com/planner.html',theme,previewBase:'https://preview.example/i'}));
+    assert.equal(shared.hostname,'preview.example');assert.equal(shared.pathname,'/i');assert.equal(shared.searchParams.get('theme'),theme);
+    assert.equal(shared.searchParams.get('v'),'3');
+  }
+  assert.equal(new URL(sharing.url(live,{base:'https://example.com/planner.html',previewBase:'javascript:alert(1)'})).pathname,'/i.html');
+  assert.equal(new URL(sharing.url({...live,restaurant:''},{base:'https://example.com/planner.html',previewBase:'https://preview.example/i'})).pathname,'/i.html');
+});
 test('Every generated preview has server-rendered metadata, an existing JPEG and no dinner token',()=>{
   const venues=JSON.parse(fs.readFileSync('planner-venues.js','utf8').split('=').slice(1).join('=').trim().replace(/;$/,''));
   for(const venue of venues) {

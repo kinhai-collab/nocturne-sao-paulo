@@ -44,6 +44,30 @@ function venueImage(name,city) {
   const v=guideVenue(name,city);
   return v?.image?'<figure class="dinner-photo"><img src="'+escape(v.image)+'" alt="'+escape(name)+'" loading="lazy"><figcaption><a href="'+escape(v.source)+'" target="_blank" rel="noopener">Photo source ↗</a></figcaption></figure>':'';
 }
+function dinnerPhotoMarkup(meal) {
+  if (!meal.restaurant || meal.cancelled) return '';
+  const guide = venueImage(meal.restaurant,meal.location);
+  if (guide) return guide;
+  const live = meal.hasPhoto || meal.venues?.some(v=>v.name===meal.restaurant && v.placeId);
+  return live ? '<div class="live-dinner-photo" data-live-dinner-photo data-restaurant="'+escape(meal.restaurant)+'"><p class="photo-loading" role="status">Opening restaurant photo…</p><a href="'+escape(venueMaps(meal.restaurant,meal))+'" target="_blank" rel="noopener noreferrer">View photos on Google Maps ↗</a></div>' : '';
+}
+async function loadDinnerPhoto(container, payload) {
+  const slot = container.querySelector('[data-live-dinner-photo]');
+  if (!slot || slot.dataset.loading) return;
+  slot.dataset.loading='true';
+  const fallback=slot.querySelector('a')?.outerHTML || '';
+  try {
+    const {photo} = await api(payload.invite?'preview-photo':'dinner-photo',payload);
+    if (!slot.isConnected) return;
+    if (!photo || !/^https:\/\//.test(photo.url) || (photo.kind!=='website' && !/^https:\/\/([\w-]+\.)*googleusercontent\.com\//.test(photo.url))) throw Error('Photo unavailable');
+    slot.innerHTML='<figure><img src="'+escape(photo.url)+'" alt="'+escape(slot.dataset.restaurant || 'Restaurant')+'" decoding="async" referrerpolicy="no-referrer"><figcaption>'+(photo.kind==='website'?'':'<span class="google-maps-credit" translate="no">Google Maps</span>')+ (photo.authors||[]).map(author=>'<span>Photo: '+(author.uri?'<a href="'+escape(author.uri)+'" target="_blank" rel="noopener noreferrer">'+escape(author.name)+'</a>':escape(author.name))+'</span>').join('')+(photo.source?'<a href="'+escape(photo.source)+'" target="_blank" rel="noopener noreferrer">'+(photo.kind==='website'?'Photo: restaurant website':'View original photo')+' ↗</a>':'')+'</figcaption></figure>';
+    const image=slot.querySelector('img');
+    image.addEventListener('error',()=>{slot.innerHTML=fallback;},{once:true});
+  } catch {
+    // A missing image or exhausted quota must never interrupt sign-in or RSVP.
+    if (slot.isConnected) slot.querySelector('.photo-loading')?.remove();
+  }
+}
 function venueMaps(name,meal) {
   const venue=(meal.venues||[]).find(v=>v.name===name);
   const url=new URL(maps(name,meal.location));
@@ -105,7 +129,7 @@ function invitationLanding() {
     '</p><button data-action="retry-invite">Try again</button></section>';
   if (!info) return '<section class="card" role="status">Opening your invitation…</section>';
   return '<section class="invite-summary card stack"><p class="eyebrow">An invitation from ' + escape(info.hostName) +
-    '</p><h2>' + escape(info.title) + '</h2>' + (info.restaurant?venueImage(info.restaurant,info.location):'') + '<p>' + escape(info.restaurant || 'Let’s choose a restaurant together') +
+    '</p><h2>' + escape(info.title) + '</h2>' + dinnerPhotoMarkup(info) + '<p>' + escape(info.restaurant || 'Let’s choose a restaurant together') +
     '</p><p>' + escape(info.location) + '</p><p>' +
     escape(info.selectedTime && info.timeZone ? mealDateTime(info.selectedTime, info) + ' · ' + destinationLabel(info) : 'Help choose a time that works for you') +
     '</p><button class="primary" data-action="choose-signin">Sign in to respond</button><small>Anyone with this invitation can join. Your host can see your response.</small></section>';
@@ -115,7 +139,7 @@ async function loadInvitation() {
   render();
   try { invitationPreview = await api('preview', {invite}); }
   catch (error) { inviteError = error.message; }
-  if (!credential) render();
+  if (!credential) {render();if(!inviteError)loadDinnerPhoto(root,{invite});}
 }
 function discoverView() {
   return '<div class="discover-intro"><p>Find somewhere worth getting together.</p></div><div class="discovery-grid">' +
