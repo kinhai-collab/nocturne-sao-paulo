@@ -6,7 +6,7 @@ export const GOOGLE_SCOPE = 'openid email https://www.googleapis.com/auth/calend
 export const MICROSOFT_SCOPE = 'openid email profile offline_access User.Read Calendars.ReadWrite';
 export const scheduleKey = (d: any) => [d.selectedTime, d.duration, d.timeZone];
 export const sameSchedule = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
-export const isConfirmed = (d: any, vote: any) => Boolean(d.selectedTime && vote?.calendarAccept && sameSchedule(vote.confirmedSchedule,scheduleKey(d)));
+export const isConfirmed = (d: any, vote: any) => Boolean(d.selectedTime && d.restaurant && vote?.calendarAccept && sameSchedule(vote.confirmedSchedule,scheduleKey(d)));
 export const eventEnd = (d: any) => new Date(Date.parse(d.selectedTime) + d.duration * 60000).toISOString();
 export const overlaps = (start: string, end: string, otherStart: string, otherEnd: string) =>
   Date.parse(start) < Date.parse(otherEnd) && Date.parse(end) > Date.parse(otherStart);

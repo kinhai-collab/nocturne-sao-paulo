@@ -306,3 +306,26 @@ compete on the detail view. Prefer one refresh control plus last-updated status.
 Keep RSVP/calendar connection independent: guests should never need calendar
 permission to save their response. New-user copy and destination/current time
 explanation worked in the inspected UI and should be retained.
+
+
+## Availability / final RSVP release
+
+Availability saves without an attendance choice or calendar acceptance. A final
+RSVP requires both the restaurant and date; the database strips premature RSVP
+fields even from older clients. Final date or restaurant edits require a fresh
+RSVP and preserve saved poll choices. Unconfirmed responses are excluded from
+attendance counts. Calendar creation waits for both final details.
+Organizer guest names are labeled as planning notes, never delivery confirmation;
+sharing controls precede the notes and joined/response counts remain separate.
+Guest calendar warnings appear above the final RSVP options and confirm button;
+calendar connection remains optional and provider errors are not shown as clear.
+Both themes share the same implementation.
+Validation: transaction/rollback SQL checks for availability, required final RSVP,
+stale writes, invalid choices, outsider access, identity linking, restaurant-change
+reconfirmation, queue/cancellation/permissions; 11 calendar tests; real planner API
+create/join/availability/final RSVP/reconfirmation with calendar invitations off.
+The isolated API test plan was cancelled. Phone-size browser UI checks cover guest
+invite preview/sign-in (simulated), availability, cross-theme saved choices, final
+RSVP, conflicts and optional connection, plus organizer creation/review/share/copy.
+These checks are not physical Safari/Samsung tests or a new real OAuth acceptance
+verification; the existing Google verification/consent limitations still apply.

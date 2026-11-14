@@ -105,3 +105,9 @@ Deno.test('An unavailable calendar is unknown, never falsely conflict-free; outs
   assert.equal(result.status,'incomplete');assert.equal(result.options[0].checked,0);
   await assert.rejects(()=>calendarAction(db,'outsider',{action:'calendar-conflicts',id:'meal'}),/Open the dinner/);
 });
+
+Deno.test('A dated plan without a final restaurant cannot create a calendar invitation',async()=>{
+  const tables:any={meal_plans:[{id:'undecided-place',owner:'host',details:{calendarEnabled:true,selectedTime:'2026-12-24T17:00:00Z',restaurant:''}}],meal_calendar_events:[]};
+  assert.equal(await syncDinner(memoryDB(tables),'undecided-place'),true);
+  assert.equal(tables.meal_calendar_events.length,0);
+});

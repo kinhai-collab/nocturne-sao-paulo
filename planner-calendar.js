@@ -48,14 +48,14 @@ function calendarDinnerMarkup(meal) {
   const labels={sent:'Calendar invitations sent',pending:'Calendar syncing…',retrying:'Calendar sync delayed — will retry',reconnect_host:'Host needs to reconnect their calendar',cancelled:'Calendar invitation cancelled'};
   const mine={accepted:'Accepted in your calendar',tentative:'Tentative in your calendar',declined:'Declined in your calendar',pending:'Your calendar response is syncing…',reconnect:'Reconnect your calendar to sync',accept_in_email:'Accept the invitation in your email',restore_in_email:'Outlook removed the declined invitation. To change your answer, open the original invitation in Deleted Items and respond, then refresh here.',needs_confirmation:'Confirm your attendance for this date',changed_in_calendar:'Your calendar invitation changed or was removed — review your attendance'};
   const hostConnected=connectedCalendars().length>0;
-  let text=meal.cancelled?'This dinner is cancelled.':!meal.selectedTime?'Calendar invitations wait until the date is final.':
+  let text=meal.cancelled?'This dinner is cancelled.':!finalPlan(meal)?'Calendar invitations wait until the date and restaurant are final.':
     meal.organizer&&!hostConnected?'Connect your calendar to send invitations.':labels[meal.calendarSync?.status]||'Calendar invitations are preparing.';
   if(!meal.calendarEnabled&&!meal.calendarSync?.status)text=meal.organizer?'Turn on invitations under Finalize the plan.':'Your host hasn’t enabled calendar invitations.';
-  if(!meal.cancelled&&meal.calendarSync?.status!=='cancelled'&&!meal.organizer&&meal.myCalendar?.status)text=mine[meal.myCalendar.status]||text;
+  if(finalPlan(meal)&&!meal.cancelled&&meal.calendarSync?.status!=='cancelled'&&!meal.organizer&&meal.myCalendar?.status)text=mine[meal.myCalendar.status]||text;
   return '<section class="calendar-dinner stack" data-calendar-dinner><div class="row spread"><strong>Calendar</strong><button type="button" data-action="calendar-refresh">Refresh</button></div><p role="status">'+escape(text)+'</p>'+
     '<small>Checks cover connected primary/default calendars. Reservation status is separate.</small>'+
     (!meal.cancelled&&!connectedCalendars().length?'<button type="button" data-action="calendar-settings">Connect calendar</button>':'')+
-    (meal.selectedTime&&!meal.cancelled?'<div data-calendar-time="'+escape(meal.selectedTime)+'" class="calendar-check" aria-live="polite"><small>◷ Checking calendar…</small></div>':'')+'</section>';
+    (meal.selectedTime&&!meal.cancelled&&(meal.organizer||responseReceipt===meal.id)?'<div data-calendar-time="'+escape(meal.selectedTime)+'" class="calendar-check" aria-live="polite"><small>◷ Checking calendar…</small></div>':'')+'</section>';
 }
 function paintCalendarChecks(meal,result) {
   if(!panel.open||activeMeal?.id!==meal.id)return;

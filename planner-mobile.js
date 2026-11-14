@@ -127,12 +127,13 @@ function responseForm(meal) {
   const vote = meal.myVote || {times:[],restaurants:[]};
   const timesOpen = !meal.selectedTime && meal.times.length;
   const restaurantsOpen = !meal.restaurant && meal.restaurants.length;
-  return '<form class="stack response-form '+(!meal.organizer?'guest-response':'')+'" data-form="respond">' +
-    (!meal.organizer ? '<fieldset class="rsvp-options"><legend>' + (isPolling(meal) ? 'Would you like to join?' : 'Will you be joining?') +
+  if(!finalPlan(meal)&&!timesOpen&&!restaurantsOpen)return '<p>Your host is choosing the restaurant. You’ll be able to RSVP once the date and restaurant are final.</p>';
+  return (finalPlan(meal)&&!meal.organizer?'<section class="calendar-before-rsvp" aria-label="Check before confirming"><strong>Before you confirm</strong><div data-calendar-time="'+escape(meal.selectedTime)+'" class="calendar-check" aria-live="polite"><small>Checking calendar…</small></div><small>Calendar connection is optional. You can RSVP without it.</small></section>':'') + '<form class="stack response-form '+(!meal.organizer?'guest-response':'')+'" data-form="respond">' +
+    (!meal.organizer && finalPlan(meal) ? '<fieldset class="rsvp-options"><legend>' + 'Will you be joining?' +
     '</legend>' + Object.entries(attendanceLabels).map(([value,label])=>'<label class="option"><input type="radio" name="attendance" value="' + value +
       '" ' + (vote.attendance === value ? 'checked' : '') + ' required><span>' + label + '</span></label>').join('') + '</fieldset>' : '') +
-    (isPolling(meal) ? '<p class="muted">Select all the options that work for you. Voting expresses availability; you’ll confirm attendance once the date is final.</p>' : '') +
-    (meal.myVote?.needsReconfirmation?'<p class="calendar-warning">The dinner time changed. Please confirm your attendance again.</p>':'')+
+    (!finalPlan(meal) ? '<p class="muted">Select all the options that work for you. Voting expresses availability; you’ll confirm attendance once the date is final.</p>' : '') +
+    (finalPlan(meal)&&meal.myVote?.needsReconfirmation?'<p class="calendar-warning">The plan changed. Please confirm your attendance again.</p>':'')+
     (timesOpen&&!connectedCalendars().length?'<button type="button" data-action="calendar-settings">Connect calendar to check these times</button>':'')+
     (timesOpen ? '<fieldset class="poll-options"><legend>When works? · ' + escape(destinationLabel(meal)) + '</legend>' +
       calendarPollChoices(meal,vote) + '</fieldset>' : '') +
@@ -140,13 +141,13 @@ function responseForm(meal) {
       escape(r) + '" ' + (vote.restaurants.includes(r) ? 'checked' : '') + '><span>' + escape(r) + '</span></label><a href="' +
       escape(venueMaps(r,meal)) + '" target="_blank" rel="noopener">Reviews & location ↗</a></div>').join('') +
       (!meal.organizer && !meal.suggested ? '<button type="button" data-action="suggest-restaurant">Suggest one restaurant</button>' : '') + '</fieldset>' : '') +
-    (meal.selectedTime&&!meal.organizer?'<small>Confirming Going accepts this dinner’s invitation in your connected calendar. Maybe or Can’t make it updates your calendar response too. Without a connection, accept the email invitation yourself.</small>':'')+
-    '<div class="sticky-actions"><button class="primary" type="submit">'+(meal.selectedTime&&!meal.organizer?'Confirm my response':'Save my response')+'</button></div></form>';
+    (finalPlan(meal)&&!meal.organizer?'<small>Confirming Going accepts this dinner’s invitation in your connected calendar. Maybe or Can’t make it updates your calendar response too. Without a connection, accept the email invitation yourself.</small>':'')+
+    '<div class="sticky-actions"><button class="primary" type="submit">'+(finalPlan(meal)&&!meal.organizer?'Confirm RSVP':'Save availability')+'</button></div></form>';
 }
 function receiptView(meal) {
   const vote = meal.myVote || {times:[],restaurants:[]};
-  return '<section class="response-receipt card stack" role="status"><h3>Response saved</h3>' +
-    (vote.attendance ? '<p>' + escape(attendanceLabels[vote.attendance]) + '</p>' : '') +
+  return '<section class="response-receipt card stack" role="status"><h3>'+(finalPlan(meal)?'RSVP saved':'Availability saved')+'</h3>' +
+    (finalPlan(meal)&&vote.attendance ? '<p>' + escape(attendanceLabels[vote.attendance]) + '</p>' : '') +
     (!meal.selectedTime && meal.times.length ? '<p><strong>Your times</strong><br>' + escape(vote.times.map(t=>mealDateTime(t,meal)).join(' · ') || 'None of these times work') + '</p>' : '') +
     (!meal.restaurant && meal.restaurants.length ? '<p><strong>Your restaurants</strong><br>' + escape(vote.restaurants.join(' · ') || 'None of these restaurants work') + '</p>' : '') +
     '<p>Your host can see this response. You can change it later.</p><button data-action="edit-response">Change my response</button><button data-view="dashboard">Back to home</button></section>';
@@ -154,7 +155,7 @@ function receiptView(meal) {
 
 function wizardGuests(wish) {
   return '<label>Name your plan<input name="title" maxlength="100" required value="' + escape(wish ? ('Dinner at ' + wish.name).slice(0,100) : 'Dinner with friends') + '"></label>' +
-    '<fieldset class="stack"><legend>Who would you like to invite?</legend><small>Optional. Adding names doesn’t send an invitation. You’ll share a link next.</small>' +
+    '<fieldset class="stack"><legend>Who are you planning to invite?</legend><small>Optional planning list only. No messages are sent and names are not linked to accounts. Share the invitation link after creating the plan.</small>' +
     (state.people.length ? choices(state.people,'contacts',wish?.interested || [],escape) : '') +
     '<label>More guests<input name="guests" maxlength="500" placeholder="Names separated by commas" value="'+escape(wish?.interested?.filter(p=>!state.people.includes(p)).join(', '))+'"></label><label class="option"><input type="checkbox" name="saveContacts"><span>Save these names on this device</span></label></fieldset>';
 }
@@ -174,7 +175,7 @@ function openPlan(wish, flow = 'restaurant', resume = false) {
     ? [{name:'The place',html:destination + restaurantPicker(wish?.name,true)}, {name:'The time',html:times}, {name:'The people',html:wizardGuests(wish)}]
     : [{name:'The time',html:destination + times}, ...(flow === 'date' ? [{name:'The place',html:restaurantPicker(wish?.name) + '<p class="muted">You can leave the restaurant open and choose it later.</p>'}] : []),
       {name:'The people',html:wizardGuests(wish)}];
-  steps.push({name:'Review & invite',html:'<div data-plan-summary class="stack"></div><p class="muted">This creates a plan and invitation link. Restaurant reservations are a separate step.</p><label class="option"><input type="checkbox" name="calendarEnabled" checked><span>Send calendar invitations when the date is final</span></label><small>Invitations go to signed-in guests from your connected calendar. Connect it in Settings if you haven’t already.</small>'});
+  steps.push({name:'Review & invite',html:'<div data-plan-summary class="stack"></div><p class="muted">This creates a plan and invitation link. Restaurant reservations are a separate step.</p><label class="option"><input type="checkbox" name="calendarEnabled" checked><span>Send calendar invitations when the date and restaurant are final</span></label><small>Invitations go to signed-in guests from your connected calendar. Connect it in Settings if you haven’t already.</small>'});
   show('Plan an evening', '<form class="stack wizard" data-form="new" data-flow="' + flow + '" novalidate><p class="eyebrow" data-step-progress></p>' +
     steps.map((step,i)=>'<section class="stack wizard-step" data-step="' + i + '" data-step-name="' + step.name + '"><h3>' + step.name + '</h3>' + step.html + '</section>').join('') +
     '<div class="sticky-actions"><button type="button" data-action="plan-back">Back</button><button type="button" class="primary" data-action="plan-next">Continue</button><button type="submit" class="primary" data-create-plan hidden>Create invitation</button></div></form>');
@@ -206,7 +207,7 @@ function renderWizard() {
     const data=new FormData(form), zone=data.get('timeZone');
     const dates=Array.from(form.querySelectorAll('[name=time]')).filter(i=>i.value).map(i=>EnkaiTime.format(readDestinationTime(i,zone),zone));
     form.querySelector('[data-plan-summary]').innerHTML='<h3>'+escape(data.get('title'))+'</h3><p>'+escape(data.get('location'))+'</p><p>'+escape(data.get('restaurants') || 'Choose the restaurant together later')+
-      '</p><p>'+escape(dates.join(' · '))+'</p><small>'+escape(zoneName(zone))+' time · '+durationLabel(Number(data.get('duration')))+'</small><p>Invite: '+escape([...data.getAll('contacts'),data.get('guests')].filter(Boolean).join(', ') || 'Share your link with anyone you’d like to invite')+'</p>';
+      '</p><p>'+escape(dates.join(' · '))+'</p><small>'+escape(zoneName(zone))+' time · '+durationLabel(Number(data.get('duration')))+'</small><p>Planned guests: '+escape([...data.getAll('contacts'),data.get('guests')].filter(Boolean).join(', ') || 'Share your link with anyone you’d like to invite')+'</p>';
   }
   panel.scrollTop=0;
   persistOpenDraft();

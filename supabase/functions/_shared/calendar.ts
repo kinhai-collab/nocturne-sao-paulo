@@ -201,7 +201,7 @@ export async function syncDinner(db:DB,id:string,deadline=Date.now()+90000) {
   const d=plan.details;
   let record=await checked(db.from('meal_calendar_events').select('*').eq('meal_id',id).maybeSingle());
   if(!d.calendarEnabled&&!record)return true;
-  if(!d.selectedTime&&!record?.event_id)return true;
+  if((!d.selectedTime||!d.restaurant)&&!record?.event_id)return true;
   const ownerConnections=await checked(db.from('meal_calendar_connections').select('*').eq('account',plan.owner));
   const profile=await checked(db.from('meal_calendar_profiles').select('*').eq('account',plan.owner).maybeSingle());
   const owner=record?ownerConnections.find((c:any)=>c.provider===record.provider&&c.email===record.email):
@@ -213,7 +213,7 @@ export async function syncDinner(db:DB,id:string,deadline=Date.now()+90000) {
   }
   if(!record)record=await checked(db.from('meal_calendar_events').insert({meal_id:id,account:plan.owner,provider:owner.provider,email:owner.email}).select().single());
   const token=await accessToken(db,owner);
-  if(d.cancelled||!d.calendarEnabled||!d.selectedTime) {
+  if(d.cancelled||!d.calendarEnabled||!d.selectedTime||!d.restaurant) {
     if(record.event_id&&record.status!=='cancelled') {
       try {await providerFetch(token,(owner.provider==='google'?gBase:mBase)+'/'+encodeURIComponent(record.event_id)+(owner.provider==='google'?'?sendUpdates=all':''),'DELETE');}
       catch(e) {if(!(e instanceof ProviderError&&[404,410].includes(e.status)))throw e;}

@@ -238,3 +238,5 @@ summary{cursor:pointer;min-height:44px;align-content:center;color:var(--accent)}
   #panel:has(.guest-response){scroll-padding-bottom:100px;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
   #panel:has(.guest-response) button,#panel:has(.guest-response) summary{scroll-margin-block:90px}
 }
+
+.calendar-before-rsvp{padding:16px;border:1px solid var(--line);border-radius:16px;display:grid;gap:10px}.calendar-before-rsvp small{display:block}.share-card p{margin:0}

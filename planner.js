@@ -322,25 +322,27 @@ function show(title, body) {
 }
 function statusPill(text) { return `<span class="pill">${escape(text)}</span>`; }
 
+const finalPlan = meal => Boolean(meal.selectedTime && meal.restaurant);
+const availabilitySaved = vote => Boolean(vote && (Array.isArray(vote.times) || Array.isArray(vote.restaurants)));
 const attendanceLabels = { going: 'Going', maybe: 'Maybe', declined: 'Can’t make it' };
 function attendingGuests(meal) {
-  const responses = meal.attendanceResponses || [];
+  const responses = finalPlan(meal) ? meal.attendanceResponses || [] : [];
   return [
     ...responses.filter(response => response.attendance === 'going').map(response => response.name),
-    ...meal.attending.filter(name => !responses.some(response => response.name === name)),
+    ...(finalPlan(meal)?meal.attending:[]).filter(name => !responses.some(response => response.name === name)),
   ];
 }
 
 function card(meal) {
-  const responses = meal.organizer ? meal.responses.filter(item => item.vote.times.length || item.vote.restaurants.length).length : Number(Boolean(meal.myVote));
+  const responses = meal.organizer ? Math.max(0,meal.responses.length-Number(Boolean(meal.myVote))) : Number(Boolean(meal.myVote));
   const attendance = attendingGuests(meal).length;
   const picture = venueImage(meal.restaurant, meal.location);
   return `<article class="card stack dinner-card">${picture}<div class="row spread"><h3>${escape(meal.title)}</h3>${statusPill(status(meal))}</div>
     <div class="muted">${meal.selectedTime ? escape(mealDateTime(meal.selectedTime, meal)) + ' · ' + durationLabel(meal.duration) : meal.times.length + ' time options · ' + meal.restaurants.length + ' restaurant options'}</div>
     ${!meal.timeZone ? '<small>Destination time zone needs organizer confirmation</small>' : ''}
     <div>${escape(meal.restaurant || (meal.restaurants.length ? meal.restaurants.join(' · ') : 'Restaurant to be decided'))}</div><small>${escape(meal.location)} · ${escape(destinationLabel(meal))}</small>
-    <small>${meal.organizer ? attendance+' going · '+(meal.attendanceResponses||[]).filter(r=>r.attendance==='maybe').length+' maybe · '+Math.max(0,(meal.joinedCount||0)-(meal.attendanceResponses||[]).length)+' joined guests yet to RSVP' : 'Your response: '+escape(attendanceLabels[meal.myVote?.attendance] || 'Not sent yet')}</small>
-    <div class="row"><button data-action="meal" data-id="${meal.id}">${!meal.organizer ? (isPolling(meal) ? 'RSVP & vote' : 'RSVP & details') : isPolling(meal) ? 'Open poll' : !meal.restaurant ? 'Choose restaurants' : 'Meal details'}</button></div></article>`;
+    <small>${meal.organizer ? (finalPlan(meal)?attendance+' going · '+(meal.attendanceResponses||[]).filter(r=>r.attendance==='maybe').length+' maybe':responses+' availability responses')+' · '+(meal.joinedCount||0)+' joined via link' : finalPlan(meal)?'Your RSVP: '+escape(meal.myVote?.needsReconfirmation?'Please reconfirm':attendanceLabels[meal.myVote?.attendance]||'Not sent yet'):'Availability: '+(availabilitySaved(meal.myVote)?'Saved':'Not sent yet')}</small>
+    <div class="row"><button data-action="meal" data-id="${meal.id}">${!meal.organizer ? (!finalPlan(meal) ? 'Vote on options' : 'RSVP & details') : isPolling(meal) ? 'Open poll' : !meal.restaurant ? 'Choose restaurants' : 'Meal details'}</button></div></article>`;
 }
 function dashboard() {
   if (!credential) return '';
@@ -650,13 +652,13 @@ function mealDetails(meal) {
       <p>${statusPill(status(meal))}</p>
       ${meal.restaurant?`<a href="${venueMaps(meal.restaurant,meal)}" target="_blank" rel="noopener">Restaurant reviews & directions ↗</a>`:''}
     </div>
-    ${meal.organizer?`<section class="share-card stack"><h3>Invite your people</h3><div class="row"><button class="primary" data-action="share">Share invitation</button><button data-action="copy-invite">Copy link</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(meal.title+' · '+inviteUrl(meal))}" target="_blank" rel="noopener">WhatsApp</a></div><small>Guest names alone don’t send invitations. Share this link to invite them.</small></section>`:''}
-    ${responseReceipt===meal.id?receiptView(meal):(!meal.organizer||isPolling(meal)?responseForm(meal):'')}
+    ${meal.organizer?`<section class="share-card stack"><h3>Share your invitation</h3><p>Share this link to invite your guests. Adding names doesn’t send messages.</p><div class="row"><button class="primary" data-action="share">Share invitation</button><button data-action="copy-invite">Copy link</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(meal.title+' · '+inviteUrl(meal))}" target="_blank" rel="noopener">WhatsApp</a></div><p><strong>Planned guests:</strong> ${escape(meal.guests.join(', ')||'No names added')}<br><small>Names are a planning list, not delivery confirmations.</small></p><p>${meal.joinedCount||0} joined via link · ${Math.max(0,meal.responses.length-Number(Boolean(meal.myVote)))} saved responses</p><small>Enkai cannot tell who received a shared link. Joined and response counts update when guests use it.</small></section>`:''}
+    ${responseReceipt===meal.id&&!meal.myVote?.needsReconfirmation?receiptView(meal):(!meal.organizer||isPolling(meal)?responseForm(meal):'')}
     ${calendarDinnerMarkup(meal)}
     ${meal.selectedTime && meal.restaurant && meal.timeZone&&!meal.calendarEnabled&&!meal.cancelled?'<button type="button" data-action="calendar">Download calendar file</button><small>Manual fallback. This file does not sync updates.</small>':''}
-    <details class="guest-details"><summary>People & responses · ${attendingGuests(meal).length} going</summary>
-      <div class="stack"><p>Invited names: ${escape(meal.guests.join(', ')||'Invite by sharing the link')}</p>
-      ${responses.map(r=>`<p><strong>${escape(r.name)}</strong> · ${attendanceLabels[r.attendance]}</p>`).join('')||'<p>No RSVPs yet.</p>'}
+    <details class="guest-details"><summary>People & responses · ${finalPlan(meal)?attendingGuests(meal).length+' going':(meal.joinedCount||0)+' joined'}</summary>
+      <div class="stack"><p>Planned guests (not invitation delivery): ${escape(meal.guests.join(', ')||'Invite by sharing the link')}</p>
+      ${(finalPlan(meal)?responses:[]).map(r=>`<p><strong>${escape(r.name)}</strong> · ${attendanceLabels[r.attendance]}</p>`).join('')||(finalPlan(meal)?'<p>No RSVPs yet.</p>':'<p>RSVP opens once the date and restaurant are final.</p>')}
       ${meal.organizer?meal.responses.map(({name,vote})=>`<p><strong>${escape(name)}</strong><br><small>${escape(vote.times.map(t=>mealDateTime(t,meal)).join(' · ')||'No time choices')}<br>${escape(vote.restaurants.join(' · ')||'No restaurant choices')}</small></p>`).join(''):''}</div>
     </details>
     ${meal.organizer&&!meal.cancelled?`<details class="organizer-details" ${meal.selectedTime&&!meal.restaurant&&!meal.restaurants.length?'open':''}><summary>Finalize the plan & reservation</summary>
@@ -881,8 +883,8 @@ panel.addEventListener('submit',event=>{
     case 'respond': {
       persistOpenDraft();
       syncMeal('respond', {id:activeMeal.id, version:activeMeal.version,
-        calendarAccept:Boolean(activeMeal.selectedTime&&!activeMeal.organizer),
-        ...(!activeMeal.organizer?{attendance:value('attendance')}:{}),
+        calendarAccept:Boolean(finalPlan(activeMeal)&&!activeMeal.organizer),
+        ...(!activeMeal.organizer&&finalPlan(activeMeal)?{attendance:value('attendance')}:{}),
         vote:{times:activeMeal.selectedTime?(activeMeal.myVote?.times||[]):data.getAll('times'),
           restaurants:activeMeal.restaurant?(activeMeal.myVote?.restaurants||[]):data.getAll('restaurants')}});
       return;
@@ -947,7 +949,7 @@ async function syncMeal(action, payload, newContacts = []) {
     }
     await refresh();
     if (panel.open) mealDetails(state.meals.find(meal => meal.id === id));
-    message(action === 'respond' ? 'Your complete response is saved.' : action === 'rsvp' ? 'Your RSVP is saved. The organizer can see your response.' : action === 'vote' ? 'Your votes are saved for the organizer.' : 'Meal saved.');
+    message(action === 'respond' ? (finalPlan(activeMeal||{})?'Your RSVP is saved.':'Your availability is saved. RSVP comes after the plan is final.') : action === 'rsvp' ? 'Your RSVP is saved. The organizer can see your response.' : action === 'vote' ? 'Your votes are saved for the organizer.' : 'Meal saved.');
   } catch (error) {
     if(savedId && credential) show('Saved — reconnect to continue','<p>Your changes were saved, but the updated dinner could not be loaded.</p><button class="primary" data-action="reload-dinner" data-id="'+escape(savedId)+'">Open the saved dinner</button>');
     message(error.message);
