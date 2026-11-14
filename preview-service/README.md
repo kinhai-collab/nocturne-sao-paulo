@@ -10,6 +10,14 @@ generic fallback. Google Places currently returns no photos in the tested live
 responses. Billing was left unchanged as requested. The live restaurant website
 fallback was verified against Richmond Station and is credited distinctly.
 
+Food-photo preference: website reads include the bounded page body, not just
+Open Graph tags. The selector ranks food and restaurant-room photos, uses full
+lazy/responsive images, and filters labelled logos, icons, tiny images and menu
+graphics. Gusto 101 now uses its official spread of dishes rather than the logo
+in its Open Graph tags. Photo classification uses source labels/context, not an
+image-recognition guarantee. New live sharing URLs include `image=food1` so a
+newly copied link differs from older WhatsApp cards that cached a logo.
+
 Hosting project: `kinhai-collabs-projects/enkai-invites`, using the existing
 Vercel Hobby account. Root directory is `preview-service`; outside-root files
 are excluded. Google billing settings remain unchanged.

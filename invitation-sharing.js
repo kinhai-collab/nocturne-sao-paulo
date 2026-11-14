@@ -34,6 +34,7 @@ window.EnkaiInvites = (() => {
     destination.searchParams.set('code',code);
     if (['supper-club','after-hours'].includes(theme)) destination.searchParams.set('theme',theme);
     if(preview && Number.isSafeInteger(meal.version) && meal.version>0)destination.searchParams.set('v',String(meal.version));
+    if(preview)destination.searchParams.set('image','food1');
     return destination.href;
   }
   return Object.freeze({title,text,url,message:(meal,url)=>text(meal)+'\n'+url});

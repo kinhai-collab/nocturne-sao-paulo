@@ -416,3 +416,20 @@ access tests. Mobile-size UI checks used actual Gusto 101 website image response
 with simulated sign-in/RSVP: both themes saved responses, including forced photo
 failure. No calendar invitation was sent by these tests. Physical phones and the
 actual WhatsApp app preview renderer remain untested.
+
+## Food and restaurant photography preference
+
+Website photo selection now reads the bounded HTML body and scores food images
+ahead of restaurant interiors/exteriors and neutral hero photography. It skips
+labelled branding, navigation/footer images, tiny trackers, loading placeholders
+and menu graphics. Lazy-load and responsive sources use the real photo instead
+of a blurred placeholder. Google photos prefer usable landscape dimensions over
+tiny logo-sized assets. Existing guide photography remains unchanged.
+Gusto's old social image explicitly says "Gusto 101 logo"; its actual hero photo
+is an overhead spread of dishes and was visually checked in both themes.
+The same backend selection serves invitation pages and crawler metadata. Newly
+generated live links add `image=food1` to distinguish them from previously cached
+chat previews. Previously sent messages can retain WhatsApp's cached preview.
+No billing/quota changes, AI image classification, image mirroring, or permanent
+photo storage were introduced. Source labels are heuristics, not a guarantee
+that every unlabelled image contains no branding.

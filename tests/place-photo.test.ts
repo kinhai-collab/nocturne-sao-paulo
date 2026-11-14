@@ -46,3 +46,11 @@ Deno.test('Provider errors fail closed without redirecting to arbitrary hosts',a
   await assert.rejects(()=>freshPlacePhoto('ChIJ_test','key',fail));
   await assert.rejects(()=>freshPlacePhoto('../etc','key',fail));
 });
+Deno.test('Prefer a usable landscape Google photo over a tiny logo-sized image',async()=>{
+  let media='';
+  const request=(async(url:any)=>{
+    if(String(url).includes('/media')){media=String(url);return Response.json({photoUri:'https://lh3.googleusercontent.com/dining-room'});}
+    return Response.json({photos:[{name:'places/test/photos/small',widthPx:100,heightPx:100},{name:'places/test/photos/landscape',widthPx:1600,heightPx:900}]});
+  }) as typeof fetch;
+  await freshPlacePhoto('test','key',request);assert.match(media,/photos\/landscape/);
+});

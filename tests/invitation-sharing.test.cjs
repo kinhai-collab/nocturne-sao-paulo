@@ -36,6 +36,7 @@ test('Live-search restaurants use a verified configured service, with safe stati
     const shared=new URL(sharing.url(live,{base:'https://example.com/planner.html',theme,previewBase:'https://preview.example/i'}));
     assert.equal(shared.hostname,'preview.example');assert.equal(shared.pathname,'/i');assert.equal(shared.searchParams.get('theme'),theme);
     assert.equal(shared.searchParams.get('v'),'3');
+    assert.equal(shared.searchParams.get('image'),'food1');
   }
   assert.equal(new URL(sharing.url(live,{base:'https://example.com/planner.html',previewBase:'javascript:alert(1)'})).pathname,'/i.html');
   assert.equal(new URL(sharing.url({...live,restaurant:''},{base:'https://example.com/planner.html',previewBase:'https://preview.example/i'})).pathname,'/i.html');

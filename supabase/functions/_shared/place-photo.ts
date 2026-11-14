@@ -22,7 +22,13 @@ export async function freshPlacePhoto(placeId: string, key: string, request: typ
   });
   if (!details.ok) throw Error('Photo unavailable.');
   const place = await details.json();
-  const photo = place.photos?.[0];
+  const photo = (Array.isArray(place.photos)?place.photos:[])
+    .filter((p:any)=>!(p.widthPx>0&&p.widthPx<400)&&!(p.heightPx>0&&p.heightPx<240)&&
+      !(p.widthPx&&p.heightPx&&(p.widthPx/p.heightPx>3.5||p.widthPx/p.heightPx<0.4)))
+    .sort((a:any,b:any)=>{
+      const score=(p:any)=>p.widthPx&&p.heightPx?(p.widthPx/p.heightPx>=1.2&&p.widthPx/p.heightPx<=2.3?2:1):0;
+      return score(b)-score(a);
+    })[0];
   if (!photo) {
     if(typeof place.websiteUri==='string')try{return await website(place.websiteUri);}catch{}
     return {photo:null};

@@ -17,7 +17,23 @@ Deno.test('Official image is credited to the restaurant; unsafe image destinatio
   const read=()=>Promise.resolve({html:'<meta property="og:image" content="/food.jpg">',url:'https://restaurant.example/'});
   const result=await officialWebsitePhoto('https://restaurant.example/',read,value=>publicUrl(value,()=>Promise.resolve(['8.8.8.8'])));
   assert.equal(result.photo?.kind,'website');assert.equal(result.photo?.source,'https://restaurant.example/');
-  await assert.rejects(()=>officialWebsitePhoto('https://restaurant.example/',read,()=>Promise.reject(Error('Private address'))));
+  assert.deepEqual(await officialWebsitePhoto('https://restaurant.example/',read,()=>Promise.reject(Error('Private address'))),{photo:null});
+});
+Deno.test('Prefer food, then restaurant interiors, and reject branded metadata even with opaque URLs',()=>{
+  const html='<meta property="og:image" content="https://cdn.example/opaque-brand"><meta property="og:image:alt" content="Gusto 101 logo"><header><img src="/header.jpg" alt="Logo"></header><main><div class="hero"><img src="/room.jpg" alt="Dining room"></div><img src="/dishes.jpg" alt="Fresh pasta and seafood"></main>';
+  assert.equal(websiteImage(html,'https://restaurant.example/'),'https://restaurant.example/dishes.jpg');
+  assert.equal(websiteImage(html.replace('<img src="/dishes.jpg" alt="Fresh pasta and seafood">',''),'https://restaurant.example/'),'https://restaurant.example/room.jpg');
+  assert.equal(websiteImage('<meta property="og:image" content="https://cdn.example/123"><meta property="og:image:alt" content="Restaurant logo">','https://restaurant.example/'),null);
+});
+Deno.test('Use full lazy-loaded photos, skip trackers/menu graphics, and parse responsive URLs with commas',()=>{
+  const html='<img width="1" height="1" src="/tracker.jpg"><img src="/menu.jpg" alt="Lunch Menu"><main><div class="hero"><img src="/blur.jpg?width=32" data-src="/restaurant.jpg"></div></main>';
+  assert.equal(websiteImage(html,'https://restaurant.example/'),'https://restaurant.example/restaurant.jpg');
+  assert.equal(websiteImage('<img alt="Pasta dish" data-srcset="https://cdn.example/photo/fit=contain,width=375 375w, https://cdn.example/photo/fit=contain,width=800 800w, https://cdn.example/photo/fit=contain,width=1440 1440w">','https://restaurant.example/'),'https://cdn.example/photo/fit=contain,width=800');
+});
+Deno.test('An unsafe preferred candidate does not prevent using a safe restaurant photo',async()=>{
+  const read=()=>Promise.resolve({html:'<img alt="Pasta" src="https://private.example/food.jpg"><img alt="Dining room" src="https://public.example/room.jpg">',url:'https://restaurant.example/'});
+  const result=await officialWebsitePhoto('https://restaurant.example/',read,(url)=>url.includes('private.')?Promise.reject(Error('Private address')):Promise.resolve({url:new URL(url),address:'8.8.8.8'}));
+  assert.equal(result.photo?.url,'https://public.example/room.jpg');
 });
 Deno.test('When Google has no photo, look up the website fresh; failure is a valid empty photo',async()=>{
   const provider=(()=>Promise.resolve(Response.json({websiteUri:'https://restaurant.example/'}))) as typeof fetch;
