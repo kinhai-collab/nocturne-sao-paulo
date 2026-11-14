@@ -177,3 +177,132 @@ delivery, or physical iPhone Safari / Samsung Internet compatibility.
   tests. It is not yet a connection on the user's ordinary Enkai login. Remove
   the isolated connection and records after testing, before public rollout, so
   that the real account can connect without a mailbox-uniqueness conflict.
+
+
+## Google verification preparation — November 13, 2026
+
+Branding draft saved as Enkai. Automated branding review reports that the
+homepage is not registered to the project owner. Google instructs verifying
+ownership and waiting 24 hours before retrying the branding check.
+Search Console URL-prefix property prepared for the existing GitHub Pages
+homepage under kinminghai@gmail.com. Ownership confirmation is pending; no
+ownership verification has been claimed successful and no data-access review
+has been submitted.
+
+### Calendar scope justification for submission
+
+Enkai helps invited groups choose a dinner time and coordinate attendance.
+The optional Google Calendar connection requests openid and email to identify
+and address the connected account, plus
+https://www.googleapis.com/auth/calendar.events.
+It reads event titles and start/end times from the connected primary calendar
+to show private conflict warnings beside proposed dinner times. It creates,
+updates and cancels dinner events when the organizer enables invitations, and
+updates the guest attendee response only after explicit confirmation for the
+finalized date, duration and destination time zone. A poll vote is not consent
+to accept an invitation. Read-only access cannot create invitations or update
+attendee responses; app-created-event-only access cannot read pre-existing
+conflicts or respond to organizer invitations on a guest calendar. The app does
+not request full calendar configuration, contacts, Gmail, or Drive access.
+Conflict details are fetched on demand and not stored in the database.
+Refresh credentials are encrypted server-side. Disconnect removes the stored
+credential; existing provider events remain. The existing privacy page describes
+storage, invitation email sharing, conflict privacy and disconnection.
+
+### Required real demonstration recording
+
+Use only dedicated demo dinner details and consenting test participants.
+Record in English, with the consent URL/client ID visible but no secrets or
+private calendar details. Show:
+1. Public Enkai homepage, privacy link and Google/Outlook sign-in choices.
+2. Google sign-in, then Settings > Connect Google Calendar and the real consent
+   process. The consent brand must say Enkai after branding is approved/published.
+3. A proposed dinner time overlapping a harmless demo calendar event; open its
+   conflict warning and show that another guest cannot see those details.
+4. Organizer enables invitations for a finalized dinner; show the created Google
+   Calendar event with destination time, location and invited demo participant.
+5. Guest explicitly confirms attendance and calendar response; show the actual
+   accepted invitation in their calendar. Do not label simulations as live proof.
+6. Reschedule and explicit reconfirmation, cancellation, and Disconnect in Settings.
+Upload the real recording as an unlisted YouTube video and supply its link in
+Google's verification form. No recording or upload has been completed yet.
+
+Before submitting, ensure the planner homepage has a visible privacy-policy link,
+the consent homepage describes the meal-planning/calendar feature, all requested
+scopes are declared, and the privacy page has a direct support/deletion contact.
+Google, not Enkai, makes the final verification decision.
+
+
+## November 13 follow-up
+
+Google Search Console confirmed “Ownership auto verified” using the HTML file
+for https://kinhai-collab.github.io/nocturne-sao-paulo/ under kinminghai@gmail.com.
+Both the existing uploaded HTML proof and the added homepage meta tag are retained.
+The branding checker requires waiting 24 hours after ownership verification before
+retrying. Calendar scope justification and real-demo storyboard are prepared above;
+no final data-access submission or approval has occurred. The public privacy page
+now includes a direct support/deletion contact, Google Limited Use disclosure, and
+links from the meal planner and restaurant homepage. A fresh Google connection
+again encountered the unverified-app warning, which requires the user to complete
+it; no warning was bypassed and no demonstration video was fabricated.
+
+Outlook retest: a fresh Enkai OAuth connection succeeded, and the actual API
+returned checked conflicts. The isolated November 13 Outlook-host dinner was
+created, read back as a conflict in a second poll, renamed/rescheduled without a
+duplicate, and cancelled; all live checks passed. Microsoft Graph Explorer's
+separate automatic sign-in stalled, but Enkai's own consumers sign-in worked.
+Both themes' Outlook connection controls are being restored based on those actual
+checks. Real cross-provider invitation acceptance remains unverified because the
+fresh Google test authorization stopped at the warning. Unit/provider simulations
+still pass (10 tests); do not describe those as live guest acceptance evidence.
+The isolated test Outlook connection is removed after cancellation to allow the
+owner's ordinary Enkai account to connect without a mailbox uniqueness conflict.
+
+### UI diagnosis — observed in phone-size browser review
+
+Local fixtures exercise the real UI with simulated sign-in, search and responses;
+these are UX checks, not physical iPhone/Samsung or real OAuth/booking tests.
+Supper Club restaurant-first planning was reviewed at 390 x 844. After Hours
+invitation preview, first-time sign-in, polling, saved response, dashboard and
+final RSVP were reviewed at 360 x 800; date-first and undecided entry were also
+inspected at 390 x 844. No horizontal overflow was observed on the checked guest
+confirmation screen. Fixture restaurant text has encoding artifacts that must not
+be reported as defects in live restaurant records.
+
+Priority 1: A guest voting while the date is undecided must select Going/Maybe/
+Can't make it before saving dates/restaurants. Saving dates without an attendance
+choice is blocked by native validation. The saved poll and dashboard then say
+Going despite no final date. Recommend Save availability at poll stage and an
+explicit RSVP only for the finalized plan, with stage-specific dashboard labels.
+
+Priority 1: Selecting names in The people step does not send invitations or create
+account-bound contacts. The review says Invite: Maya, although only a shared link
+is generated. Explanatory text exists but conflicts with that promise. Recommend
+Planned guests: Maya, then a dedicated Share invitation confirmation with clear
+Not invited / Joined / Responded states and one primary Share action.
+
+Priority 2: Restaurant-first results say Add to poll and immediately return to the
+planning form after one selection. The user cannot predict that transition.
+Recommend Choose this restaurant for that flow, retaining Add to poll and Added
+for multi-choice flows, with a visible choice count and Done (N selected).
+
+Priority 2: Calendar conflicts for finalized dinners appear below the RSVP form
+and confirmation button. Move a compact conflict warning above the attendance
+choice so users can consider it before confirming. Keep private details collapsed.
+
+Priority 2: Finalize the plan & reservation hides three different jobs in one
+collapsed section: choose poll winner, record reservation, send calendar event.
+Recommend an organizer next-action card, separate Reservation needed / Booked /
+In-person only from Date confirmed and Calendar synced, with a poll summary
+showing who has responded and an obvious Choose final date action.
+
+Priority 2: The undecided path opens a large destination-zone selection before a
+city is entered; dates are disabled until destination is established. Known city
+entry successfully collapses it to Toronto time. Ask city first and show detected
+time zone as a short confirmation with Change; show advanced zones on demand.
+
+Priority 3: Multiple Refresh actions (calendar section and responses/calendar)
+compete on the detail view. Prefer one refresh control plus last-updated status.
+Keep RSVP/calendar connection independent: guests should never need calendar
+permission to save their response. New-user copy and destination/current time
+explanation worked in the inspected UI and should be retained.

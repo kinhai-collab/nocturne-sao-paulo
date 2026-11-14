@@ -45,12 +45,11 @@ export async function calendarStatus(db:DB,actor:string) {
   const rows=await checked(db.from('meal_calendar_connections').select('provider,email,status').eq('account',actor));
   const profile=await checked(db.from('meal_calendar_profiles').select('preferred_provider,email').eq('account',actor).maybeSingle());
   return {connections:rows,preferredProvider:profile?.preferred_provider||rows[0]?.provider||null,
-    email:profile?.email||null,available:Object.fromEntries((['google','microsoft'] as Provider[]).map(p=>[p,p!=='microsoft'&&Boolean(config(p).client&&config(p).secret&&Deno.env.get('CALENDAR_ENCRYPTION_KEY'))]))};
+    email:profile?.email||null,available:Object.fromEntries((['google','microsoft'] as Provider[]).map(p=>[p,Boolean(config(p).client&&config(p).secret&&Deno.env.get('CALENDAR_ENCRYPTION_KEY'))]))};
 }
 export async function startConnection(db:DB,actor:string,input:any) {
   const provider=input.provider as Provider;
   if(!['google','microsoft'].includes(provider))throw Error('Choose Google or Outlook.');
-  if(provider==='microsoft')throw Error('Outlook calendar sync is temporarily unavailable. Outlook sign-in still works.');
   const c=config(provider);
   if(!c.client||!c.secret)throw Error('This calendar connection is not configured yet.');
   const state=random(),verifier=random(),nonce=random();

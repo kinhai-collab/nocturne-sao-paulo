@@ -18,7 +18,6 @@ function calendarSettingsMarkup() {
   return '<section class="card stack calendar-settings"><h2>Your calendars</h2><p>Check your Google primary calendar and Outlook default calendar for conflicts. Confirmed dinners can send and accept calendar invitations.</p>'+
     '<small>Only you see your conflict details. Connecting is optional; you can still vote and RSVP without it.</small>'+
     ['google','microsoft'].map(p=>{
-      if(p==='microsoft')return '<div class="calendar-provider stack"><strong>Outlook</strong><small>Calendar sync temporarily unavailable. Outlook sign-in still works. You can connect Google Calendar or accept invitations by email.</small><button disabled>Temporarily unavailable</button></div>';
       const c=calendarAccount?.connections?.find(c=>c.provider===p),primary=calendarAccount?.preferredProvider===p;
       return '<div class="calendar-provider stack"><strong>'+calendarNames[p]+'</strong>'+(c?'<small>'+escape(c.email)+' · '+(c.status==='connected'?'Connected':'Reconnect needed')+'</small>':'')+
         '<div class="row">'+(!c||c.status!=='connected'?'<button data-action="calendar-connect" data-provider="'+p+'">'+(c?'Reconnect ':'Connect ')+calendarNames[p]+'</button>':'<button data-action="calendar-prefer" data-provider="'+p+'" '+(primary?'disabled':'')+'>'+(primary?'Used for invitations':'Use for invitations')+'</button>')+
@@ -30,7 +29,6 @@ function showCalendarSettings() {
   show('Connect your calendar','<div class="stack">'+calendarSettingsMarkup()+(activeMeal?'<button data-action="calendar-back">Back to dinner</button>':'')+'</div>');
 }
 async function connectCalendar(providerName) {
-  if(providerName==='microsoft'){message('Outlook calendar sync is temporarily unavailable. Outlook sign-in still works.');return;}
   persistOpenDraft();
   const button=panel.querySelector('[data-action="calendar-connect"][data-provider="'+providerName+'"]');
   if(button)button.disabled=true;
