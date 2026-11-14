@@ -186,6 +186,7 @@ summary{cursor:pointer;min-height:44px;align-content:center;color:var(--accent)}
 .live-dinner-photo{margin:.5rem 0;overflow:hidden;border-radius:1rem}
 .live-dinner-photo figure{margin:0}
 .live-dinner-photo img{display:block;width:100%;height:200px;object-fit:cover}
+.live-dinner-photo[data-source=website] img{object-fit:contain;background:var(--bg)}
 .live-dinner-photo figcaption{display:flex;flex-wrap:wrap;gap:.3rem .7rem;padding:.6rem;background:var(--bg);font-size:.75rem;line-height:1.5}
 .live-dinner-photo .google-maps-credit{font:400 13px sans-serif;letter-spacing:normal;white-space:nowrap;color:#1f1f1f}
 [data-planner-theme=after-hours] .live-dinner-photo .google-maps-credit{color:white}

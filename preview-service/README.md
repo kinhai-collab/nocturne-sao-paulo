@@ -10,6 +10,10 @@ generic fallback. Google Places currently returns no photos in the tested live
 responses. Billing was left unchanged as requested. The live restaurant website
 fallback was verified against Richmond Station and is credited distinctly.
 
+Hosting project: `kinhai-collabs-projects/enkai-invites`, using the existing
+Vercel Hobby account. Root directory is `preview-service`; outside-root files
+are excluded. Google billing settings remain unchanged.
+
 Deploy this directory as the project root on an existing Vercel account, with no
 framework/build command. Then set `POLL_CONFIG.invitePreviewBase` in the main app
 to `https://<verified-host>/i`. Test both themes with a disposable live-search
@@ -25,4 +29,4 @@ The app displays Google Maps/author credits and direct source links when supplie
 Chat previews are thumbnails; opening the invitation shows the attributed photo.
 WhatsApp controls its own preview rendering/caching and can disable previews.
 The original 900-search/month cap and existing 900-photo/month cap remain separate.
-Photo resolutions also have a per-dinner limit of 5/minute and 30/day.
+Photo resolutions also have a per-dinner limit of 30/minute and 150/day.

@@ -2,12 +2,15 @@
 do $$
 declare plan uuid; n integer;
 begin
+  insert into public.meal_photo_monthly_usage(month_start,requests)
+    values(date_trunc('month',now() at time zone 'UTC')::date,1)
+    on conflict(month_start) do update set requests=1;
   insert into public.meal_plans(owner,details) values('photo-limit-test','{}') returning id into plan;
-  for n in 1..5 loop
-    if not public.meal_reserve_invitation_photo(plan) then raise exception 'Expected first five requests'; end if;
+  for n in 1..30 loop
+    if not public.meal_reserve_invitation_photo(plan) then raise exception 'Expected first thirty requests'; end if;
   end loop;
-  if public.meal_reserve_invitation_photo(plan) then raise exception 'Sixth request must be blocked'; end if;
-  for n in 6..30 loop
+  if public.meal_reserve_invitation_photo(plan) then raise exception 'Thirty-first request must be blocked'; end if;
+  for n in 31..150 loop
     update public.meal_invitation_photo_usage set minute_start=now()-interval '2 minutes' where meal_id=plan;
     if not public.meal_reserve_invitation_photo(plan) then raise exception 'New minute should be allowed until daily limit'; end if;
   end loop;

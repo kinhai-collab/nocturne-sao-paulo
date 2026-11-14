@@ -372,3 +372,37 @@ verified here and depends on client settings/caching; metadata/assets are checke
 separately after publication. Photos for arbitrary live-search restaurants still
 require a future photo/preview publishing path; they currently get the honest
 representative Enkai image fallback.
+
+## Live-search invitation images
+
+The selected Google Place ID now resolves a fresh photo when an anonymous guest
+opens an invitation and when a signed-in organizer/member opens dinner details.
+No photo references, image URLs, bytes, website HTML, or provider key are stored
+in dinner records, browser storage or the static repository. Google-hosted photos
+are requested at 800px and carry Google Maps/author/source credits. When Google
+returns no photos, the resolver tries the restaurant website's published Open
+Graph/Twitter image. This may be a logo. Website images have their own source
+credit and are contained rather than cropped. Missing/blocked images leave Maps
+links and never block sign-in, voting or RSVP. Restaurant polls do not favor a
+candidate image before the organizer selects a restaurant.
+
+Public photo actions require an existing unguessable invitation. Signed-in photo
+actions check organizer/member access. Website lookups use bounded HTTPS reads,
+public IPv4 checks per redirect, pinned connections with hostname-verified TLS,
+no cookies or keys, and a strict timeout/body limit. The existing global monthly
+900-search and 900-photo limits remain separate. Per-dinner photo limits are
+30/minute and 150/day so a group can open its invitations together.
+
+Google's live responses omitted photos for the tested restaurants. Google
+Console requested billing association; the user explicitly chose to leave
+billing unchanged. Do not claim this proves billing is the cause. The restaurant
+website fallback was verified live for Richmond Station and Gusto 101; Gusto 101
+is outside the curated guide and publishes its logo as its preview image.
+Pizzeria Libretto did not yield an image and correctly uses the fallback.
+
+`preview-service` provides dynamic, crawler-readable invitation metadata without
+Google/Supabase/GitHub credentials. Humans redirect straight to GitHub Pages with
+their invite/theme. Message crawlers request fresh provider/website images. Its
+Vercel project is `enkai-invites`, with the root set to `preview-service`. Keep
+the frontend config unset until public service verification succeeds. Existing
+54 static guide preview links and generic i.html links remain compatible.

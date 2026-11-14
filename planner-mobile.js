@@ -60,7 +60,8 @@ async function loadDinnerPhoto(container, payload) {
     const {photo} = await api(payload.invite?'preview-photo':'dinner-photo',payload);
     if (!slot.isConnected) return;
     if (!photo || !/^https:\/\//.test(photo.url) || (photo.kind!=='website' && !/^https:\/\/([\w-]+\.)*googleusercontent\.com\//.test(photo.url))) throw Error('Photo unavailable');
-    slot.innerHTML='<figure><img src="'+escape(photo.url)+'" alt="'+escape(slot.dataset.restaurant || 'Restaurant')+'" decoding="async" referrerpolicy="no-referrer"><figcaption>'+(photo.kind==='website'?'':'<span class="google-maps-credit" translate="no">Google Maps</span>')+ (photo.authors||[]).map(author=>'<span>Photo: '+(author.uri?'<a href="'+escape(author.uri)+'" target="_blank" rel="noopener noreferrer">'+escape(author.name)+'</a>':escape(author.name))+'</span>').join('')+(photo.source?'<a href="'+escape(photo.source)+'" target="_blank" rel="noopener noreferrer">'+(photo.kind==='website'?'Photo: restaurant website':'View original photo')+' ↗</a>':'')+'</figcaption></figure>';
+    slot.dataset.source=photo.kind||'google';
+    slot.innerHTML='<figure><img src="'+escape(photo.url)+'" alt="'+escape(slot.dataset.restaurant || 'Restaurant')+'" decoding="async" referrerpolicy="no-referrer"><figcaption>'+(photo.kind==='website'?'':'<span class="google-maps-credit" translate="no">Google Maps</span>')+ (photo.authors||[]).map(author=>'<span>Photo: '+(author.uri?'<a href="'+escape(author.uri)+'" target="_blank" rel="noopener noreferrer">'+escape(author.name)+'</a>':escape(author.name))+'</span>').join('')+(photo.source?'<a href="'+escape(photo.source)+'" target="_blank" rel="noopener noreferrer">'+(photo.kind==='website'?'Image: restaurant website':'View original photo')+' ↗</a>':'')+'</figcaption></figure>';
     const image=slot.querySelector('img');
     image.addEventListener('error',()=>{slot.innerHTML=fallback;},{once:true});
   } catch {
