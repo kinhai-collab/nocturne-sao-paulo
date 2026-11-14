@@ -329,3 +329,46 @@ invite preview/sign-in (simulated), availability, cross-theme saved choices, fin
 RSVP, conflicts and optional connection, plus organizer creation/review/share/copy.
 These checks are not physical Safari/Samsung tests or a new real OAuth acceptance
 verification; the existing Google verification/consent limitations still apply.
+
+
+## Verification timing checkpoint — November 14, 2026
+
+Ownership success screenshot was saved at 2026-11-14 02:05:12 UTC, corresponding
+to November 13, 6:05:12 PM America/Los_Angeles. Google's requested 24-hour wait
+therefore ends November 14, 6:05:12 PM Pacific (November 15, 02:05:12 UTC).
+At the November 14 00:22 Pacific check, only about 6 hours 17 minutes had elapsed.
+Do not claim propagation completed or submit a premature branding recheck.
+Live checks confirmed the ownership HTML file/meta tag, privacy disclosure and
+planner privacy link remain public. The real demo video is still outstanding.
+Browser inventory timed out twice in this attempt, so no new Google Console
+status was observed, no submission was made, and no review approval is claimed.
+
+
+## Personalized sharing release
+
+Shared messages now include the host's first name, restaurant or restaurant poll,
+destination time, location and an explicit vote/RSVP action. Copy invitation copies
+that text and the link; the native share sheet and WhatsApp receive the same content.
+Organizer message preview is available before sharing.
+There are 54 crawler-readable restaurant preview pages generated from the existing
+verified guide photos. The JPEG encoding is for social-preview compatibility and
+does not generate or alter restaurant content. Pages expose only existing public
+restaurant information; no dinner records, guest lists or invitation tokens are
+exported. No database credential or extra preview-hosting service is required.
+Unknown restaurants and undecided restaurant polls use the existing generic
+Enkai food preview. Poll previews do not favor a first restaurant candidate.
+Opening either route preserves the opaque invitation and chosen theme through
+sign-in. Legacy i.html links still work. Incomplete links explain how to recover.
+The public guest landing shows the matching guide restaurant photo when available.
+After a saved response, guests can optionally Plan your own evening using their
+existing session; this starts a separate plan and preserves the original response.
+No promotion interrupts voting, no contacts are imported, and no messages are sent
+automatically. No new analytics or tracking was introduced.
+Validation: five sharing/metadata checks across all 54 pages; phone-size UI flows
+in both themes for host message/WhatsApp payload, invitation redirect, simulated
+sign-in, RSVP/availability and guest-to-organizer creation; the original RSVP was
+preserved after creating another plan. Real WhatsApp app preview rendering is not
+verified here and depends on client settings/caching; metadata/assets are checked
+separately after publication. Photos for arbitrary live-search restaurants still
+require a future photo/preview publishing path; they currently get the honest
+representative Enkai image fallback.

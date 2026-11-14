@@ -240,3 +240,6 @@ summary{cursor:pointer;min-height:44px;align-content:center;color:var(--accent)}
 }
 
 .calendar-before-rsvp{padding:16px;border:1px solid var(--line);border-radius:16px;display:grid;gap:10px}.calendar-before-rsvp small{display:block}.share-card p{margin:0}
+.invite-next-evening{border-top:1px solid var(--line);padding-top:18px;margin-top:8px}.invite-next-evening p{margin:0}
+
+.share-message{white-space:pre-line;overflow-wrap:anywhere}

@@ -652,7 +652,7 @@ function mealDetails(meal) {
       <p>${statusPill(status(meal))}</p>
       ${meal.restaurant?`<a href="${venueMaps(meal.restaurant,meal)}" target="_blank" rel="noopener">Restaurant reviews & directions ↗</a>`:''}
     </div>
-    ${meal.organizer?`<section class="share-card stack"><h3>Share your invitation</h3><p>Share this link to invite your guests. Adding names doesn’t send messages.</p><div class="row"><button class="primary" data-action="share">Share invitation</button><button data-action="copy-invite">Copy link</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(meal.title+' · '+inviteUrl(meal))}" target="_blank" rel="noopener">WhatsApp</a></div><p><strong>Planned guests:</strong> ${escape(meal.guests.join(', ')||'No names added')}<br><small>Names are a planning list, not delivery confirmations.</small></p><p>${meal.joinedCount||0} joined via link · ${Math.max(0,meal.responses.length-Number(Boolean(meal.myVote)))} saved responses</p><small>Enkai cannot tell who received a shared link. Joined and response counts update when guests use it.</small></section>`:''}
+    ${meal.organizer?`<section class="share-card stack"><h3>Share your invitation</h3><p>Share this link to invite your guests. Adding names doesn’t send messages.</p><div class="row"><button class="primary" data-action="share">Share invitation</button><button data-action="copy-invite">Copy invitation</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(invitationMessage(meal))}" target="_blank" rel="noopener">WhatsApp</a></div><details><summary>Preview message</summary><p class="share-message">${escape(invitationMessage(meal))}</p></details><p><strong>Planned guests:</strong> ${escape(meal.guests.join(', ')||'No names added')}<br><small>Names are a planning list, not delivery confirmations.</small></p><p>${meal.joinedCount||0} joined via link · ${Math.max(0,meal.responses.length-Number(Boolean(meal.myVote)))} saved responses</p><small>Enkai cannot tell who received a shared link. Joined and response counts update when guests use it.</small></section>`:''}
     ${responseReceipt===meal.id&&!meal.myVote?.needsReconfirmation?receiptView(meal):(!meal.organizer||isPolling(meal)?responseForm(meal):'')}
     ${calendarDinnerMarkup(meal)}
     ${meal.selectedTime && meal.restaurant && meal.timeZone&&!meal.calendarEnabled&&!meal.cancelled?'<button type="button" data-action="calendar">Download calendar file</button><small>Manual fallback. This file does not sync updates.</small>':''}
@@ -759,7 +759,7 @@ document.addEventListener('click', event=>{
     case 'plan-next': if(validatePlanStep()){wizardStep++;renderWizard();} break;
     case 'plan-back': persistOpenDraft(); if(wizardStep){wizardStep--;renderWizard();}else chooseFlow(); break;
     case 'edit-response': responseReceipt=''; mealDetails(activeMeal); break;
-    case 'copy-invite': copyInvite(inviteUrl(activeMeal)); break;
+    case 'copy-invite': copyInvite(invitationMessage(activeMeal)); break;
     case 'new': if (credential) chooseFlow(); else chooseSignIn(); break;
     case 'flow': mealForm(null,id); break;
     case 'search-cuisine': {
@@ -820,8 +820,8 @@ document.addEventListener('click', event=>{
     }
     case 'share': {
       const url = inviteUrl(activeMeal);
-      if(navigator.share) navigator.share({ title: activeMeal.title, url }).catch(error=>{if(error.name!=='AbortError') copyInvite(url);});
-      else copyInvite(url);
+      if(navigator.share) navigator.share({ title: EnkaiInvites.title(activeMeal), text: EnkaiInvites.text(activeMeal), url }).catch(error=>{if(error.name!=='AbortError') copyInvite(invitationMessage(activeMeal));});
+      else copyInvite(invitationMessage(activeMeal));
       break;
     }
     case 'calendar': downloadCalendar(activeMeal); break;
@@ -958,17 +958,12 @@ async function syncMeal(action, payload, newContacts = []) {
 }
 
 function inviteUrl(meal) {
-  const hex = meal.invite.replaceAll('-', '');
-  const bytes = hex.match(/../g).map(pair => String.fromCharCode(parseInt(pair, 16))).join('');
-  const code = btoa(bytes).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
-  const url = new URL('i.html', location.href);
-  url.searchParams.set('code', code);
-  if (document.body.dataset.plannerTheme) url.searchParams.set('theme', document.body.dataset.plannerTheme);
-  return url.href;
+  return EnkaiInvites.url(meal,{base:location.href,theme:document.body.dataset.plannerTheme,venue:meal.restaurant?guideVenue(meal.restaurant,meal.location):null});
 }
-async function copyInvite(url) {
-  try { await navigator.clipboard.writeText(url); message('Invite link copied.'); }
-  catch { show('Share invite', `<label>Copy this link<input readonly value="${escape(url)}"></label>`); }
+function invitationMessage(meal) { return EnkaiInvites.message(meal,inviteUrl(meal)); }
+async function copyInvite(content) {
+  try { await navigator.clipboard.writeText(content); message('Invitation message and link copied.'); }
+  catch { show('Copy invitation', `<label>Copy this invitation<textarea readonly rows="7">${escape(content)}</textarea></label>`); }
 }
 
 restoringSignIn=Boolean(savedSession()?.token || sessionStorage.getItem(microsoftFlowKey));

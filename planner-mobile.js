@@ -105,7 +105,7 @@ function invitationLanding() {
     '</p><button data-action="retry-invite">Try again</button></section>';
   if (!info) return '<section class="card" role="status">Opening your invitation…</section>';
   return '<section class="invite-summary card stack"><p class="eyebrow">An invitation from ' + escape(info.hostName) +
-    '</p><h2>' + escape(info.title) + '</h2><p>' + escape(info.restaurant || 'Let’s choose a restaurant together') +
+    '</p><h2>' + escape(info.title) + '</h2>' + (info.restaurant?venueImage(info.restaurant,info.location):'') + '<p>' + escape(info.restaurant || 'Let’s choose a restaurant together') +
     '</p><p>' + escape(info.location) + '</p><p>' +
     escape(info.selectedTime && info.timeZone ? mealDateTime(info.selectedTime, info) + ' · ' + destinationLabel(info) : 'Help choose a time that works for you') +
     '</p><button class="primary" data-action="choose-signin">Sign in to respond</button><small>Anyone with this invitation can join. Your host can see your response.</small></section>';
@@ -150,7 +150,8 @@ function receiptView(meal) {
     (finalPlan(meal)&&vote.attendance ? '<p>' + escape(attendanceLabels[vote.attendance]) + '</p>' : '') +
     (!meal.selectedTime && meal.times.length ? '<p><strong>Your times</strong><br>' + escape(vote.times.map(t=>mealDateTime(t,meal)).join(' · ') || 'None of these times work') + '</p>' : '') +
     (!meal.restaurant && meal.restaurants.length ? '<p><strong>Your restaurants</strong><br>' + escape(vote.restaurants.join(' · ') || 'None of these restaurants work') + '</p>' : '') +
-    '<p>Your host can see this response. You can change it later.</p><button data-action="edit-response">Change my response</button><button data-view="dashboard">Back to home</button></section>';
+    '<p>Your host can see this response. You can change it later.</p><button data-action="edit-response">Change my response</button><button data-view="dashboard">Back to home</button>'+
+    (!meal.organizer?'<div class="invite-next-evening stack"><p>Have another get-together in mind?</p><button type="button" data-action="new">Plan your own evening</button><small>Your response above is saved. Start a separate plan and invite your people.</small></div>':'')+'</section>';
 }
 
 function wizardGuests(wish) {
