@@ -13,6 +13,10 @@ fallback was verified against Richmond Station and is credited distinctly.
 Hosting project: `kinhai-collabs-projects/enkai-invites`, using the existing
 Vercel Hobby account. Root directory is `preview-service`; outside-root files
 are excluded. Google billing settings remain unchanged.
+Public endpoint: `https://enkai-invites.vercel.app/i`. Verified without Vercel
+login using a disposable Gusto 101 invitation: both themes returned personalized
+HTML to a WhatsApp user agent with a reachable restaurant website image; normal
+browser requests redirected to the correct invite/theme on GitHub Pages.
 
 Deploy this directory as the project root on an existing Vercel account, with no
 framework/build command. Then set `POLL_CONFIG.invitePreviewBase` in the main app

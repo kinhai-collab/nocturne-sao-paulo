@@ -406,3 +406,13 @@ their invite/theme. Message crawlers request fresh provider/website images. Its
 Vercel project is `enkai-invites`, with the root set to `preview-service`. Keep
 the frontend config unset until public service verification succeeds. Existing
 54 static guide preview links and generic i.html links remain compatible.
+
+The public service `https://enkai-invites.vercel.app/i` is verified live without
+Vercel login for both themes: WhatsApp-style crawler requests get personalized
+HTML and the current restaurant website image; human requests redirect to the
+same invitation/theme on GitHub Pages. `POLL_CONFIG.invitePreviewBase` is enabled.
+All 18 focused automated tests passed, along with rolled-back database quota and
+access tests. Mobile-size UI checks used actual Gusto 101 website image responses
+with simulated sign-in/RSVP: both themes saved responses, including forced photo
+failure. No calendar invitation was sent by these tests. Physical phones and the
+actual WhatsApp app preview renderer remain untested.
