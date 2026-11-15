@@ -405,6 +405,7 @@ function render() {
     if(button.dataset.view===view) button.setAttribute('aria-current','page');
     else button.removeAttribute('aria-current');
   });
+  syncInviteResponseLayout();
 }
 
 function timeZoneSelector(selected = '') {

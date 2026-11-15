@@ -433,3 +433,20 @@ chat previews. Previously sent messages can retain WhatsApp's cached preview.
 No billing/quota changes, AI image classification, image mirroring, or permanent
 photo storage were introduced. Source labels are heuristics, not a guarantee
 that every unlabelled image contains no branding.
+
+## Mobile invitation sign-in action — November 15, 2026
+
+Both themes now put the anonymous invitation's single Sign in to respond button
+in a fixed action bar above the existing navigation on phones and short landscape
+screens. ResizeObserver measures the navigation/action heights, including safe
+area padding and text wrapping. Content/footer spacing lets guests scroll every
+detail above the bars; status messages also clear them. The action bar disappears
+after sign-in and desktop layouts retain the inline action.
+Browser checks covered both themes at 320x568, 360x800, 390x844, 430x932 and
+844x390 with a long invitation title. All ten cases had scrollY=0, a fully visible
+48px button above navigation, and an unobstructed hit target. Two additional
+320x568 checks with 24px root text passed; scrolling to the footer kept the action
+visible and privacy link clear. Simulated Google sign-in in both themes returned
+to the invited dinner, showed RSVP controls, and removed the guest action bar.
+These were browser viewport checks, not physical-device tests. No backend or API
+quota changes were needed.

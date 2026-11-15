@@ -250,3 +250,11 @@ summary{cursor:pointer;min-height:44px;align-content:center;color:var(--accent)}
 .invite-next-evening{border-top:1px solid var(--line);padding-top:18px;margin-top:8px}.invite-next-evening p{margin:0}
 
 .share-message{white-space:pre-line;overflow-wrap:anywhere}
+.invite-response-action>.primary{width:100%}
+@media(max-width:700px),(max-height:500px) and (max-width:950px){
+  .invite-response-action{position:fixed;left:0;right:0;bottom:var(--planner-dock-height,calc(70px + env(safe-area-inset-bottom)));z-index:4;display:grid;justify-items:center;padding:.75rem max(1rem,env(safe-area-inset-right)) .75rem max(1rem,env(safe-area-inset-left));background:var(--bg);border-top:1px solid var(--line)}
+  .invite-response-action>.primary{max-width:64rem}
+  body:has(.invite-response-action) #planner{padding-bottom:calc(var(--planner-dock-height,70px) + var(--invite-response-height,74px) + 1rem)}
+  body:has(.invite-response-action) footer{padding-bottom:calc(var(--planner-dock-height,70px) + var(--invite-response-height,74px) + 1rem)!important}
+  body:has(.invite-response-action) #notice{bottom:calc(var(--planner-dock-height,70px) + var(--invite-response-height,74px) + 1rem)}
+}

@@ -124,6 +124,23 @@ function restoreResponseDraft(meal) {
     input.checked = draft.values.some(([name,value]) => name === input.name && value === input.value);
   }
 }
+let inviteResponseObserver;
+function syncInviteResponseLayout() {
+  inviteResponseObserver?.disconnect();
+  const action=root.querySelector('.invite-response-action');
+  const dock=document.querySelector('.dock');
+  if(!action||!dock)return;
+  const measure=()=>{
+    document.documentElement.style.setProperty('--planner-dock-height',Math.ceil(dock.getBoundingClientRect().height)+'px');
+    document.documentElement.style.setProperty('--invite-response-height',Math.ceil(action.getBoundingClientRect().height)+'px');
+  };
+  measure();
+  if(window.ResizeObserver){
+    inviteResponseObserver=new ResizeObserver(measure);
+    inviteResponseObserver.observe(dock);
+    inviteResponseObserver.observe(action);
+  }
+}
 function invitationLanding() {
   const info = invitationPreview;
   if (inviteError) return '<section class="card stack"><h2>Invitation unavailable</h2><p>' + escape(inviteError) +
@@ -133,7 +150,7 @@ function invitationLanding() {
     '</p><h2>' + escape(info.title) + '</h2>' + dinnerPhotoMarkup(info) + '<p>' + escape(info.restaurant || 'Let’s choose a restaurant together') +
     '</p><p>' + escape(info.location) + '</p><p>' +
     escape(info.selectedTime && info.timeZone ? mealDateTime(info.selectedTime, info) + ' · ' + destinationLabel(info) : 'Help choose a time that works for you') +
-    '</p><button class="primary" data-action="choose-signin">Sign in to respond</button><small>Anyone with this invitation can join. Your host can see your response.</small></section>';
+    '</p><div class="invite-response-action"><button class="primary" data-action="choose-signin">Sign in to respond</button></div><small>Anyone with this invitation can join. Your host can see your response.</small></section>';
 }
 async function loadInvitation() {
   inviteError = '';
