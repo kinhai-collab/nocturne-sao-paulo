@@ -14,7 +14,7 @@ function googleLink(value: unknown): string | undefined {
   } catch { /* Ignore untrusted links in provider data. */ }
 }
 
-export async function freshPlacePhoto(placeId: string, key: string, request: typeof fetch = fetch, website=officialWebsitePhoto) {
+export async function freshPlacePhoto(placeId: string, key: string, request: typeof fetch = fetch, website=officialWebsitePhoto, maxWidthPx=800) {
   if (!/^[\w-]{1,255}$/.test(placeId)) throw Error('Invalid place.');
   const details = await request('https://places.googleapis.com/v1/places/' + placeId, {
     headers: {'X-Goog-Api-Key':key, 'X-Goog-FieldMask':'photos,websiteUri'},
@@ -37,7 +37,7 @@ export async function freshPlacePhoto(placeId: string, key: string, request: typ
       !photo.name.startsWith('places/' + placeId + '/photos/') ||
       !/^places\/[\w-]+\/photos\/[\w-]+$/.test(photo.name)) throw Error('Photo unavailable.');
   const media = new URL('https://places.googleapis.com/v1/' + photo.name + '/media');
-  media.searchParams.set('maxWidthPx','800');
+  media.searchParams.set('maxWidthPx',String([480,800].includes(maxWidthPx)?maxWidthPx:800));
   media.searchParams.set('skipHttpRedirect','true');
   const response = await request(media, {headers:{'X-Goog-Api-Key':key}, signal:AbortSignal.timeout(6000), cache:'no-store'});
   if (!response.ok) throw Error('Photo unavailable.');
@@ -47,5 +47,6 @@ export async function freshPlacePhoto(placeId: string, key: string, request: typ
     authors:(photo.authorAttributions || []).slice(0,10).map((author:any) => ({
       name:typeof author.displayName === 'string' ? author.displayName.slice(0,200) : 'Google Maps contributor',
       uri:googleLink(author.uri),
+      photoUri:typeof author.photoUri==='string'&&/^https:\/\/([\w-]+\.)*googleusercontent\.com\//.test(author.photoUri)?author.photoUri:undefined,
     }))}};
 }

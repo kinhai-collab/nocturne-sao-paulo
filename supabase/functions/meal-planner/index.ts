@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 import { createRemoteJWKSet, jwtVerify } from 'npm:jose@6.2.12';
 import {calendarAction,canonicalAccount,saveCalendarEmail,runCalendarJobs} from '../_shared/calendar.ts';
 import {selectedPlaceId,freshPlacePhoto} from '../_shared/place-photo.ts';
+import {searchPlacePhoto} from '../_shared/search-photo.ts';
 declare const EdgeRuntime: { waitUntil(task: Promise<unknown>): void };
 
 const origin = 'https://kinhai-collab.github.io';
@@ -150,6 +151,10 @@ Deno.serve(async req => {
       } catch(error) {return reply({error:error instanceof Error?error.message:'Calendar request failed.'},400);}
     }
     const { action, id, invite, version, details, vote, attendance, restaurant, googleCredential, city, food, persistent, photo, placeId } = input;
+    if(action==='place-photo') {
+      const result=await searchPlacePhoto(placeId,Deno.env.get('GOOGLE_PLACES_API_KEY'),async()=>await db.rpc('meal_reserve_photo'));
+      return reply(result.body,result.status);
+    }
     if (action === 'photo') {
       if (typeof photo !== 'string' || photo.length > 2000 || !/^places\/[\w-]+\/photos\/[\w-]+$/.test(photo)) return reply({error:'Photo unavailable.'},400);
       const key=Deno.env.get('GOOGLE_PLACES_API_KEY');

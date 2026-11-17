@@ -127,7 +127,11 @@ async function api(action, payload = {}) {
     render();
     chooseSignIn();
   }
-  if (!response.ok) throw Error(data.error || 'Could not reach the meal planner.');
+  if (!response.ok) {
+    const error=Error(data.error || 'Could not reach the meal planner.');
+    error.status=response.status;
+    throw error;
+  }
   return data;
 }
 async function refresh(inBackground = false) {
@@ -490,6 +494,7 @@ function browseRestaurants(guest = false) {
       </div>
     </form>
     <p class="muted" data-restaurant-count role="status" tabindex="-1"></p>
+    <p class="muted" data-photo-notice role="status" hidden></p>
     <div class="stack" data-restaurant-results></div>
     <small translate="no">Google Maps</small>
     <a data-google-search target="_blank" rel="noopener">Search Google Maps ↗</a>
@@ -507,6 +512,7 @@ function browseRestaurants(guest = false) {
 function closeRestaurantBrowser() {
   const previous = restaurantReturn;
   if (!previous) return;
+  stopRestaurantPhotos();
   restaurantReturn = null;
   panel.classList.remove('restaurant-browser');
   panel.replaceChildren(...previous.nodes);
@@ -554,17 +560,19 @@ function updateRestaurantResults(input) {
     const address = r.address;
     const added = selected.has(name.toLowerCase());
     const preview = r ? [r.cuisine, r.rating ? '★ '+r.rating+(r.reviewCount?' ('+r.reviewCount.toLocaleString()+' reviews)':'') : '', r.priceLevel || 'Price not listed'].filter(Boolean).join(' · ') : '';
-    return `<article class="card venue-result">
-      ${r.photo?'<div class="photo-preview" data-photo-index="'+restaurantReturn.places.indexOf(r)+'">'+(r.loadedPhoto?placePhotoMarkup(r):'<button type="button" data-action="load-photo" data-photo-index="'+restaurantReturn.places.indexOf(r)+'">View restaurant photo</button>')+'</div>':venueImage(name,cityInput)}
-      <div><h3>${escape(name)}</h3><small>${escape(preview)}</small><p>${escape(address)}</p>
+    const index=restaurantReturn.places.indexOf(r);
+    return `<article class="card venue-result has-thumbnail">
+      <div class="restaurant-result-preview"><div data-thumbnail-index="${index}">${restaurantThumbnail(r,index)}</div><div><h3>${escape(name)}</h3><small>${escape(preview)}</small></div></div>
+      <div><p>${escape(address)}</p>
       ${r.hours?.length?'<details><summary>Opening hours</summary><small>'+r.hours.map(escape).join('<br>')+'</small></details>':'<small>Check opening hours with the restaurant</small>'}
       <div><a href="${escape(venueMaps(name,{location:r.address||location,venues:r.placeId?[{name,placeId:r.placeId}]:[]}))}" target="_blank" rel="noopener">Reviews & location ↗</a></div>${r.attributions.map(item=>`<small>${escape(item.provider)}</small>`).join('')}</div>
-      <button type="button" data-action="pick-restaurant" data-name="${escape(name)}" data-city="${escape(cityInput)}" aria-label="${added?'Added to poll':'Add to poll'}: ${escape(name)}" ${added || (guest && meal.suggested) ? 'disabled' : ''}>${added?'Added to poll':'Add to poll'}</button></article>`;
+      <button type="button" data-action="pick-restaurant" data-name="${escape(name)}" data-place-index="${index}" data-city="${escape(cityInput)}" aria-label="${added?'Added to poll':'Add to poll'}: ${escape(name)}" ${added || (guest && meal.suggested) ? 'disabled' : ''}>${added?'Added to poll':'Add to poll'}</button></article>`;
   };
   panel.querySelector('[data-restaurant-results]').innerHTML = matches.map(r=>card(r.name,r)).join('');
   panel.querySelector('[data-google-search]').href = maps(input.value.trim() || 'restaurants', cityInput || location);
   const done=panel.querySelector('[data-search-done]');
   if(done) done.textContent=guest?'Back to your response':'Done'+(selected.size?' · '+selected.size+' selected':'');
+  observeRestaurantThumbnails();
 }
 
 const googlePriceLevels = {
@@ -594,7 +602,7 @@ async function searchGooglePlaces(form) {
       priceLevel: googlePriceLevels[place.priceLevel], attributions: place.attributions || [],
     }));
     updateRestaurantResults(food);
-    summary.textContent = search.places.length ? `${search.places.length} Google Maps results in ${city}.` : `No results in ${city}. Try another food type.`;
+    summary.textContent = search.places.length ? `${search.places.length} Google Maps ${search.places.length===1?'result':'results'} in ${city}.` : `No results in ${city}. Try another food type.`;
   } catch (error) {
     summary.textContent = error.message;
   } finally {
@@ -693,7 +701,7 @@ function busyForm() {
     <label>Start <input type="datetime-local" name="start" required></label><label>End <input type="datetime-local" name="end" required></label><button class="primary">Add block</button></form>`);
 }
 
-panel.addEventListener('close',()=>{ restaurantReturn=null; panel.classList.remove('restaurant-browser'); });
+panel.addEventListener('close',()=>{ stopRestaurantPhotos(); restaurantReturn=null; panel.classList.remove('restaurant-browser'); });
 panel.addEventListener('input',persistOpenDraft);
 panel.addEventListener('change',persistOpenDraft);
 panel.addEventListener('cancel',()=>persistOpenDraft());
@@ -753,6 +761,8 @@ document.addEventListener('click', event=>{
     case 'theme': applyPlannerTheme(id); render(); break;
     case 'load-photo': showPlacePhoto(button); break;
     case 'photo-fallback': window.open(maps(button.dataset.name,button.dataset.city),'_blank','noopener'); break;
+    case 'show-restaurant-photo': showRestaurantPhoto(button.dataset.photoIndex); break;
+    case 'close-restaurant-photo': document.querySelector('#restaurant-photo-view').close(); break;
     case 'remove-restaurant': {
       const input=panel.querySelector('[name=restaurants]');
       input.value=input.value.split('\n').filter(name=>name.trim()!==button.dataset.name).join('\n');
@@ -778,7 +788,7 @@ document.addEventListener('click', event=>{
     case 'return-restaurants': closeRestaurantBrowser(); break;
     case 'pick-restaurant': {
       const { input, guest } = restaurantReturn;
-      const picked=restaurantReturn.places.find(r=>r.name===button.dataset.name);
+      const picked=restaurantReturn.places[Number(button.dataset.placeIndex)]||restaurantReturn.places.find(r=>r.name===button.dataset.name);
       if (guest) { suggestRestaurant(button.dataset.name,picked?.placeId); break; }
       const names = input.value.split('\n').map(name=>name.trim()).filter(Boolean);
       const limit = input.form.dataset.flow === 'restaurant' ? 1 : 5;

@@ -450,3 +450,12 @@ visible and privacy link clear. Simulated Google sign-in in both themes returned
 to the invited dinner, showed RSVP controls, and removed the guest action bar.
 These were browser viewport checks, not physical-device tests. No backend or API
 quota changes were needed.
+
+
+### Automatic browsing thumbnails (November 2026)
+
+Both planner themes now load one restaurant thumbnail automatically when its search card becomes visible. The shared `planner-search-photos.js` keeps at most two resolutions running and reuses results during sorting; closing the browser discards queued work. The authenticated `place-photo` action reserves the existing atomic `meal_reserve_photo()` allowance before any provider lookup. Browsing, manual photo lookups, and invitation photos share the same 900/month photo-resolution cap; the separate 900/month search cap and billing configuration are unchanged. Missing images and provider/quota errors never disable Add to poll.
+
+The resolver requests fresh Google Place photos at 480px for browsing (invitations remain 800px), with food-first official website fallback. Google contributor credits appear below thumbnails and in the enlarged viewer. Photo resources/URLs are retained only for the current results in memory, not written to the database or downloaded for permanent hosting. See [Google Place Photo attribution rules](https://developers.google.com/maps/documentation/places/web-service/place-photos).
+
+Validation: 18 photo/website/quota unit tests and backend type check passed. Mobile-size browser checks at 360×800 and 390×844 covered automatic loading, two-request concurrency, reuse on sorting, organizer multi-selection, guest one-restaurant suggestion, enlarged photo/credits, and selection with missing/failed/quota-limited photos. One deployed Gusto 101 search and one browsing-photo resolution returned a reachable food photo from its official website; unsigned requests returned 401 and invalid IDs returned 400. Disposable test sign-in was removed; no real meals, votes, or calendar invitations were changed. Physical iPhone Safari and Samsung Internet were not available.

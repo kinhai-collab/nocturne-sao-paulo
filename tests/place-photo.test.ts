@@ -54,3 +54,8 @@ Deno.test('Prefer a usable landscape Google photo over a tiny logo-sized image',
   }) as typeof fetch;
   await freshPlacePhoto('test','key',request);assert.match(media,/photos\/landscape/);
 });
+Deno.test('Browsing requests smaller photos without changing the invitation default',async()=>{
+  const mock=provider();
+  await freshPlacePhoto('ChIJ_test','key',mock.request,undefined,480);
+  assert.match(mock.calls[1].url,/maxWidthPx=480/);
+});
