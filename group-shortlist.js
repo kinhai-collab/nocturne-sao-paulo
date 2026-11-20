@@ -17,6 +17,7 @@
   function shortlist(places, budget) {
     const limit = /^[1-4]$/.test(String(budget)) ? Number(budget) : null;
     if (!Array.isArray(places)) return [];
+    const seenNames = new Set();
     return places
       .filter(place => typeof place?.displayName?.text === 'string' &&
         place.displayName.text.trim().length > 0 &&
@@ -31,6 +32,12 @@
         const score = place => (Number(place.rating) || 0) *
           Math.log1p(Math.max(0, Number(place.userRatingCount) || 0));
         return score(b) - score(a) || a.displayName.text.localeCompare(b.displayName.text);
+      })
+      .filter(place => {
+        const name = place.displayName.text.trim().toLocaleLowerCase();
+        if (seenNames.has(name)) return false;
+        seenNames.add(name);
+        return true;
       })
       .slice(0, 3);
   }
