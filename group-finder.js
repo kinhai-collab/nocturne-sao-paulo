@@ -5,7 +5,7 @@ let groupFinderState = null;
 
 function openGroupFinder() {
   const meal = activeMeal;
-  if (!meal?.organizer || !meal.selectedTime || meal.restaurant || meal.cancelled) return;
+  if (!meal?.organizer || !meal.selectedTime || meal.restaurant || meal.cancelled || meal.restaurants?.length) return;
   groupFinderState = { mealId: meal.id, places: [] };
   show('Find a place', '<div class="stack group-finder">' +
     '<p class="muted">Your time is set: <strong>' + escape(mealDateTime(meal.selectedTime, meal)) +
@@ -13,8 +13,8 @@ function openGroupFinder() {
     '<form class="stack" data-form="group-search">' +
       '<label>Where?<input name="city" maxlength="120" required value="' + escape(meal.location) + '" placeholder="City or neighbourhood"></label>' +
       '<label>Price range <select name="budget">' +
-        '<option value="">Any</option><option value="1">$ · Inexpensive</option>' +
-        '<option value="2" selected>$$ · Moderate</option><option value="3">$$$ · Higher</option>' +
+        '<option value="" selected>Any</option><option value="1">$ · Inexpensive</option>' +
+        '<option value="2">$$ · Moderate</option><option value="3">$$$ · Higher</option>' +
         '<option value="4">$$$$ · Very high</option></select></label>' +
       '<details><summary>Have a cuisine in mind?</summary>' +
         '<label>Food type <input name="food" maxlength="100" placeholder="Optional, e.g. Italian"></label></details>' +
@@ -85,13 +85,13 @@ async function searchGroupPlaces(form) {
 function saveGroupShortlist(mode, index) {
   const search = groupFinderState;
   const meal = state.meals.find(item => item.id === search?.mealId);
-  if (!meal?.organizer || !meal.selectedTime || meal.restaurant || meal.cancelled ||
+  if (!meal?.organizer || !meal.selectedTime || meal.restaurant || meal.cancelled || meal.restaurants?.length ||
       !search?.places.length || requestInFlight) return;
   const chosen = mode === 'vote' ? search.places : [search.places[Number(index)]];
   if (!chosen.length || chosen.some(place => !place)) return;
   const names = chosen.map(place => place.displayName.text);
   const confirmation = mode === 'vote'
-    ? 'Ask the family about these restaurant options? This replaces any previous restaurant poll choices. No tables will be held.'
+    ? 'Ask the family about these restaurant options? No tables will be held.'
     : 'Choose ' + names[0] + ' for this dinner? This may notify guests. You still need to contact the restaurant to book.';
   if (!window.confirm(confirmation)) return;
   const details = {
