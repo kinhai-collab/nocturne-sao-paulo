@@ -7,6 +7,7 @@ const BASE = 'https://kinhai-collab.github.io/nocturne-sao-paulo/';
 const TIME = '2026-12-24T02:30:00.000Z';
 const initialMeal = () => ({
   id: '11111111-1111-4111-8111-111111111111',
+  invite: '22222222-2222-4222-8222-222222222222',
   version: 1,
   organizer: true,
   title: 'Family dinner',
