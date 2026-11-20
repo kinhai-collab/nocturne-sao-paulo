@@ -1,0 +1,49 @@
+name: Validate Enkai venue finder
+
+on:
+  pull_request:
+    paths:
+      - 'group-finder.js'
+      - 'group-shortlist.js'
+      - 'planner.js'
+      - 'planner.html'
+      - 'tests/**'
+      - '.github/workflows/venue-finder-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check planner.js
+          node --check group-finder.js
+          node --check group-shortlist.js
+      - name: Run new and existing Node regression tests
+        run: |
+          node --test tests/group-shortlist.test.cjs tests/group-finder.test.cjs tests/invitation-sharing.test.cjs tests/live-preview.test.cjs
+          node tests/meal-time.cjs
+
+  browser-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser-test dependency
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Install Chromium for headless test
+        run: npx playwright install --with-deps chromium
+      - name: Run mobile browser smoke test with mocked search
+        run: node --test tests/group-finder.browser.test.cjs

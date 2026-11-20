@@ -662,6 +662,7 @@ function mealDetails(meal) {
       <p>${statusPill(status(meal))}</p>
       ${meal.restaurant?`<a href="${venueMaps(meal.restaurant,meal)}" target="_blank" rel="noopener">Restaurant reviews & directions ↗</a>`:''}
     </div>
+    ${meal.organizer && meal.selectedTime && !meal.restaurant && !meal.cancelled && !meal.restaurants.length ? '<section class="card group-finder-cta"><h3>Time agreed. Find a place.</h3><p>See three restaurant options, then choose one or ask the family.</p><button type="button" class="primary" data-action="group-finder">Find three places</button><small>Booking availability is not yet checked.</small></section>' : ''}
     ${meal.organizer?`<section class="share-card stack"><h3>Share your invitation</h3><p>Share this link to invite your guests. Adding names doesn’t send messages.</p><div class="row"><button class="primary" data-action="share">Share invitation</button><button data-action="copy-invite">Copy invitation</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(invitationMessage(meal))}" target="_blank" rel="noopener">WhatsApp</a></div><details><summary>Preview message</summary><p class="share-message">${escape(invitationMessage(meal))}</p></details><p><strong>Planned guests:</strong> ${escape(meal.guests.join(', ')||'No names added')}<br><small>Names are a planning list, not delivery confirmations.</small></p><p>${meal.joinedCount||0} joined via link · ${Math.max(0,meal.responses.length-Number(Boolean(meal.myVote)))} saved responses</p><small>Enkai cannot tell who received a shared link. Joined and response counts update when guests use it.</small></section>`:''}
     ${responseReceipt===meal.id&&!meal.myVote?.needsReconfirmation?receiptView(meal):(!meal.organizer||isPolling(meal)?responseForm(meal):'')}
     ${calendarDinnerMarkup(meal)}
@@ -783,6 +784,9 @@ document.addEventListener('click', event=>{
       search.focus();
       break;
     }
+    case 'group-finder': openGroupFinder(); break;
+    case 'group-pick': saveGroupShortlist('pick', button.dataset.index); break;
+    case 'group-vote': saveGroupShortlist('vote'); break;
     case 'browse-restaurants': browseRestaurants(); break;
     case 'suggest-restaurant': browseRestaurants(true); break;
     case 'return-restaurants': closeRestaurantBrowser(); break;
@@ -891,6 +895,7 @@ panel.addEventListener('submit',event=>{
       const newContacts = data.has('saveContacts') ? split(value('guests')) : [];
       syncMeal('create', { details }, newContacts); return;
     }
+    case 'group-search': searchGroupPlaces(form); return;
     case 'restaurant-search': searchGooglePlaces(form); return;
     case 'suggest': suggestRestaurant(value('suggestion')); return;
     case 'respond': {
