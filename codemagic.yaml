@@ -1,0 +1,54 @@
+# Enkai — manual-only signed build preflight, no App Store/TestFlight upload.
+# The team-level Codemagic integration is shared with Mira, but the bundle ID
+# and provisioning profile must be unique to Enkai.
+workflows:
+  enkai-ios-signing-preflight:
+    name: Enkai iOS — signed IPA preflight (NO PUBLISH)
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: mira-lab-apple
+    environment:
+      xcode: latest
+      node: 22
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.kinhai.enkai.beta
+      vars:
+        ENKAI_APPLE_TEAM_ID: SDJ9ABWBH3
+    scripts:
+      - name: Confirm explicit Enkai-only signing approval
+        script: |
+          set -eu
+          if [ "${ENKAI_ENABLE_SIGNED_PREFLIGHT:-}" != "true" ]; then
+            echo "Not enabled: set ENKAI_ENABLE_SIGNED_PREFLIGHT=true in Enkai's Codemagic app after its App ID and signing profile exist."
+            exit 1
+          fi
+          test "$ENKAI_APPLE_TEAM_ID" = "SDJ9ABWBH3"
+          test "$ENKAI_APPLE_TEAM_ID" != ""
+      - name: Install pinned Capacitor packages and run checks
+        script: |
+          set -eu
+          npm install --no-audit --no-fund
+          npm run ios:assets
+          npm run ios:check
+      - name: Generate Enkai iOS project
+        script: |
+          set -eu
+          npx cap add ios --packagemanager SPM
+          npm run ios:configure
+          npx cap sync ios
+      - name: Apply the Enkai App Store distribution profile
+        script: |
+          set -eu
+          xcode-project use-profiles --project "$CM_BUILD_DIR/ios/App/App.xcodeproj"
+      - name: Build signed IPA (artifact only)
+        script: |
+          set -eu
+          xcode-project build-ipa --project "$CM_BUILD_DIR/ios/App/App.xcodeproj" --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+# Intentionally no triggering events, publishing section or TestFlight groups.
+# Manual build requests still require explicit Enkai approval and profile setup.
