@@ -19,7 +19,7 @@ const initialMeal = () => ({
   restaurants: [],
   venues: [],
   times: [TIME],
-  guests: ['Parent', 'Child'],
+  guests: Array.from({length:12}, (_,i) => 'Guest ' + String(i+1)),
   attending: [],
   responses: [],
   joinedCount: 0,
@@ -89,6 +89,7 @@ async function demo(browser,mode) {
   assert.ok(managed,'Manage action must be emitted');
   assert.equal(managed.details.selectedTime,TIME);
   assert.equal(managed.details.status,'Unbooked');
+  assert.equal(managed.details.guests.length,12, 'The original 12-person group must remain on the plan');
   if(mode==='pick') {
     assert.equal(managed.details.restaurant, 'A Bistro');
     assert.equal(managed.details.venues[0].placeId, 'place_0');
