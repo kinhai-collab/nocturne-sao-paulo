@@ -1,0 +1,45 @@
+name: Validate Enkai rename source migration
+
+on:
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'i.html'
+      - 'invite/**'
+      - 'native/**'
+      - 'preview-service/**'
+      - 'supabase/**'
+      - 'scripts/build_invite_previews.py'
+      - 'scripts/migrate-repository-name.mjs'
+      - 'tests/enkai-rename.test.cjs'
+      - '.github/workflows/rename-cutover-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax of migrated JavaScript
+        run: |
+          node --check planner.js
+          node --check native/ios-invites.js
+          node --check native/ios-shell.js
+          node --check preview-service/core.mjs
+          node --check scripts/migrate-repository-name.mjs
+      - name: Prepare iOS static bundle
+        run: npm run ios:assets
+      - name: Validate static links, old invitation compatibility and native assets
+        run: |
+          node --test tests/enkai-rename.test.cjs tests/ios-foundation.test.cjs tests/live-preview.test.cjs tests/invitation-sharing.test.cjs
+      - name: Confirm migration is idempotent
+        run: |
+          node scripts/migrate-repository-name.mjs
+          git diff --exit-code
