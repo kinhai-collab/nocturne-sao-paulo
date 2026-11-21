@@ -1,24 +1,75 @@
-# Nocturne — São Paulo dining poll
+# Enkai — Group meal planning
 
-Public site: https://kinhai-collab.github.io/enkai/
+Enkai helps people coordinate dinners and gatherings: agree on a time, discover
+restaurants, optionally vote with friends and family, track RSVPs, and manage
+calendar invitations. The project also preserves its original São Paulo
+Michelin dining guide and Toronto/Ontario restaurant guides.
 
-The site uses GitHub Pages with local fonts and photos, independent of ChatGPT hosting. The layout is fluid across narrow and ultra-wide browsers. All 16 Michelin-starred restaurants are included; diners can select up to five. The hero contains eight photos, ten-second rotation, 1.5-second crossfades and previous/next controls.
+## Repository identity and public deployment
 
-Voting is currently an explicitly labeled browser-only demo. Google sign-in and shared Google Sheets storage are implemented but require a Google OAuth client ID and Apps Script /exec URL in config.js. See setup.html. Set authorized JavaScript origin and ALLOWED_ORIGINS to https://kinhai-collab.github.io (without the repository path). Keep the Google Sheet private. No secrets belong in this repository.
+- **Canonical repository after cutover:** https://github.com/kinhai-collab/enkai
+- **Enkai site after cutover:** https://kinhai-collab.github.io/enkai/
+- **Enkai meal planner after cutover:**
+  https://kinhai-collab.github.io/enkai/planner.html
+- **Current production before cutover:**
+  https://kinhai-collab.github.io/nocturne-sao-paulo/
+- **Migration status:** The repository rename and provider cutover are not
+  automatic. Complete the safety plan in docs/enkai-rename-cutover.md before
+  merging the path migration.
 
-Public results expose only totals. Once configured, the backend checks Google token signatures, audience, issuer, expiry and challenge, and stores one ballot per Google account. Real Google authentication and Sheet writes remain unverified until configured.
+GitHub Pages publishes the static frontend from main using
+.github/workflows/pages.yml. .nojekyll enables buildless static output.
+Supabase Edge Functions manage authenticated plans, voting and calendar
+workflows. Google Places powers server-side restaurant discovery.
+Vercel hosts the separate Enkai invitation preview service.
 
-Photo source and attribution: assets/PHOTO-SOURCES.txt. Public reuse permission has not been verified. Fonts are self-hosted from Google Fonts under the included OFL licenses. Forge 1.4.0 license is in FORGE-LICENSE.txt.
+The public site has Enkai branding. Earlier Nocturne editorial theme names,
+São Paulo content, browser storage keys and remembered-session token prefixes
+are intentionally retained for compatibility.
 
-Publish source: main branch, root folder, GitHub Pages. The .nojekyll file enables buildless static output. All frontend assets are served from this GitHub Pages origin; no ChatGPT assets, sign-in or hosting are needed. Google services are contacted only when the organizer enables Google sign-in/shared voting.
+## Application structure
 
-## Active voting storage — Supabase
-The public site now uses `https://mxmqqqzxopjinlkjtcnb.supabase.co/functions/v1/dining-poll` with `transport: 'supabase'` in config.js. The older Google Apps Script instructions above describe the retired connection, not the current setup.
+- planner.html, planner.js, planner-mobile.js, planner-calendar.js:
+  shared meal planner and Google/Microsoft web sign-in.
+- group-finder.js, group-shortlist.js: group restaurant shortlists and
+  organizer choice / optional family poll.
+- invitation-sharing.js, invite.js, i.html, invite/:
+  invitation URLs and static restaurant previews.
+- index.html, nocturne.html, beyond.html, ontario.html:
+  dining guide and legacy themed pages.
+- supabase/functions/ and supabase/migrations/:
+  authenticated backend, private database tables and OAuth callbacks.
+- preview-service/: credential-free Vercel invitation Open Graph previews.
+- native/, scripts/build-ios.mjs, capacitor.config.json:
+  unsigned iOS beta foundation; native OAuth is still gated.
+- codemagic.yaml: manual-only signing preflight for the Enkai bundle ID;
+  no TestFlight publishing.
+- tests/: JavaScript, calendar, backend and iOS regression tests.
 
-Server source and private-table schema are in `supabase/`. The function verifies Google RS256 tokens with the fixed client audience, issuer, expiry and nonce. Database uniqueness prevents duplicate account ballots. Row-level security is enabled; anonymous and authenticated client roles have no table access. The service-role key is supplied only by Supabase's server environment and never belongs in GitHub/frontend files. The gateway's legacy Supabase JWT check is off because the function implements Google authentication itself. Only public restaurant totals are returned.
+## Security and operational boundaries
 
-Organizer records: https://supabase.com/dashboard/project/mxmqqqzxopjinlkjtcnb/editor — open `dining_ballots`. `dining_challenges` contains temporary sign-in nonces and is cleaned as sign-in challenges are requested. No submitted votes were present when switching storage. The old Sheet is retained but no longer receives new ballots.
+Supabase signs and validates identity with restricted providers and
+server-stored secrets; the frontend must not contain service-role credentials.
+Google Places credentials stay in the Supabase environment. Invitation
+previews return limited public metadata, never organizer ballot data.
+Restaurant discovery is not a confirmed reservation.
 
-Restaurant photography: all 31 restaurants have a card identifier and a details gallery of up to five images. Galleries crossfade every 10 seconds with previous/next and pause controls; reduced-motion preferences start them paused. Images are hosted locally under assets/restaurants, with original asset URLs in SOURCES.json. Official websites are preferred; Fame Osteria, Kan Suke, Kazuo, Casa do Porco, Banzeiro and Jiquitaia use credited MICHELIN profile photography. No voting API changes are involved.
+Historical Google Apps Script files (Code.gs, Forge.gs) remain for
+reference; Supabase is the active backend. Do not switch production
+back to Google Sheets.
 
-Beyond the stars contains 15 restaurants, including Banzeiro, Ama.zo (Campos Elisios), Jiquitaia, Komah, Fito (Pinheiros), and Bar da Dona Onca. Jiquitaia pricing is an explicitly labeled sample order from its official menu; other reported ranges retain their publication dates.
+Restaurant photos include attributions; public reuse rights for every
+image have not been independently verified. Fonts use the bundled OFL
+licenses. Forge licensing is retained in FORGE-LICENSE.txt.
+
+## References
+
+- docs/enkai-rename-cutover.md — safe repo rename, GitHub Pages
+  redirects, OAuth provider updates and deployment verification
+- docs/ios-testflight.md — native authentication and TestFlight gates
+- docs/enkai-codemagic-signing.md — manual Apple signing preflight
+- supabase/CALENDAR-SETUP.md — calendar provider and callback setup
+- privacy.html — user privacy and data handling
+
+**Do not merge a Pages path rename without protecting existing invitation
+links and configuring the new Microsoft and calendar redirect paths.**
