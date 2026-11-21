@@ -1,0 +1,28 @@
+name: Validate Codemagic signing policy
+
+on:
+  pull_request:
+    paths:
+      - 'codemagic.yaml'
+      - 'docs/enkai-codemagic-signing.md'
+      - 'tests/codemagic-signing.test.cjs'
+      - '.github/workflows/codemagic-policy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse Codemagic YAML
+        run: |
+          ruby -e 'require "yaml"; c = YAML.load_file("codemagic.yaml"); abort "Missing Enkai workflow" unless c.fetch("workflows", {}).key?("enkai-ios-signing-preflight")'
+      - name: Validate Codemagic signing boundaries
+        run: node --test tests/codemagic-signing.test.cjs
