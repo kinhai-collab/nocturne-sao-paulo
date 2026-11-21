@@ -9,9 +9,10 @@
   "scripts": {
     "ios:assets": "node scripts/build-ios.mjs",
     "ios:check": "node --test tests/ios-foundation.test.cjs",
-    "ios:init": "npm run ios:assets && npx cap add ios --packagemanager SPM",
+    "ios:init": "npm run ios:assets && npx cap add ios --packagemanager SPM && npm run ios:configure",
     "ios:sync": "npm run ios:assets && npx cap sync ios",
-    "ios:open": "npx cap open ios"
+    "ios:open": "npx cap open ios",
+    "ios:configure": "node scripts/configure-ios.mjs"
   },
   "dependencies": {
     "@capacitor/app": "8.1.2",
