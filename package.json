@@ -12,7 +12,9 @@
     "ios:init": "npm run ios:assets && npx cap add ios --packagemanager SPM && npm run ios:configure",
     "ios:sync": "npm run ios:assets && npx cap sync ios",
     "ios:open": "npx cap open ios",
-    "ios:configure": "node scripts/configure-ios.mjs"
+    "ios:configure": "node scripts/configure-ios.mjs",
+    "ios:team-check": "node scripts/apple-team-preflight.mjs",
+    "ios:team-test": "node --test tests/apple-team-preflight.test.mjs"
   },
   "dependencies": {
     "@capacitor/app": "8.1.2",
