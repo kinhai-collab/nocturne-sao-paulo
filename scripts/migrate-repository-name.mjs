@@ -18,6 +18,7 @@ const NEW = 'enkai';
 const extensions = new Set(['.md','.html','.js','.mjs','.cjs','.ts','.py','.json','.yml','.yaml','.css','.txt','.sql','.toml']);
 const excluded = new Set([
   'scripts/migrate-repository-name.mjs',
+  'scripts/build-legacy-pages.mjs',
   'docs/enkai-rename-cutover.md',
   '.github/workflows/rename-migration.yml',
   // Handled separately to preserve acceptance of old existing invitation links.
