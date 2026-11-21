@@ -84,6 +84,7 @@ a signed distributable IPA or upload anything to App Store Connect.
 
 - Apple Developer Program, Team ID, App Store Connect access and app record.
 - Permanent bundle ID, iOS Distribution signing certificates and profiles.
+- Audit licensing and distribution rights for bundled restaurant photography, as the existing repository README does not verify all image reuse permissions.
 - Branded icon, app privacy details, SDK privacy manifests, user support and
   data-deletion documentation, and beta-review contact information.
 - Review App Store guidelines 4.2 (more than a repackaged web page) and 4.8
