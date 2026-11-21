@@ -34,6 +34,7 @@
       allowed = true;
     }
     if (!allowed) return null;
+    if (url.protocol === 'enkai:' && [...url.searchParams.keys()].some(key => !['code','theme'].includes(key))) return null;
     if (url.searchParams.has('code')) return decodeInvitation(url.searchParams.get('code'));
     if (url.pathname === PREFIX+'planner.html' || url.protocol === 'enkai:') {
       const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
