@@ -29,9 +29,13 @@
   const handleInvite = raw => {
     const uuid=window.EnkaiIOSLinks?.parseInviteLink(raw);
     if(!uuid) return;
-    if(window.location.hash === '#invite='+uuid) return;
-    // Refresh initializes Enkai's existing invite parsing and preview handling.
-    window.location.replace(new URL('index.html#invite='+encodeURIComponent(uuid),window.location.href).href);
+    // No invitation API call is made from the native origin before the iOS
+    // origin/identity flow is approved. Use the existing browser experience.
+    const browser=cap.Plugins?.Browser;
+    const target=new URL(webPlanner);
+    target.hash='#invite='+encodeURIComponent(uuid);
+    if(browser?.open) browser.open({url:target.href}).catch(()=>showSignIn());
+    else showSignIn();
   };
 
   document.addEventListener('click', event => {
