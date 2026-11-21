@@ -1,0 +1,28 @@
+name: Check Apple team reuse configuration
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/apple-team-preflight.mjs'
+      - 'tests/apple-team-preflight.test.mjs'
+      - 'docs/mira-apple-team-reuse.md'
+      - 'package.json'
+      - '.github/workflows/apple-team-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  no-secret-preflight-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check preflight syntax
+        run: node --check scripts/apple-team-preflight.mjs
+      - name: Run Apple team metadata reuse tests
+        run: node --test tests/apple-team-preflight.test.mjs
