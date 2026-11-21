@@ -32,7 +32,7 @@ async function walk(dir) {
   for (const item of await readdir(dir,{withFileTypes:true})) {
     const file=join(dir,item.name), path=relative(root,file).replaceAll('\\','/');
     if (item.isDirectory()) {
-      if(['.git','node_modules','www','ios'].includes(item.name))continue;
+      if(['.git','node_modules','www','ios','legacy-pages'].includes(item.name))continue;
       await walk(file);
     } else if (item.isFile() && extensions.has(extname(item.name)) && !excluded.has(path)) {
       examined++;
