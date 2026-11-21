@@ -6,7 +6,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname,'..');
 const read = name => fs.readFileSync(path.join(root,name),'utf8');
 const newBase='https://kinhai-collab.github.io/enkai/';
-const oldSlug='enkai';
+const oldSlug='nocturne-sao-paulo';
 
 test('Enkai canonical paths are used by the serving application and generated previews',()=>{
   const readme=read('README.md');
@@ -37,7 +37,7 @@ test('old invitation URLs stay accepted by the native parser without unrelated h
   const api=require('../native/ios-invites.js');
   const uuid='11111111-1111-4111-8111-111111111111';
   const code=Buffer.from(uuid.replaceAll('-',''),'hex').toString('base64url');
-  for(const prefix of ['/enkai/','/enkai/']){
+  for(const prefix of ['/enkai/','/nocturne-sao-paulo/']){
     assert.equal(api.parseInviteLink('https://kinhai-collab.github.io'+prefix+'i.html?code='+code),uuid);
     assert.equal(api.parseInviteLink('https://kinhai-collab.github.io'+prefix+'planner.html#invite='+uuid),uuid);
   }
