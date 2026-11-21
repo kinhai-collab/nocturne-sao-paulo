@@ -24,7 +24,7 @@
     try { url = new URL(input); } catch { return null; }
     if (url.username || url.password) return null;
     let allowed = false;
-    if (url.protocol === 'enkai:' && url.hostname === 'invite' && url.pathname === '/') {
+    if (url.protocol === 'enkai:' && url.hostname === 'invite' && (url.pathname === '' || url.pathname === '/')) {
       allowed = true;
     } else if (url.protocol === 'https:' && url.hostname === WEB_HOST &&
         (url.pathname === PREFIX+'i.html' || url.pathname === PREFIX+'planner.html' ||
