@@ -6,7 +6,7 @@ import re
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-BASE = 'https://kinhai-collab.github.io/nocturne-sao-paulo/'
+BASE = 'https://kinhai-collab.github.io/enkai/'
 venues = json.loads((ROOT / 'planner-venues.js').read_text(encoding='utf-8').split('=', 1)[1].strip().rstrip(';'))
 (ROOT / 'invite').mkdir(exist_ok=True)
 (ROOT / 'assets/invitations').mkdir(exist_ok=True)

@@ -4,7 +4,9 @@
   'use strict';
   const WEB_HOST = 'kinhai-collab.github.io';
   const PREVIEW_HOST = 'enkai-invites.vercel.app';
-  const PREFIX = '/nocturne-sao-paulo/';
+  const PREFIX = '/enkai/';
+  // Legacy invitation links are still recognized after the repository rename.
+  const LEGACY_PREFIX = '/nocturne-sao-paulo/';
   const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
   const CODE = /^[A-Za-z0-9_-]{22}$/;
   function decodeInvitation(code) {
@@ -27,8 +29,11 @@
     if (url.protocol === 'enkai:' && url.hostname === 'invite' && (url.pathname === '' || url.pathname === '/')) {
       allowed = true;
     } else if (url.protocol === 'https:' && url.hostname === WEB_HOST &&
-        (url.pathname === PREFIX+'i.html' || url.pathname === PREFIX+'planner.html' ||
-         /^\/nocturne-sao-paulo\/invite\/[a-z0-9-]+\.html$/.test(url.pathname))) {
+        [PREFIX, LEGACY_PREFIX].some(prefix =>
+          url.pathname === prefix+'i.html' ||
+          url.pathname === prefix+'planner.html' ||
+          (url.pathname.startsWith(prefix+'invite/') &&
+           /^[a-z0-9-]+\.html$/.test(url.pathname.slice((prefix+'invite/').length))))) {
       allowed = true;
     } else if (url.protocol === 'https:' && url.hostname === PREVIEW_HOST && url.pathname === '/i') {
       allowed = true;
@@ -36,7 +41,7 @@
     if (!allowed) return null;
     if (url.protocol === 'enkai:' && [...url.searchParams.keys()].some(key => !['code','theme'].includes(key))) return null;
     if (url.searchParams.has('code')) return decodeInvitation(url.searchParams.get('code'));
-    if (url.pathname === PREFIX+'planner.html' || url.protocol === 'enkai:') {
+    if (url.pathname === PREFIX+'planner.html' || url.pathname === LEGACY_PREFIX+'planner.html' || url.protocol === 'enkai:') {
       const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
       const candidate = hash.get('invite');
       return UUID.test(candidate || '') ? candidate : null;

@@ -12,6 +12,9 @@ const code=Buffer.from(uuid.replaceAll('-',''),'hex').toString('base64url');
 
 test('recognizes existing short invitation links and preserves only opaque invitation UUID',()=>{
   for(const url of [
+    'https://kinhai-collab.github.io/enkai/i.html?code='+code,
+    'https://kinhai-collab.github.io/enkai/invite/known-place.html?code='+code,
+    'https://kinhai-collab.github.io/enkai/planner.html#invite='+uuid,
     'https://kinhai-collab.github.io/nocturne-sao-paulo/i.html?code='+code,
     'https://kinhai-collab.github.io/nocturne-sao-paulo/invite/known-place.html?code='+code,
     'https://enkai-invites.vercel.app/i?code='+code,
@@ -25,6 +28,7 @@ test('recognizes existing short invitation links and preserves only opaque invit
 test('refuses third-party links, credentials, unsupported paths and malformed invite codes',()=>{
   for(const url of [
     'https://evil.example/i?code='+code,
+    'https://kinhai-collab.github.io.evil.example/enkai/i.html?code='+code,
     'https://kinhai-collab.github.io.evil.example/nocturne-sao-paulo/i.html?code='+code,
     'https://kinhai-collab.github.io/another-project/i.html?code='+code,
     'http://kinhai-collab.github.io/nocturne-sao-paulo/i.html?code='+code,

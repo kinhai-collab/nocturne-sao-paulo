@@ -1,5 +1,5 @@
 // A credential-free server endpoint. Deploy separately from the GitHub Pages app.
-const appBase='https://kinhai-collab.github.io/nocturne-sao-paulo/';
+const appBase='https://kinhai-collab.github.io/enkai/';
 const endpoint='https://mxmqqqzxopjinlkjtcnb.supabase.co/functions/v1/meal-planner';
 const escape=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const headers={'Cache-Control':'private, no-store, max-age=0','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex, nofollow','X-Content-Type-Options':'nosniff','Vary':'User-Agent'};

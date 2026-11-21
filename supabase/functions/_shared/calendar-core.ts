@@ -1,6 +1,6 @@
 export type Provider = 'google' | 'microsoft';
 export type CalendarItem = { id: string; uid: string; title: string; start: string; end: string; tentative: boolean; busy: boolean; response?: string };
-export const APP = 'https://kinhai-collab.github.io/nocturne-sao-paulo/';
+export const APP = 'https://kinhai-collab.github.io/enkai/';
 export const EMAIL = /^[^\s@<>]{1,64}@[^\s@<>]{1,190}\.[^\s@<>]{2,}$/;
 export const GOOGLE_SCOPE = 'openid email https://www.googleapis.com/auth/calendar.events';
 export const MICROSOFT_SCOPE = 'openid email profile offline_access User.Read Calendars.ReadWrite';

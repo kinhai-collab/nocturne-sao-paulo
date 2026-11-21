@@ -9,3 +9,6 @@ npm-debug.log*
 *.mobileprovision
 *.p12
 *.p8
+
+# Standalone old GitHub Pages redirect package (separate hosting)
+/legacy-pages/

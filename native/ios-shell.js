@@ -5,7 +5,7 @@
   'use strict';
   const cap = window.Capacitor;
   if (!cap?.isNativePlatform?.()) return;
-  const webPlanner = 'https://kinhai-collab.github.io/nocturne-sao-paulo/planner.html';
+  const webPlanner = 'https://kinhai-collab.github.io/enkai/planner.html';
   const UUID = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
   const panel = () => document.querySelector('#panel');
 
