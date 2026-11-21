@@ -1,0 +1,78 @@
+name: Enkai iOS foundation checks
+
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'capacitor.config.json'
+      - 'native/**'
+      - 'scripts/build-ios.mjs'
+      - 'planner.js'
+      - 'tests/ios-foundation.test.cjs'
+      - '.github/workflows/ios-foundation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle-and-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check scripts
+        run: |
+          node --check scripts/build-ios.mjs
+          node --check native/ios-invites.js
+          node --check native/ios-shell.js
+          node --check planner.js
+      - name: Prepare standalone iOS bundle
+        run: npm run ios:assets
+      - name: Run native safety and packaging tests
+        run: npm run ios:check
+      - name: Resolve pinned Capacitor dependencies
+        run: npm install --no-audit --no-fund --ignore-scripts
+      - name: Validate Capacitor CLI configuration
+        run: npx cap config
+
+  simulator:
+    runs-on: macos-latest
+    timeout-minutes: 35
+    needs: bundle-and-security
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Show build toolchain
+        run: |
+          node --version
+          xcodebuild -version
+      - name: Install pinned Capacitor packages
+        run: npm install --no-audit --no-fund
+      - name: Build public web assets
+        run: npm run ios:assets
+      - name: Generate native iOS project (SPM; no signing)
+        run: npx cap add ios --packagemanager SPM
+      - name: Sync native project
+        run: npx cap sync ios
+      - name: Build an unsigned iOS Simulator app
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App \
+            -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build
+      - name: Upload unsigned iOS source project for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enkai-ios-unsigned-project
+          path: |
+            ios/
+            capacitor.config.json
+            package.json
+          if-no-files-found: warn
+          retention-days: 7
