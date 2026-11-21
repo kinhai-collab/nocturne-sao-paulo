@@ -12,7 +12,7 @@ Michelin dining guide and Toronto/Ontario restaurant guides.
 - **Enkai meal planner after cutover:**
   https://kinhai-collab.github.io/enkai/planner.html
 - **Current production before cutover:**
-  https://kinhai-collab.github.io/nocturne-sao-paulo/
+  https://kinhai-collab.github.io/enkai/
 - **Migration status:** The repository rename and provider cutover are not
   automatic. Complete the safety plan in docs/enkai-rename-cutover.md before
   merging the path migration.
