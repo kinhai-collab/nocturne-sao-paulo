@@ -7,6 +7,7 @@ on:
       - 'capacitor.config.json'
       - 'native/**'
       - 'scripts/build-ios.mjs'
+      - 'scripts/configure-ios.mjs'
       - 'planner.js'
       - 'tests/ios-foundation.test.cjs'
       - '.github/workflows/ios-foundation.yml'
@@ -27,6 +28,7 @@ jobs:
       - name: Check scripts
         run: |
           node --check scripts/build-ios.mjs
+          node --check scripts/configure-ios.mjs
           node --check native/ios-invites.js
           node --check native/ios-shell.js
           node --check planner.js
@@ -58,6 +60,8 @@ jobs:
         run: npm run ios:assets
       - name: Generate native iOS project (SPM; no signing)
         run: npx cap add ios --packagemanager SPM
+      - name: Install invitation URL scheme
+        run: npm run ios:configure
       - name: Sync native project
         run: npx cap sync ios
       - name: Build an unsigned iOS Simulator app
