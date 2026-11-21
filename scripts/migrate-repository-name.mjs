@@ -23,6 +23,9 @@ const excluded = new Set([
   // Handled separately to preserve acceptance of old existing invitation links.
   'native/ios-invites.js',
   'tests/ios-foundation.test.cjs',
+  'tests/enkai-rename.test.cjs',
+  // README explicitly documents the *old live* URL during the cutover.
+  'README.md',
 ]);
 let examined=0,updated=[];
 async function walk(dir) {
