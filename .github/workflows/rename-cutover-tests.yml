@@ -39,6 +39,18 @@ jobs:
       - name: Validate static links, old invitation compatibility and native assets
         run: |
           node --test tests/enkai-rename.test.cjs tests/ios-foundation.test.cjs tests/live-preview.test.cjs tests/invitation-sharing.test.cjs
+      - name: Build legacy redirect compatibility package (offline only)
+        run: |
+          node --check scripts/build-legacy-pages.mjs
+          node scripts/build-legacy-pages.mjs
+          node --test tests/legacy-redirects.test.cjs
+      - name: Upload offline old-link package for separate hosting
+        uses: actions/upload-artifact@v4
+        with:
+          name: enkai-legacy-pages-redirects
+          path: legacy-pages/
+          if-no-files-found: error
+          retention-days: 7
       - name: Confirm migration is idempotent
         run: |
           node scripts/migrate-repository-name.mjs
