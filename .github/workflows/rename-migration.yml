@@ -10,7 +10,7 @@ permissions:
 jobs:
   stage-references:
     # Only this dedicated user-owned migration branch may commit generated edits.
-    if: github.event.head_commit.message != 'chore: apply Enkai repository path migration'
+    if: ${{ !contains(github.event.head_commit.message, 'apply Enkai repository path migration') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
