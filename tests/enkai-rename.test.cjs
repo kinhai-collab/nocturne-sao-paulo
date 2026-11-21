@@ -61,3 +61,17 @@ test('source files that must switch on cutover contain no old repo slug',()=>{
     assert.equal(read(file).includes(oldSlug),false,file+' still hardcodes old project path');
   }
 });
+
+
+test('Vercel invitation redirect generates the new Enkai planner URL and preserves the invite',async()=>{
+  const { invitationTarget }=await import('../preview-service/core.mjs');
+  const uuid='11111111-1111-4111-8111-111111111111';
+  const code=Buffer.from(uuid.replaceAll('-',''),'hex').toString('base64url');
+  const result=invitationTarget(new URLSearchParams('code='+code+'&theme=after-hours'));
+  assert.ok(result);
+  const target=new URL(result.destination);
+  assert.equal(target.origin,'https://kinhai-collab.github.io');
+  assert.equal(target.pathname,'/enkai/planner.html');
+  assert.equal(target.hash,'#invite='+uuid);
+  assert.equal(target.searchParams.get('theme'),'after-hours');
+});
