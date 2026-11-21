@@ -1,0 +1,9 @@
+{
+  "appId": "com.kinhai.enkai.beta",
+  "appName": "Enkai Beta",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "iosScheme": "capacitor"
+  }
+}

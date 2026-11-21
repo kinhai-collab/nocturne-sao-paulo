@@ -195,6 +195,12 @@ async function getMicrosoftClient() {
   return microsoftClient;
 }
 async function startMicrosoft(linking) {
+  // iOS WKWebView must not present third-party OAuth. Native provider SDK work
+  // is tracked separately; route testers to the existing web experience.
+  if (window.EnkaiNativeApp?.showSignIn) {
+    window.EnkaiNativeApp.showSignIn();
+    return;
+  }
   try {
     persistOpenDraft();
     sessionStorage.setItem(microsoftFlowKey, JSON.stringify({ invite, meal: pendingMealId, linking, guideBooking, theme: document.body.dataset.plannerTheme, remember: linking ? savedSession()?.persistent === true : rememberSelected() }));
@@ -229,6 +235,10 @@ async function resumeMicrosoft() {
 }
 
 function chooseSignIn() {
+  if (window.EnkaiNativeApp?.showSignIn) {
+    window.EnkaiNativeApp.showSignIn();
+    return;
+  }
   show(invite ? 'Join this dinner' : 'Sign in to Enkai', `<div class="stack">
     <p><strong>New to Enkai? No separate sign-up needed.</strong></p>
     <p class="muted">Continue with Google or Outlook to keep your invitations and dinner plans together.</p>
@@ -242,6 +252,10 @@ function chooseSignIn() {
 }
 
 async function startSignIn(linking = false, remember = rememberSelected(), inline = false) {
+  if (window.EnkaiNativeApp?.showSignIn) {
+    window.EnkaiNativeApp.showSignIn();
+    return;
+  }
   if (signingIn) return;
   signingIn = true;
   if (!inline) show(linking ? 'Link your Google account' : 'Sign in with Google',

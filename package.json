@@ -1,0 +1,26 @@
+{
+  "name": "enkai-ios-foundation",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Enkai iOS foundation sharing the existing hosted web application source",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "ios:assets": "node scripts/build-ios.mjs",
+    "ios:check": "node --test tests/ios-foundation.test.cjs",
+    "ios:init": "npm run ios:assets && npx cap add ios --packagemanager SPM && npm run ios:configure",
+    "ios:sync": "npm run ios:assets && npx cap sync ios",
+    "ios:open": "npx cap open ios",
+    "ios:configure": "node scripts/configure-ios.mjs"
+  },
+  "dependencies": {
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/ios": "8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2"
+  }
+}
