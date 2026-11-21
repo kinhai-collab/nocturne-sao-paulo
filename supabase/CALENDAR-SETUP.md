@@ -236,7 +236,7 @@ Google, not Enkai, makes the final verification decision.
 ## November 13 follow-up
 
 Google Search Console confirmed “Ownership auto verified” using the HTML file
-for https://kinhai-collab.github.io/nocturne-sao-paulo/ under kinminghai@gmail.com.
+for https://kinhai-collab.github.io/enkai/ under kinminghai@gmail.com.
 Both the existing uploaded HTML proof and the added homepage meta tag are retained.
 The branding checker requires waiting 24 hours after ownership verification before
 retrying. Calendar scope justification and real-demo storyboard are prepared above;

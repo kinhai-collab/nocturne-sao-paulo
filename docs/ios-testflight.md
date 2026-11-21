@@ -14,7 +14,7 @@ to the current working web version using an Apple system browser view. This
 does not magically sign in the native app. Invitation links also use that safe
 browser handoff until native identity and backend-origin support are completed.
 
-- Web: https://kinhai-collab.github.io/nocturne-sao-paulo/planner.html
+- Web: https://kinhai-collab.github.io/enkai/planner.html
 - Backend: existing Supabase Edge Functions, unchanged
 - Invitation previews: existing Vercel endpoint, unchanged
 - Provisional bundle ID: com.kinhai.enkai.beta (confirm before App Store record)

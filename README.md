@@ -1,6 +1,6 @@
 # Nocturne — São Paulo dining poll
 
-Public site: https://kinhai-collab.github.io/nocturne-sao-paulo/
+Public site: https://kinhai-collab.github.io/enkai/
 
 The site uses GitHub Pages with local fonts and photos, independent of ChatGPT hosting. The layout is fluid across narrow and ultra-wide browsers. All 16 Michelin-starred restaurants are included; diners can select up to five. The hero contains eight photos, ten-second rotation, 1.5-second crossfades and previous/next controls.
 
