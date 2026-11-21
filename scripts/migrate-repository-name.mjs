@@ -25,6 +25,7 @@ const excluded = new Set([
   'native/ios-invites.js',
   'tests/ios-foundation.test.cjs',
   'tests/enkai-rename.test.cjs',
+  'tests/legacy-redirects.test.cjs',
   // README explicitly documents the *old live* URL during the cutover.
   'README.md',
 ]);
