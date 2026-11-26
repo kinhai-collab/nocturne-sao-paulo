@@ -1,0 +1,29 @@
+name: Validate deployed Enkai experience
+
+on:
+  push:
+    branches:
+      - 'test/live-release-validation-20261120'
+  pull_request:
+    paths:
+      - 'tests/live-release.test.cjs'
+      - '.github/workflows/live-release-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser tool
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Install browser and required packages
+        run: npx playwright install --with-deps chromium
+      - name: Validate published site using simulated guest data (no production API writes)
+        run: node --test tests/live-release.test.cjs
