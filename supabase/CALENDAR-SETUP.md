@@ -38,9 +38,16 @@ accessible only to the service role. Conflict event details are never stored.
 
 ## Deployment order
 
-1. Run the SQL migration and regression tests inside a transaction, then roll back.
-2. Apply `202611120002_calendar_sync.sql`; existing dinners do not automatically
-   opt into calendar invitations. Hosts must enable that dinner explicitly.
+1. Run the SQL migrations and regression tests inside a transaction, then roll back.
+2. Apply ALL migrations in `app/supabase/migrations/` in filename order before
+   deploying the current functions. This includes `202611120002_calendar_sync.sql`
+   and these later migrations that the current functions depend on:
+   - `202611140001_availability_before_rsvp.sql`
+   - `202611140002_invitation_photo_limits.sql`
+   - `202611140003_invitation_photo_group_limits.sql`
+   - `202611260001_cancelled_dinner_guard.sql`
+   Existing dinners do not automatically opt into calendar invitations. Hosts
+   must enable that dinner explicitly.
 3. Set secrets and deploy `calendar-callback`, `calendar-worker`, `meal-planner`.
 4. Enable `pg_cron` and `pg_net`. Store the worker secret in Supabase Vault under
    `enkai_calendar_worker`. Schedule one POST each minute to the calendar-worker
@@ -88,14 +95,16 @@ accessible only to the service role. Conflict event details are never stored.
 `npx deno test --allow-env tests/calendar-core.test.ts tests/calendar-sync.test.ts`
 
 SQL checks: `tests/calendar-database.sql` and `tests/mobile-response.sql`, wrapped
-with BEGIN/ROLLBACK alongside the migration when checking before installation.
+with BEGIN/ROLLBACK alongside the migrations being checked before installation.
 
 Provider simulations and browser fixtures do not prove live OAuth, real email
 delivery, or physical iPhone Safari / Samsung Internet compatibility.
 
 ## Setup checkpoint — 2026-11-12 (not a public release)
 
-- Database migration applied after transaction/rollback regression checks passed.
+- `202611120002_calendar_sync.sql` applied after transaction/rollback regression checks passed.
+  This historical checkpoint does not cover later migrations; follow the full
+  deployment order above for the current functions.
 - Calendar callback, worker, and updated planner functions deployed for provider tests.
 - Dedicated encryption key and worker credential stored in Supabase; matching
   worker credential in Vault. Minute scheduler installed and active.

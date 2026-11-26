@@ -1,11 +1,18 @@
 
 # Enkai iOS derived output (not published on GitHub Pages)
-/node_modules/
+node_modules/
 /www/
 /ios/
-/.DS_Store
+.DS_Store
 npm-debug.log*
 *.xcuserstate
 *.mobileprovision
 *.p12
 *.p8
+supabase/.temp/
+supabase/.branches/
+.env
+.env.*
+*.local
+.vercel/
+Thumbs.db

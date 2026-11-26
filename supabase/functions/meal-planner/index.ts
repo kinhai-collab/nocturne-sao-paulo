@@ -89,7 +89,7 @@ Deno.serve(async req => {
     if (input.action === 'preview-photo') return dinnerPhoto(data);
     const d = data.details;
     return reply({ title: d.title, location: d.location, restaurant: d.restaurant, selectedTime: d.selectedTime,
-      timeZone: d.timeZone, duration: d.duration, hasPhoto:Boolean(selectedPlaceId(d)), hostName: d.hostName?.split(/\s+/)[0] || 'Your host' });
+      timeZone: d.timeZone, duration: d.duration, cancelled: d.cancelled === true, hasPhoto:Boolean(selectedPlaceId(d)), hostName: d.hostName?.split(/\s+/)[0] || 'Your host' });
   }
   const credential = req.headers.get('authorization')?.match(/^Bearer ([\w.-]+)$/)?.[1];
   if (!credential || credential.length > 10000) return reply({ error: 'Sign in with Google or Microsoft to continue.' }, 401);
@@ -129,6 +129,11 @@ Deno.serve(async req => {
   }
 
   try {
+    if (input.action === 'signout') {
+      if (!remembered) return reply({ ok: true });
+      const { error } = await db.from(sessions).delete().eq('token_hash', tokenHash);
+      return error ? reply({ error: 'Could not revoke the saved sign-in.' }, 503) : reply({ ok: true });
+    }
     const canonical = await canonicalAccount(db,actor,microsoft);
     if (input.action === 'dinner-photo') {
       if (typeof input.id !== 'string' || !uuid.test(input.id)) return reply({error:'Dinner unavailable.'},404);
@@ -212,10 +217,6 @@ Deno.serve(async req => {
       if (error) return reply({ error: 'Could not save your sign-in on this browser.' }, 503);
       await db.from(sessions).delete().lt('expires_at', new Date().toISOString());
       return reply({ token });
-    }
-    if (action === 'signout' && remembered) {
-      const { error } = await db.from(sessions).delete().eq('token_hash', tokenHash);
-      return error ? reply({ error: 'Could not revoke the saved sign-in.' }, 503) : reply({ ok: true });
     }
     let payload;
     let linkedGoogle = null;

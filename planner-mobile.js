@@ -21,21 +21,6 @@ function updateSelectedRestaurants() {
   if(!input||!target)return;
   target.innerHTML=input.value.split('\n').map(n=>n.trim()).filter(Boolean).map(name=>'<button type="button" data-action="remove-restaurant" data-name="'+escape(name)+'" aria-label="Remove '+escape(name)+'">'+escape(name)+' ×</button>').join('');
 }
-function placePhotoMarkup(place) {
-  return '<img class="search-photo" src="'+escape(place.loadedPhoto.url)+'" alt="'+escape(place.name)+'"><p class="photo-credit">'+
-    (place.photo.authorAttributions||[]).map(a=>'<span>Photo: '+escape(a.displayName||'Google Maps contributor')+'</span>').join(' · ')+'</p>';
-}
-async function showPlacePhoto(button) {
-  const search=restaurantReturn,index=Number(button.dataset.photoIndex),place=search?.places[index];
-  if(!place?.photo)return;
-  button.disabled=true;button.textContent='Loading photo…';
-  try {
-    const data=place.loadedPhoto||await api('photo',{photo:place.photo.name});
-    place.loadedPhoto=data;
-    if(search!==restaurantReturn)return;
-    button.parentElement.innerHTML=placePhotoMarkup(place);
-  }catch {button.textContent='View photos on Google Maps';button.disabled=false;button.dataset.action='photo-fallback';button.dataset.name=place.name;button.dataset.city=place.address;}
-}
 function guideVenue(name, city) {
   const region=EnkaiTime.guessZone(city)==='America/Sao_Paulo'?'Brazil':EnkaiTime.guessZone(city)==='America/Toronto'?'Ontario':'';
   return (window.ENKAI_VENUES||[]).find(v=>region===v.region && v.name.toLocaleLowerCase()===String(name).toLocaleLowerCase());
@@ -146,6 +131,8 @@ function invitationLanding() {
   if (inviteError) return '<section class="card stack"><h2>Invitation unavailable</h2><p>' + escape(inviteError) +
     '</p><button data-action="retry-invite">Try again</button></section>';
   if (!info) return '<section class="card" role="status">Opening your invitation…</section>';
+  if (info.cancelled) return '<section class="invite-summary card stack"><h2>This dinner was cancelled</h2><p>' +
+    escape(info.title) + '</p><p>' + escape(info.hostName) + ' cancelled this dinner.</p></section>';
   return '<section class="invite-summary card stack"><p class="eyebrow">An invitation from ' + escape(info.hostName) +
     '</p><h2>' + escape(info.title) + '</h2>' + dinnerPhotoMarkup(info) + '<p>' + escape(info.restaurant || 'Let’s choose a restaurant together') +
     '</p><p>' + escape(info.location) + '</p><p>' +

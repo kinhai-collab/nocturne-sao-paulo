@@ -8,3 +8,8 @@ evvai-table.jpg: https://static.wixstatic.com/media/74e638_b513d3eef70c4cf398831
 tuju-course.jpg: https://static.wixstatic.com/media/2f08f6_a3e8fbe85f5b4fae97504f32d4532090~mv2.jpg
 tuju-room.png: https://static.wixstatic.com/media/2f08f6_c1f047b8374c49e39287a39c943fd723~mv2.png
 tuju-facade.jpg: https://static.wixstatic.com/media/2f08f6_d00544d82f63495fb9ea069a407d5e71~mv2.jpg
+
+2026-11-26: Removed unused media-data.js records for berkeley-north, fat-rabbit,
+langdon-hall and pearl-morissette after checking guide and planner references.
+Their card and photo files remain under assets/restaurants/ as unused assets.
+Attribution entries in assets/restaurants/SOURCES.json are retained for those files.

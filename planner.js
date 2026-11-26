@@ -58,20 +58,23 @@ async function restoreSession() {
 }
 async function signOut() {
   const saved = savedSession();
-  if (saved?.token) {
-    credential = saved.token;
+  const token = saved?.token || credential;
+  let revokeError = '';
+  if (token.startsWith('nocturne_')) {
+    credential = token;
     try { await api('signout'); }
-    catch (error) { if (credential) { message(error.message); return; } }
+    catch (error) { revokeError = error.message; }
   }
   forgetSession();
-  sessionStorage.removeItem(planDraftKey); sessionStorage.removeItem(responseDraftKey);
   credential = '';
+  try { sessionStorage.removeItem(planDraftKey); sessionStorage.removeItem(responseDraftKey); } catch {}
   state.meals = [];
   calendarAccount=null;calendarStatusAt=0;calendarChecks.clear();
   view = 'dashboard';
   window.google?.accounts?.id?.disableAutoSelect();
   microsoftClient?.clearCache().catch(()=>{});
   render();
+  if (revokeError) message('Signed out on this browser. ' + revokeError);
 }
 
 const rememberSelected = () => panel.querySelector('[data-remember-me]')?.checked === true;
@@ -117,7 +120,7 @@ async function api(action, payload = {}) {
   });
   const data = await response.json().catch(() => ({}));
   if (response.ok && action === 'list' && !Array.isArray(data)) throw Error('Could not load your meals.');
-  if (response.status === 401) {
+  if (response.status === 401 && action !== 'signout') {
     if (credential === savedSession()?.token) forgetSession();
     credential = '';
     state.meals = [];
@@ -610,7 +613,7 @@ async function searchGooglePlaces(form) {
     if (search !== restaurantReturn) return;
     search.places = places.filter(place=>place.displayName?.text).map(place=>({
       name: place.displayName.text, cuisine: place.primaryTypeDisplayName?.text,
-      placeId:place.id,photo:place.photos?.[0],hours:place.regularOpeningHours?.weekdayDescriptions,
+      placeId:place.id,hours:place.regularOpeningHours?.weekdayDescriptions,
       area: place.formattedAddress, address: place.formattedAddress,
       rating: place.rating, reviewCount: place.userRatingCount,
       priceLevel: googlePriceLevels[place.priceLevel], attributions: place.attributions || [],
@@ -774,8 +777,6 @@ document.addEventListener('click', event=>{
     case 'close': if (restaurantReturn) closeRestaurantBrowser(); else {persistOpenDraft(); panel.close(); setMealAddress('',true); render();} break;
     case 'retry-invite': loadInvitation(); break;
     case 'theme': applyPlannerTheme(id); render(); break;
-    case 'load-photo': showPlacePhoto(button); break;
-    case 'photo-fallback': window.open(maps(button.dataset.name,button.dataset.city),'_blank','noopener'); break;
     case 'show-restaurant-photo': showRestaurantPhoto(button.dataset.photoIndex); break;
     case 'close-restaurant-photo': document.querySelector('#restaurant-photo-view').close(); break;
     case 'remove-restaurant': {
