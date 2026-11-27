@@ -68,12 +68,12 @@ async function searchGroupPlaces(form) {
         '<p>' + escape(place.formattedAddress || city) + '</p>' +
         '<small>Group seating and availability not verified</small>' +
         '<div class="row"><button type="button" class="primary" data-action="group-pick" data-index="' +
-          index + '">Choose this place</button>' +
+          index + '">Choose this restaurant</button>' +
           '<a href="' + escape(maps(name, place.formattedAddress || city)) +
           '" target="_blank" rel="noopener noreferrer">Details &amp; contact ↗</a></div></article>';
     }).join('') +
-      '<button type="button" data-action="group-vote">Ask the family about these places</button>' +
-      '<small>Choosing a place does not book a table. A family vote does not hold a reservation.</small>';
+      '<button type="button" data-action="group-vote">Ask the group</button>' +
+      '<small>Choosing a place does not book a table. A group vote does not hold a reservation.</small>';
     status.textContent = 'Three recommended options, or fewer if not enough matched.';
   } catch (error) {
     if (search === groupFinderState && panel.open) status.textContent = error.message;
@@ -82,7 +82,7 @@ async function searchGroupPlaces(form) {
   }
 }
 
-function saveGroupShortlist(mode, index) {
+function saveGroupShortlist(mode, index, trigger = null) {
   const search = groupFinderState;
   const meal = state.meals.find(item => item.id === search?.mealId);
   if (!meal?.organizer || !meal.selectedTime || meal.restaurant || meal.cancelled || meal.restaurants?.length ||
@@ -91,7 +91,7 @@ function saveGroupShortlist(mode, index) {
   if (!chosen.length || chosen.some(place => !place)) return;
   const names = chosen.map(place => place.displayName.text);
   const confirmation = mode === 'vote'
-    ? 'Ask the family about these restaurant options? No tables will be held.'
+    ? 'Ask the group about these restaurant options? No tables will be held.'
     : 'Choose ' + names[0] + ' for this dinner? This may notify guests. You still need to contact the restaurant to book.';
   if (!window.confirm(confirmation)) return;
   const details = {
@@ -104,6 +104,6 @@ function saveGroupShortlist(mode, index) {
   for (const key of ['id','version','invite','myVote','responses','organizer','joinedCount',
     'attendanceResponses','calendarSync','myCalendar']) delete details[key];
   groupFinderState = null;
-  syncMeal('manage', { id: meal.id, version: meal.version, details });
+  syncMeal('manage', { id: meal.id, version: meal.version, details }, [], trigger);
 }
 panel.addEventListener('close', () => { groupFinderState = null; });

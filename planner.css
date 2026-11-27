@@ -250,6 +250,19 @@ summary{cursor:pointer;min-height:44px;align-content:center;color:var(--accent)}
 .invite-next-evening{border-top:1px solid var(--line);padding-top:18px;margin-top:8px}.invite-next-evening p{margin:0}
 
 .share-message{white-space:pre-line;overflow-wrap:anywhere}
+.dinner-next-step{padding-block:.5rem 1rem;border-bottom:1px solid var(--line)}
+.dinner-next-step>.primary{width:100%;min-height:48px}
+.poll-tallies{padding-block:.5rem}
+.vote-row{padding:.75rem;border:1px solid var(--line);border-radius:12px;gap:.4rem}
+.vote-row .row{flex-wrap:wrap}
+.vote-row progress{display:block;width:100%;height:.5rem;accent-color:var(--accent)}
+.vote-row small{overflow-wrap:anywhere}
+.none-option{border-top:1px solid var(--line);margin-top:.5rem;min-height:48px}
+.poll-error{color:var(--ink);font-weight:600}
+.poll-error:empty,.calendar-check:empty{display:none}
+.cancelled-banner{padding:1rem;border:1px solid var(--line);border-radius:12px}
+[data-step-progress]{display:flex;flex-wrap:wrap;gap:.25rem;letter-spacing:normal;text-transform:none}
+[data-step-progress] [aria-current=step]{font-weight:700;color:var(--ink);text-decoration:underline;text-underline-offset:.3em}
 .invite-response-action>.primary{width:100%}
 .venue-result.has-thumbnail{display:grid;grid-template-columns:minmax(0,1fr);gap:.75rem;align-items:start}
 .venue-result.has-thumbnail>div{min-width:0}

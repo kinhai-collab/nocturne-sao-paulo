@@ -92,7 +92,8 @@ function persistOpenDraft() {
   if (!form && restaurantReturn?.input) form = restaurantReturn.input.form;
   if (form) {
     try { sessionStorage.setItem(planDraftKey, JSON.stringify({flow:form.dataset.flow, step:wizardStep,
-      values:Array.from(new FormData(form).entries()), times:form.querySelectorAll('[name=time]').length})); } catch {}
+      values:Array.from(new FormData(form).entries()), times:form.querySelectorAll('[name=time]').length,
+      manualTimeZone:form.querySelector('[name=timeZone]')?.dataset.manual === 'true'})); } catch {}
   }
   const response = panel.querySelector('[data-form=respond]');
   if (response && activeMeal) {
@@ -151,35 +152,52 @@ function discoverView() {
     '<button class="discovery-card" data-guide="michelin"><img src="assets/tuju-course.jpg" alt="" loading="lazy"><span><strong>Michelin</strong><small>Exceptional tables in São Paulo and Ontario</small></span></button>' +
     '<button class="discovery-card" data-guide="good"><img src="assets/evvai-room.jpeg" alt="" loading="lazy"><span><strong>Good Eats</strong><small>Local favourites, views and memorable evenings</small></span></button></div>';
 }
+function noneChoice(key) {
+  // Legacy empty arrays can predate this poll dimension. Only an explicit choice
+  // in this form (or its restored draft) selects none; never infer it from [] alone.
+  return '<label class="option none-option"><input type="checkbox" name="none-'+key+'" value="none" data-poll-dimension="'+key+'" data-none="true"><span>None of these work</span></label><p class="poll-error" data-poll-error="'+key+'" role="alert"></p>';
+}
+function validatePollResponse(form, meal) {
+  let valid=true;
+  for(const key of ['times','restaurants']) {
+    const open=key==='times'?!meal.selectedTime&&meal.times.length:!meal.restaurant&&meal.restaurants.length;
+    if(!open)continue;
+    const selected=form.querySelector('[name="'+key+'"]:checked, [name="none-'+key+'"]:checked');
+    const error=form.querySelector('[data-poll-error="'+key+'"]');
+    if(error)error.textContent=selected?'':'Pick at least one option, or choose None of these work.';
+    if(!selected){if(valid)form.querySelector('[data-poll-dimension="'+key+'"]')?.focus();valid=false;}
+  }
+  return valid;
+}
 function responseForm(meal) {
-  if(meal.cancelled)return '<p>This dinner was cancelled by the organizer.</p>';
+  if(meal.cancelled)return '';
   const vote = meal.myVote || {times:[],restaurants:[]};
   const timesOpen = !meal.selectedTime && meal.times.length;
   const restaurantsOpen = !meal.restaurant && meal.restaurants.length;
-  if(!finalPlan(meal)&&!timesOpen&&!restaurantsOpen)return '<p>Your host is choosing the restaurant. You’ll be able to RSVP once the date and restaurant are final.</p>';
-  return (finalPlan(meal)&&!meal.organizer?'<section class="calendar-before-rsvp" aria-label="Check before confirming"><strong>Before you confirm</strong><div data-calendar-time="'+escape(meal.selectedTime)+'" class="calendar-check" aria-live="polite"><small>Checking calendar…</small></div><small>Calendar connection is optional. You can RSVP without it.</small></section>':'') + '<form class="stack response-form '+(!meal.organizer?'guest-response':'')+'" data-form="respond">' +
-    (!meal.organizer && finalPlan(meal) ? '<fieldset class="rsvp-options"><legend>' + 'Will you be joining?' +
-    '</legend>' + Object.entries(attendanceLabels).map(([value,label])=>'<label class="option"><input type="radio" name="attendance" value="' + value +
+  if(!finalPlan(meal)&&!timesOpen&&!restaurantsOpen)return '<p>RSVP opens once the date and restaurant are set.</p>';
+  return '<form class="stack response-form '+(!meal.organizer?'guest-response':'')+'" data-form="respond">' +
+    (meal.organizer?'<h3>Your availability</h3>':'')+
+    (!meal.organizer && finalPlan(meal) ? '<div data-calendar-time="'+escape(meal.selectedTime)+'" class="calendar-check" aria-live="polite"></div><fieldset class="rsvp-options"><legend>Will you be joining?</legend>' +
+    Object.entries(attendanceLabels).map(([value,label])=>'<label class="option"><input type="radio" name="attendance" value="' + value +
       '" ' + (vote.attendance === value ? 'checked' : '') + ' required><span>' + label + '</span></label>').join('') + '</fieldset>' : '') +
-    (!finalPlan(meal) ? '<p class="muted">Select all the options that work for you. Voting expresses availability; you’ll confirm attendance once the date is final.</p>' : '') +
+    (!finalPlan(meal) ? '<p class="muted">Select all the options that work for you. RSVP opens once the date and restaurant are set.</p>' : '') +
     (finalPlan(meal)&&meal.myVote?.needsReconfirmation?'<p class="calendar-warning">The plan changed. Please confirm your attendance again.</p>':'')+
-    (timesOpen&&!connectedCalendars().length?'<button type="button" data-action="calendar-settings">Connect calendar to check these times</button>':'')+
     (timesOpen ? '<fieldset class="poll-options"><legend>When works? · ' + escape(destinationLabel(meal)) + '</legend>' +
-      calendarPollChoices(meal,vote) + '</fieldset>' : '') +
-    (restaurantsOpen ? '<fieldset class="poll-options"><legend>Where would you go?</legend>' + meal.restaurants.map(r=>'<div class="venue-option"><label class="option"><input type="checkbox" name="restaurants" value="' +
+      calendarPollChoices(meal,vote) + noneChoice('times') + '</fieldset>' : '') +
+    (restaurantsOpen ? '<fieldset class="poll-options"><legend>Where would you go?</legend>' + meal.restaurants.map(r=>'<div class="venue-option"><label class="option"><input type="checkbox" name="restaurants" data-poll-dimension="restaurants" value="' +
       escape(r) + '" ' + (vote.restaurants.includes(r) ? 'checked' : '') + '><span>' + escape(r) + '</span></label><a href="' +
-      escape(venueMaps(r,meal)) + '" target="_blank" rel="noopener">Reviews & location ↗</a></div>').join('') +
+      escape(venueMaps(r,meal)) + '" target="_blank" rel="noopener">Reviews & location ↗</a></div>').join('') + noneChoice('restaurants') +
       (!meal.organizer && !meal.suggested ? '<button type="button" data-action="suggest-restaurant">Suggest one restaurant</button>' : '') + '</fieldset>' : '') +
     (finalPlan(meal)&&!meal.organizer?'<small>Confirming Going accepts this dinner’s invitation in your connected calendar. Maybe or Can’t make it updates your calendar response too. Without a connection, accept the email invitation yourself.</small>':'')+
-    '<div class="sticky-actions"><button class="primary" type="submit">'+(finalPlan(meal)&&!meal.organizer?'Confirm RSVP':'Save availability')+'</button></div></form>';
+    '<div'+(!meal.organizer?' class="sticky-actions"':'')+'><button'+(!meal.organizer?' class="primary"':'')+' type="submit">'+(finalPlan(meal)&&!meal.organizer?'Save RSVP':'Save availability')+'</button></div></form>';
 }
-function receiptView(meal) {
+function receiptView(meal, showEdit = true) {
   const vote = meal.myVote || {times:[],restaurants:[]};
   return '<section class="response-receipt card stack" role="status"><h3>'+(finalPlan(meal)?'RSVP saved':'Availability saved')+'</h3>' +
     (finalPlan(meal)&&vote.attendance ? '<p>' + escape(attendanceLabels[vote.attendance]) + '</p>' : '') +
     (!meal.selectedTime && meal.times.length ? '<p><strong>Your times</strong><br>' + escape(vote.times.map(t=>mealDateTime(t,meal)).join(' · ') || 'None of these times work') + '</p>' : '') +
     (!meal.restaurant && meal.restaurants.length ? '<p><strong>Your restaurants</strong><br>' + escape(vote.restaurants.join(' · ') || 'None of these restaurants work') + '</p>' : '') +
-    '<p>Your host can see this response. You can change it later.</p><button data-action="edit-response">Change my response</button><button data-view="dashboard">Back to home</button>'+
+    '<p>Your host can see this response. You can change it later.</p>'+(showEdit?'<button data-action="edit-response">Change my response</button>':'')+'<button data-view="dashboard">Back to home</button>'+
     (!meal.organizer?'<div class="invite-next-evening stack"><p>Have another get-together in mind?</p><button type="button" data-action="new">Plan your own evening</button><small>Your response above is saved. Start a separate plan and invite your people.</small></div>':'')+'</section>';
 }
 
@@ -196,16 +214,17 @@ function openPlan(wish, flow = 'restaurant', resume = false) {
   if (draft) flow = draft.flow;
   wizardStep = draft ? draft.step : 0;
   const destination = '<label>Where are you getting together?<input name="location" maxlength="120" required placeholder="City or neighbourhood" value="' + escape(wish?.location) + '"></label>' +
-    timeZoneSelector(EnkaiTime.guessZone(wish?.location));
+    timeZoneSelector(EnkaiTime.guessZone(wish?.location) || (!wish?.location ? Intl.DateTimeFormat().resolvedOptions().timeZone : ''));
   const times = '<div class="stack">' + (flow === 'restaurant' ? '<label>Choose a time<select name="dateMode"><option value="fixed">I’ll set the time</option><option value="poll">Let guests choose</option></select></label>' : '') +
     '<div class="stack" id="time-options">' + timeInput().repeat(draft?.times || (flow === 'undecided' ? 2 : 1)) + '</div>' +
     '<button type="button" data-action="add-time" ' + (flow === 'undecided' ? '' : 'hidden') + '>Add another time</button>' +
     '<label>How long?<select name="duration">' + durations.map(m=>'<option value="' + m + '" ' + (m===90?'selected':'') + '>' + durationLabel(m) + '</option>').join('') + '</select></label></div>';
   const steps = flow === 'restaurant'
-    ? [{name:'The place',html:destination + restaurantPicker(wish?.name,true)}, {name:'The time',html:times}, {name:'The people',html:wizardGuests(wish)}]
-    : [{name:'The time',html:destination + times}, ...(flow === 'date' ? [{name:'The place',html:restaurantPicker(wish?.name) + '<p class="muted">You can leave the restaurant open and choose it later.</p>'}] : []),
-      {name:'The people',html:wizardGuests(wish)}];
-  steps.push({name:'Review & invite',html:'<div data-plan-summary class="stack"></div><p class="muted">This creates a plan and invitation link. Restaurant reservations are a separate step.</p><label class="option"><input type="checkbox" name="calendarEnabled" checked><span>Send calendar invitations when the date and restaurant are final</span></label><small>Invitations go to signed-in guests from your connected calendar. Connect it in Settings if you haven’t already.</small>'});
+    ? [{name:'Where',html:destination + restaurantPicker(wish?.name,true)}, {name:'When',html:times}, {name:'Who',html:wizardGuests(wish)}]
+    : [{name:'Where & when',html:destination + times},
+      ...(flow === 'date' ? [{name:'Place',html:restaurantPicker(wish?.name) + '<p class="muted">You can leave the restaurant open and choose it later.</p>'}] : []),
+      {name:'Who',html:wizardGuests(wish)}];
+  steps.push({name:'Review',html:'<div data-plan-summary class="stack"></div><p class="muted">This creates a plan and invitation link. Restaurant reservations are a separate step.</p><label class="option"><input type="checkbox" name="calendarEnabled" checked><span>Send calendar invitations when the date and restaurant are final</span></label><small>Invitations go to signed-in guests from your connected calendar. Connect it in Settings if you haven’t already.</small>'});
   show('Plan an evening', '<form class="stack wizard" data-form="new" data-flow="' + flow + '" novalidate><p class="eyebrow" data-step-progress></p>' +
     steps.map((step,i)=>'<section class="stack wizard-step" data-step="' + i + '" data-step-name="' + step.name + '"><h3>' + step.name + '</h3>' + step.html + '</section>').join('') +
     '<div class="sticky-actions"><button type="button" data-action="plan-back">Back</button><button type="button" class="primary" data-action="plan-next">Continue</button><button type="submit" class="primary" data-create-plan hidden>Create invitation</button></div></form>');
@@ -218,6 +237,7 @@ function openPlan(wish, flow = 'restaurant', resume = false) {
       else if (entries.length) {const i=seen[field.name] || 0; field.value=entries[i] ?? ''; seen[field.name]=i+1;}
     }
     form.querySelector('[data-action=add-time]').hidden = flow !== 'undecided' && form.elements.dateMode?.value !== 'poll';
+    if(draft.manualTimeZone)form.querySelector('[name=timeZone]').dataset.manual='true';
   }
   updateTimeInputs(form);
   updateSelectedRestaurants();
@@ -230,7 +250,7 @@ function renderWizard() {
   wizardStep = Math.min(wizardStep, steps.length-1);
   steps.forEach((step,i)=>{step.hidden=i!==wizardStep;});
   const last = wizardStep === steps.length-1;
-  form.querySelector('[data-step-progress]').textContent='Step ' + (wizardStep+1) + ' of ' + steps.length;
+  form.querySelector('[data-step-progress]').innerHTML=steps.map((step,i)=>'<span '+(i===wizardStep?'aria-current="step"':'')+'>'+escape(step.dataset.stepName)+'</span>').join('<span aria-hidden="true"> · </span>');
   form.querySelector('[data-action=plan-next]').hidden=last;
   form.querySelector('[data-create-plan]').hidden=!last;
   if (last) {

@@ -38,7 +38,7 @@ function harness(overrides = {}) {
     api:async (action,payload)=>{calls.push({action,payload});return [
       place('A Bistro',1),place('B Bistro',2),place('C Bistro',3)
     ];},
-    syncMeal:(action,payload)=>calls.push({action,payload}),
+    syncMeal:(action,payload,newContacts,trigger)=>calls.push({action,payload,newContacts,trigger}),
   });
   vm.runInContext(ranking,context,{filename:'group-shortlist.js'});
   vm.runInContext(source,context,{filename:'group-finder.js'});
@@ -85,7 +85,8 @@ test('choose one persists Unbooked status and the selected Google Place ID',asyn
   h.context.form=h.form;
   vm.runInContext('openGroupFinder()',h.context);
   await vm.runInContext('searchGroupPlaces(form)',h.context);
-  vm.runInContext("saveGroupShortlist('pick', 1)",h.context);
+  h.context.trigger={textContent:'Choose this restaurant'};
+  vm.runInContext("saveGroupShortlist('pick', 1, trigger)",h.context);
   const saved=h.calls.find(c=>c.action==='manage');
   assert.equal(saved.payload.version,7);
   assert.equal(saved.payload.details.restaurant,'B Bistro');
@@ -93,18 +94,21 @@ test('choose one persists Unbooked status and the selected Google Place ID',asyn
   assert.equal(saved.payload.details.venues[0].placeId,'place_2');
   assert.equal(saved.payload.details.selectedTime,h.meal.selectedTime);
   assert.equal(saved.payload.details.timeZone,h.meal.timeZone);
+  assert.equal(saved.trigger,h.context.trigger,'the clicked pick button owns the saving state');
 });
 
 test('ask family reuses existing poll structure without choosing a restaurant',async()=>{
   const h=harness();h.context.form=h.form;
   vm.runInContext('openGroupFinder()',h.context);
   await vm.runInContext('searchGroupPlaces(form)',h.context);
-  vm.runInContext("saveGroupShortlist('vote')",h.context);
+  h.context.trigger={textContent:'Ask the group'};
+  vm.runInContext("saveGroupShortlist('vote', undefined, trigger)",h.context);
   const saved=h.calls.find(c=>c.action==='manage');
   assert.equal(saved.payload.details.restaurant,'');
   assert.equal(saved.payload.details.status,'Unbooked');
   assert.deepEqual(Array.from(saved.payload.details.restaurants),['C Bistro','B Bistro','A Bistro']);
   assert.equal(saved.payload.details.venues.length,3);
+  assert.equal(saved.trigger,h.context.trigger,'the clicked vote button owns the saving state');
 });
 
 test('stale/invalid user actions cannot change existing restaurant polls',async()=>{

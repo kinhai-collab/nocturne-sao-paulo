@@ -40,25 +40,28 @@ async function connectCalendar(providerName) {
   }catch(error) {message(error.message);if(button)button.disabled=false;}
 }
 function calendarPollChoices(meal,vote) {
-  return meal.times.map(t=>'<div class="calendar-time-option"><label class="option"><input type="checkbox" name="times" value="'+escape(t)+'" '+
+  return meal.times.map(t=>'<div class="calendar-time-option"><label class="option"><input type="checkbox" name="times" data-poll-dimension="times" value="'+escape(t)+'" '+
     (vote.times.includes(t)?'checked':'')+'><span>'+escape(mealDateTime(t,meal))+'</span></label><div data-calendar-time="'+escape(t)+'" class="calendar-check" aria-live="polite">'+
-    (hasConflict(t,meal.duration)?'<small class="calendar-warning">⚠ Overlaps a calendar block you added</small>':'<small>◷ Checking calendar…</small>')+'</div></div>').join('');
+    (hasConflict(t,meal.duration)?'<small class="calendar-warning">⚠ Overlaps a calendar block you added</small>':'')+'</div></div>').join('');
 }
 function calendarDinnerMarkup(meal) {
+  if(meal.cancelled)return '';
+  const connected=connectedCalendars().length>0;
   const labels={sent:'Calendar invitations sent',pending:'Calendar syncing…',retrying:'Calendar sync delayed — will retry',reconnect_host:'Host needs to reconnect their calendar',cancelled:'Calendar invitation cancelled'};
   const mine={accepted:'Accepted in your calendar',tentative:'Tentative in your calendar',declined:'Declined in your calendar',pending:'Your calendar response is syncing…',reconnect:'Reconnect your calendar to sync',accept_in_email:'Accept the invitation in your email',restore_in_email:'Outlook removed the declined invitation. To change your answer, open the original invitation in Deleted Items and respond, then refresh here.',needs_confirmation:'Confirm your attendance for this date',changed_in_calendar:'Your calendar invitation changed or was removed — review your attendance'};
   const hostConnected=connectedCalendars().length>0;
   let text=meal.cancelled?'This dinner is cancelled.':!finalPlan(meal)?'Calendar invitations wait until the date and restaurant are final.':
-    meal.organizer&&!hostConnected?'Connect your calendar to send invitations.':labels[meal.calendarSync?.status]||'Calendar invitations are preparing.';
+    meal.organizer&&!hostConnected?'Calendar invitations need a connected calendar.':labels[meal.calendarSync?.status]||'Calendar invitations are preparing.';
   if(!meal.calendarEnabled&&!meal.calendarSync?.status)text=meal.organizer?'Turn on invitations under Finalize the plan.':'Your host hasn’t enabled calendar invitations.';
   if(finalPlan(meal)&&!meal.cancelled&&meal.calendarSync?.status!=='cancelled'&&!meal.organizer&&meal.myCalendar?.status)text=mine[meal.myCalendar.status]||text;
-  return '<section class="calendar-dinner stack" data-calendar-dinner><div class="row spread"><strong>Calendar</strong><button type="button" data-action="calendar-refresh">Refresh</button></div><p role="status">'+escape(text)+'</p>'+
-    '<small>Checks cover connected primary/default calendars. Reservation status is separate.</small>'+
+  return '<section class="calendar-dinner stack" data-calendar-dinner><div class="row spread"><strong>Calendar</strong><button type="button" data-action="calendar-refresh">Refresh</button></div><p role="status">'+escape(text)+'</p><small data-calendar-status role="status">'+(connected?'Calendar connected.':'Calendar not connected. You can still respond.')+'</small>'+
     (!meal.cancelled&&!connectedCalendars().length?'<button type="button" data-action="calendar-settings">Connect calendar</button>':'')+
-    (meal.selectedTime&&!meal.cancelled&&(meal.organizer||responseReceipt===meal.id)?'<div data-calendar-time="'+escape(meal.selectedTime)+'" class="calendar-check" aria-live="polite"><small>◷ Checking calendar…</small></div>':'')+'</section>';
+    (meal.selectedTime&&(meal.organizer||responseReceipt===meal.id)?'<div data-calendar-time="'+escape(meal.selectedTime)+'" class="calendar-check" aria-live="polite"></div>':'')+'</section>';
 }
 function paintCalendarChecks(meal,result) {
   if(!panel.open||activeMeal?.id!==meal.id)return;
+  const summary=panel.querySelector('[data-calendar-status]');
+  if(summary)summary.textContent=result.status==='checked'?'Calendar connected. Times checked.':result.status==='not_connected'?'Calendar not connected. You can still respond.':connectedCalendars().length?'Calendar connected. Some times could not be checked.':'Calendar not connected. You can still respond.';
   for(const target of panel.querySelectorAll('[data-calendar-time]')) {
     const time=target.dataset.calendarTime,option=result.options?.find(o=>o.time===time),overlaps=option?.conflicts||[];
     const manual=hasConflict(time,meal.duration)?'<small class="calendar-warning">⚠ Overlaps a calendar block you added</small>':'';
@@ -67,8 +70,8 @@ function paintCalendarChecks(meal,result) {
         overlaps.map(c=>'<p><strong>'+escape(c.title)+'</strong><br><small>'+escape(EnkaiTime.format(c.start,mealZone(meal)))+' – '+escape(EnkaiTime.format(c.end,mealZone(meal)))+
           ' · '+calendarNames[c.provider]+(c.tentative?' · Tentative':'')+'</small></p>').join('')+'<small>Only you can see this. You can still choose this time.</small></div></details>'+
         (result.status!=='checked'?'<small>Some calendars could not be checked.</small>':'');
-    }else if(result.status==='checked')target.innerHTML=manual+'<small class="calendar-clear">✓ No conflicts found in connected calendars</small>';
-    else target.innerHTML=manual+'<small>— '+(result.status==='not_connected'?'Calendar not connected':'Calendar not fully checked — refresh or reconnect')+'</small>';
+    }else if(result.status==='checked'&&option&&connectedCalendars().length)target.innerHTML=manual+'<small class="calendar-clear">✓ No conflicts found in connected calendars</small>';
+    else target.innerHTML=manual;
   }
 }
 async function checkDinnerCalendar(meal,force=false) {
@@ -86,6 +89,15 @@ async function checkDinnerCalendar(meal,force=false) {
 async function refreshCalendars(force=false) {
   if(!credential||calendarRefreshing||requestInFlight)return;
   calendarRefreshing=true;
+  const previous=[];
+  const markRefreshing=()=>{
+    for(const button of document.querySelectorAll('[data-action=calendar-refresh]')) {
+      if(previous.some(saved=>saved.button===button))continue;
+      previous.push({button,text:button.textContent,disabled:button.disabled});
+      button.textContent='Refreshing…';button.disabled=true;button.setAttribute('aria-busy','true');
+    }
+  };
+  markRefreshing();
   const id=panel.open?activeMeal?.id:null;
   // Preserve votes before updating dinner data; never rebuild an open planning form.
   persistOpenDraft();
@@ -94,10 +106,10 @@ async function refreshCalendars(force=false) {
     if(force||Date.now()-calendarQueueAt>60000) {await api('calendar-refresh');calendarQueueAt=Date.now();}
     await refresh(true);
     if(id&&panel.open&&panel.querySelector('.dinner-detail')) {
-      const meal=state.meals.find(m=>m.id===id);if(meal){mealDetails(meal);if(force)await checkDinnerCalendar(meal,true);}
+      const meal=state.meals.find(m=>m.id===id);if(meal){mealDetails(meal);markRefreshing();if(force)await checkDinnerCalendar(meal,true);}
     }
   }catch {if(force)message('Could not refresh. Your selections are still here.');}
-  finally {calendarRefreshing=false;}
+  finally {calendarRefreshing=false;previous.forEach(({button,text,disabled})=>{button.textContent=text;button.disabled=disabled;button.removeAttribute('aria-busy');});}
 }
 document.addEventListener('click',async event=>{
   const button=event.target.closest('button[data-action]');if(!button)return;
@@ -114,7 +126,7 @@ document.addEventListener('click',async event=>{
     try {calendarAccount=await api('calendar-disconnect',{provider:p});calendarChecks.clear();showCalendarSettings();}catch(error){message(error.message);}
   }
   if(action==='cancel-dinner'&&activeMeal?.organizer)show('Cancel this dinner?', '<div class="stack"><p>Guests will see that the dinner is cancelled. Any calendar invitation sent through Enkai will be cancelled too.</p><button data-action="confirm-cancel-dinner">Cancel dinner & notify guests</button><button data-action="calendar-back">Keep dinner</button></div>');
-  if(action==='confirm-cancel-dinner'&&activeMeal?.organizer)syncMeal('manage',{id:activeMeal.id,version:activeMeal.version,details:{...activeMeal,cancelled:true}});
+  if(action==='confirm-cancel-dinner'&&activeMeal?.organizer)syncMeal('manage',{id:activeMeal.id,version:activeMeal.version,details:{...activeMeal,cancelled:true}},[],button);
 });
 // Native browser reload remains available; pull-to-refresh is an additional action.
 let calendarTouchStart=null;
