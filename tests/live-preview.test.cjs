@@ -16,7 +16,7 @@ test('Crawlers receive personalized server-rendered tags, fresh photos, escaped 
   const actions=[];const request=async(_,options)=>{const body=JSON.parse(options.body);actions.push(body.action);assert.equal(options.cache,'no-store');return Response.json(body.action==='preview'?{title:'Dinner',cancelled:false,hostName:'Maya <tag>',restaurant:'Sushi & Rice',location:'Toronto',timeZone:'America/Toronto',selectedTime:'2026-12-24T23:00:00.000Z'}:{photo:{url:'https://lh3.googleusercontent.com/fresh',authors:[{name:'Author'}]}})};
   const response=await invitationResponse(url,'WhatsApp/2',request);const html=await response.text();
   assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/html/);assert.match(response.headers.get('cache-control'),/no-store/);
-  assert.match(html,/Maya invited you to Sushi &amp; Rice/);assert.match(html,/6:00 PM EST/);
+  assert.match(html,/Maya invited you to Sushi &amp; Rice/);assert.doesNotMatch(html,/6:00|EST|2026-12|Dec 24|vote or RSVP/);
   assert.match(html,/<meta property="og:image" content="https:\/\/lh3.googleusercontent.com\/fresh"/);
   assert(!html.includes('<tag>'));assert.deepEqual(actions.sort(),['preview','preview-photo']);
 });

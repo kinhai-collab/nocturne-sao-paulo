@@ -88,8 +88,8 @@ Deno.serve(async req => {
     if (!data) return reply({ error: 'This invitation is unavailable. Ask the host for a new link.' }, 404);
     if (input.action === 'preview-photo') return dinnerPhoto(data);
     const d = data.details;
-    return reply({ title: d.title, location: d.location, restaurant: d.restaurant, selectedTime: d.selectedTime,
-      timeZone: d.timeZone, duration: d.duration, cancelled: d.cancelled === true, hasPhoto:Boolean(selectedPlaceId(d)), hostName: d.hostName?.split(/\s+/)[0] || 'Your host' });
+    return reply({ title: d.title, location: d.location, restaurant: d.restaurant,
+      cancelled: d.cancelled === true, hasPhoto:Boolean(selectedPlaceId(d)), hostName: d.hostName?.split(/\s+/)[0] || 'Your host' });
   }
   const credential = req.headers.get('authorization')?.match(/^Bearer ([\w.-]+)$/)?.[1];
   if (!credential || credential.length > 10000) return reply({ error: 'Sign in with Google or Microsoft to continue.' }, 401);

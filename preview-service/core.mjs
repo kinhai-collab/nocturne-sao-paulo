@@ -37,10 +37,8 @@ export async function invitationResponse(url,userAgent='',request=fetch) {
   const host=String(info.hostName||'Your host').trim().split(/\s+/)[0];
   const title=info.cancelled?(host==='Your'?'This dinner was cancelled':host+"'s dinner was cancelled"):
     (host==='Your'?'You’re invited':host+' invited you')+(info.restaurant?' to '+info.restaurant:' to choose where to eat');
-  let when='Help choose a time that works for you';
-  if(info.selectedTime&&info.timeZone)try{when=new Intl.DateTimeFormat('en',{timeZone:info.timeZone,weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date(info.selectedTime));}catch{}
   const description=info.cancelled?'This dinner was cancelled. Contact your host for more information.':
-    [info.location,when,'Open Enkai to vote or RSVP.'].filter(Boolean).join(' · ');
+    [info.location,'Open Enkai to view your invitation.'].filter(Boolean).join(' · ');
   const credit=livePhoto?(photo.kind==='website'?'Photo: restaurant website':'Google Maps · '+(photo.authors||[]).map(a=>a.name).join(', ')):'Enkai dining inspiration; restaurant photo unavailable';
   const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>${escape(title)} · Enkai</title><meta property="og:type" content="website"><meta property="og:site_name" content="Enkai"><meta property="og:title" content="${escape(title)}"><meta property="og:description" content="${escape(description)}"><meta property="og:image" content="${escape(image)}"><meta property="og:image:alt" content="${escape(credit)}"><meta name="twitter:card" content="summary_large_image"></head><body><main><h1>${escape(title)}</h1><p>${escape(description)}</p><figure><img src="${escape(image)}" alt="${escape(info.restaurant||'Dining inspiration')}"><figcaption>${escape(credit)}</figcaption></figure><p><a href="${escape(target.destination)}">Open your invitation in Enkai</a></p></main></body></html>`;
   return new Response(html,{headers:{...headers,'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; img-src https:; base-uri 'none'; frame-ancestors 'none'"}});
