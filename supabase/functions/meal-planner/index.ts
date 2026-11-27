@@ -1,3 +1,4 @@
+import {agentCheck} from '../_shared/agent-check.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 import { createRemoteJWKSet, jwtVerify } from 'npm:jose@6.2.12';
 import {calendarAction,canonicalAccount,saveCalendarEmail,runCalendarJobs} from '../_shared/calendar.ts';
@@ -135,6 +136,11 @@ Deno.serve(async req => {
       return error ? reply({ error: 'Could not revoke the saved sign-in.' }, 503) : reply({ ok: true });
     }
     const canonical = await canonicalAccount(db,actor,microsoft);
+    if (input.action === 'agent-check') {
+      if (typeof input.id !== 'string' || !uuid.test(input.id)) return reply({error:'invalid_request'},400);
+      const result=await agentCheck(db,canonical,input.id);
+      return reply(result,'error' in result ? (result.error==='forbidden'?403:409) : 200);
+    }
     if (input.action === 'dinner-photo') {
       if (typeof input.id !== 'string' || !uuid.test(input.id)) return reply({error:'Dinner unavailable.'},404);
       const {data:plan,error} = await db.from('meal_plans').select('id,owner,details').eq('id',input.id).maybeSingle();

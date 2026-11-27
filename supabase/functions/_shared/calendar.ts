@@ -1,3 +1,4 @@
+import type {BusyCheck, BusyInterval} from './scheduling.ts';
 import {createRemoteJWKSet,jwtVerify} from 'npm:jose@6.2.12';
 import {APP,EMAIL,GOOGLE_SCOPE,MICROSOFT_SCOPE,Provider,CalendarItem,conflicts,normalizeGoogle,normalizeMicrosoft,eventPayload,eventEnd,isConfirmed,scheduleKey,sameSchedule} from './calendar-core.ts';
 type DB=any;
@@ -150,16 +151,27 @@ export async function providerFetch(token:string,url:string,method='GET',body?:a
   if(!response.ok)throw new ProviderError(response.status);
   return response.status===204||response.status===202?{}:await response.json();
 }
-async function eventsInRange(c:any,token:string,start:string,end:string):Promise<CalendarItem[]> {
+export async function eventsInRange(c:any,token:string,start:string,end:string,zone='UTC'):Promise<CalendarItem[]> {
   let url=new URL(c.provider==='google'?gBase:'https://graph.microsoft.com/v1.0/me/calendarView');
-  if(c.provider==='google') {url.search=new URLSearchParams({timeMin:start,timeMax:end,singleEvents:'true',maxResults:'2500'}).toString();}
-  else url.search=new URLSearchParams({startDateTime:start,endDateTime:end,'$top':'1000','$select':'id,iCalUId,subject,start,end,isCancelled,showAs,responseStatus'}).toString();
+  if(c.provider==='google') {url.search=new URLSearchParams({timeMin:start,timeMax:end,singleEvents:'true',maxResults:'2500',fields:'nextPageToken,timeZone,items(id,iCalUID,start,end,status,transparency,eventType,attendees(self,responseStatus))'}).toString();}
+  else url.search=new URLSearchParams({startDateTime:start,endDateTime:end,'$top':'1000','$select':'id,iCalUId,start,end,isCancelled,showAs,responseStatus'}).toString();
   const all:CalendarItem[]=[];
   for(let page=0;page<20;page++) {
+    // Keep the mask even if a provider's continuation link omits its select.
+    if(c.provider==='microsoft')url.searchParams.set('$select','id,iCalUId,start,end,isCancelled,showAs,responseStatus');
     const data=await providerFetch(token,url.href);
-    for(const item of data.items||data.value||[]) {
-      const event=c.provider==='google'?normalizeGoogle(item,data.timeZone||'UTC'):normalizeMicrosoft(item);
-      if(event)all.push(event);
+    const items=c.provider==='google'?data.items:data.value;
+    if(!Array.isArray(items))throw Error('Incomplete calendar range');
+    for(const item of items) {
+      if(!item.start||!item.end) {
+        if(item.status==='cancelled'||item.isCancelled)continue;
+        throw Error('Incomplete calendar event');
+      }
+      const event=c.provider==='google'?normalizeGoogle(item,data.timeZone||zone):normalizeMicrosoft(item);
+      if(event) {
+        if(!Number.isFinite(Date.parse(event.start))||!(Date.parse(event.end)>Date.parse(event.start)))throw Error('Incomplete calendar interval');
+        all.push(event);
+      }
     }
     if(c.provider==='google'&&data.nextPageToken)url.searchParams.set('pageToken',data.nextPageToken);
     else if(c.provider==='microsoft'&&data['@odata.nextLink']) {
@@ -169,6 +181,7 @@ async function eventsInRange(c:any,token:string,start:string,end:string):Promise
   throw Error('Calendar range contains too many events to check completely.');
 }
 export async function checkConflicts(db:DB,actor:string,meal:any) {
+  if(meal.details.cancelled || (meal.details.selectedTime && meal.details.restaurant && Date.parse(meal.details.selectedTime)+meal.details.duration*60000<=Date.now()))return {status:'unavailable',options:[]};
   const connections=await checked(db.from('meal_calendar_connections').select('*').eq('account',actor));
   const times=meal.details.selectedTime?[meal.details.selectedTime]:meal.details.times;
   const own=await checked(db.from('meal_calendar_events').select('ical_uid').eq('meal_id',meal.id).maybeSingle());
@@ -182,13 +195,35 @@ export async function checkConflicts(db:DB,actor:string,meal:any) {
       const ranges=new Map<string,CalendarItem[]>();
       for(const result of results) {
         const key=result.time.slice(0,10);
-        if(!ranges.has(key))ranges.set(key,await eventsInRange(c,token,key+'T00:00:00.000Z',new Date(Date.parse(key+'T00:00:00Z')+2*86400000).toISOString()));
-        result.conflicts.push(...conflicts(ranges.get(key)!,result.time,meal.details.duration,own?.ical_uid).map(e=>({title:e.title,start:e.start,end:e.end,tentative:e.tentative,provider:c.provider})));
+        if(!ranges.has(key))ranges.set(key,await eventsInRange(c,token,key+'T00:00:00.000Z',new Date(Math.max(Date.parse(key+'T00:00:00Z')+2*86400000,Date.parse(result.time)+meal.details.duration*60000)).toISOString(),meal.details.timeZone||'UTC'));
+        result.conflicts.push(...conflicts(ranges.get(key)!,result.time,meal.details.duration,own?.ical_uid).map(e=>({title:'Busy',start:e.start,end:e.end,tentative:e.tentative,provider:c.provider})));
         result.checked++;
       }
     }catch {failed++;}
   }
   return {status:failed?'incomplete':'checked',checkedAt:new Date().toISOString(),options:results};
+}
+// The closure belongs to one account. No range cache survives a delegate call.
+export async function schedulingBusyCheck(db:DB,account:string,mealId:string):Promise<BusyCheck|null> {
+  try {
+    const connections=await checked(db.from('meal_calendar_connections').select('*').eq('account',account));
+    if(!connections.length)return null;
+    const own=await checked(db.from('meal_calendar_events').select('ical_uid').eq('meal_id',mealId).maybeSingle());
+    return async candidates=>{
+      try {
+        const busy:BusyInterval[]=[];
+        for(const c of connections) {
+          const token=await accessToken(db,c);
+          for(const candidate of candidates) {
+            const end=new Date(Date.parse(candidate.start)+candidate.durationMinutes*60000).toISOString();
+            const events=await eventsInRange(c,token,candidate.start,end,candidate.timeZone);
+            busy.push(...conflicts(events,candidate.start,candidate.durationMinutes,own?.ical_uid).map(e=>({start:e.start,end:e.end})));
+          }
+        }
+        return busy;
+      }catch{return 'incomplete';}
+    };
+  }catch{return async()=> 'incomplete';}
 }
 export async function enqueueAccount(db:DB,actor:string) {
   const owned=await checked(db.from('meal_plans').select('id').eq('owner',actor));

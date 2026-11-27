@@ -1,11 +1,14 @@
 import {strict as assert} from 'node:assert';
-import {syncDinner,checkConflicts,calendarAction} from '../supabase/functions/_shared/calendar.ts';
+import {syncDinner,checkConflicts,calendarAction,schedulingBusyCheck,eventsInRange} from '../supabase/functions/_shared/calendar.ts';
+import {ServerDelegate} from '../supabase/functions/_shared/scheduling.ts';
 import {scheduleKey} from '../supabase/functions/_shared/calendar-core.ts';
 const b64=(b:Uint8Array)=>btoa(String.fromCharCode(...b)).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
 const encoder=new TextEncoder();
 const testKey=new Uint8Array(32).fill(7);
-Deno.env.set('CALENDAR_ENCRYPTION_KEY',b64(testKey));
-for(const p of ['GOOGLE','MICROSOFT']) {Deno.env.set('CALENDAR_'+p+'_CLIENT_ID','test');Deno.env.set('CALENDAR_'+p+'_CLIENT_SECRET','test');}
+// This test module has its own worker; use synthetic config without env permissions.
+const syntheticEnv:Record<string,string>={CALENDAR_ENCRYPTION_KEY:b64(testKey)};
+for(const p of ['GOOGLE','MICROSOFT']) {syntheticEnv['CALENDAR_'+p+'_CLIENT_ID']='test';syntheticEnv['CALENDAR_'+p+'_CLIENT_SECRET']='test';}
+Deno.env.get=key=>syntheticEnv[key];
 async function cipher(role:string,provider:string) {
   const iv=crypto.getRandomValues(new Uint8Array(12));
   const key=await crypto.subtle.importKey('raw',testKey,'AES-GCM',false,['encrypt']);
@@ -110,4 +113,64 @@ Deno.test('A dated plan without a final restaurant cannot create a calendar invi
   const tables:any={meal_plans:[{id:'undecided-place',owner:'host',details:{calendarEnabled:true,selectedTime:'2026-12-24T17:00:00Z',restaurant:''}}],meal_calendar_events:[]};
   assert.equal(await syncDinner(memoryDB(tables),'undecided-place'),true);
   assert.equal(tables.meal_calendar_events.length,0);
+});
+
+Deno.test('Scheduling requests omit titles/content and conflict notes are always Busy across complete pages',async()=>{
+  const start='2099-12-24T17:00:00.000Z',end='2099-12-24T18:30:00.000Z';
+  const connections=await Promise.all(['google','microsoft'].map(async provider=>({account:'a',provider,subject:'a',refresh_cipher:await cipher('a',provider),status:'connected'})));
+  const db=memoryDB({meal_calendar_connections:connections,meal_calendar_events:[{meal_id:'meal',ical_uid:'own'}]});
+  const meal={id:'meal',details:{times:[start],duration:90,timeZone:'America/Toronto'}};
+  const original=globalThis.fetch;let pages=0,fail=false,ownOnly=false;
+  globalThis.fetch=(async(input:any,init:any)=>{
+    const url=new URL(String(input));
+    if(url.pathname.endsWith('/token'))return Response.json({access_token:'synthetic'});
+    if(fail)return Response.json({error:'PRIVATE_PROVIDER_ERROR'},{status:503});
+    pages++;
+    if(url.hostname==='www.googleapis.com') {
+      const fields=url.searchParams.get('fields')!;
+      assert(fields);assert.doesNotMatch(fields,/summary|description|email/);
+      for(const field of ['start','end','status','transparency','eventType','self','responseStatus','nextPageToken','timeZone','iCalUID'])assert(fields.includes(field));
+      const item={id:'g',iCalUID:ownOnly?'own':'other',summary:'PRIVATE_TITLE',description:'PRIVATE_BODY',start:{dateTime:start},end:{dateTime:end}};
+      return Response.json({items:[{...item,iCalUID:'own'},...(url.searchParams.has('pageToken')?[item]:[])],...(!url.searchParams.has('pageToken')?{nextPageToken:'next'}:{}),timeZone:'America/Toronto'});
+    }
+    const select=url.searchParams.get('$select')!;
+    assert(select);assert.doesNotMatch(select,/subject|body|attendees/);
+    const item={id:'m',iCalUId:ownOnly?'own':'other',subject:'PRIVATE_TITLE',start:{dateTime:start},end:{dateTime:end},showAs:'busy'};
+    const next=new URL(url);next.searchParams.set('page','2');
+    return Response.json({value:url.searchParams.has('page')?[item]:[],...(!url.searchParams.has('page')?{'@odata.nextLink':next.href}:{})});
+  }) as typeof fetch;
+  try {
+    const result=await checkConflicts(db,'a',meal);
+    assert.equal(result.status,'checked');assert.equal(pages,4);
+    assert.equal(result.options[0].conflicts.length,2);
+    assert(result.options[0].conflicts.every((c:any)=>c.title==='Busy'));
+    assert.doesNotMatch(JSON.stringify(result),/PRIVATE_/);
+    const candidates=[{start,durationMinutes:90,timeZone:'America/Toronto'}];
+    const check=await schedulingBusyCheck(db,'a','meal');assert(check);
+    assert.deepEqual(await new ServerDelegate('a',[start],check).answer(candidates),[false]);
+    ownOnly=true;
+    assert.deepEqual(await new ServerDelegate('a',[start],check).answer(candidates),[true],'Own dinner invites do not block');
+    ownOnly=false;fail=true;
+    assert.deepEqual(await new ServerDelegate('a',[start],check).answer(candidates),[false]);
+    assert.equal(await schedulingBusyCheck(memoryDB({meal_calendar_connections:[]}),'a','meal'),null);
+    const reconnect=await schedulingBusyCheck(memoryDB({meal_calendar_connections:[{account:'a',status:'reconnect'}]}),'a','meal');
+    assert.equal(await reconnect!(candidates),'incomplete');
+  }finally{globalThis.fetch=original;}
+});
+
+Deno.test('Scheduling fails closed on pagination overflow; own events and declined/transparent/all-day semantics remain intact',async()=>{
+  const original=globalThis.fetch;
+  let overflow=false;
+  globalThis.fetch=(async()=>Response.json(overflow?{items:[],nextPageToken:'forever'}:{timeZone:'America/Toronto',items:[
+    {id:'all-day',start:{date:'2099-12-24'},end:{date:'2099-12-25'}},
+    {id:'declined',start:{date:'2099-12-24'},end:{date:'2099-12-25'},attendees:[{self:true,responseStatus:'declined'}]},
+    {id:'transparent',start:{date:'2099-12-24'},end:{date:'2099-12-25'},transparency:'transparent'}
+  ]})) as typeof fetch;
+  try {
+    const items=await eventsInRange({provider:'google'},'token','2099-12-24T17:00:00.000Z','2099-12-24T18:30:00.000Z','America/Toronto');
+    assert.equal(items[0].start,'2099-12-24T05:00:00.000Z');
+    assert.deepEqual(items.map(i=>i.busy),[true,false,false]);
+    overflow=true;
+    await assert.rejects(()=>eventsInRange({provider:'google'},'token','2099-12-24T17:00:00.000Z','2099-12-24T18:30:00.000Z'),/completely/);
+  }finally{globalThis.fetch=original;}
 });

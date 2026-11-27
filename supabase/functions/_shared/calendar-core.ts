@@ -32,7 +32,7 @@ export function wallInstant(value: string, zone = 'UTC') {
 export function normalizeGoogle(e: any, zone: string): CalendarItem | null {
   if(!e.start || !e.end || e.status==='cancelled')return null;
   const self=e.attendees?.find((a:any)=>a.self);
-  return {id:e.id,uid:e.iCalUID||'',title:String(e.summary||'Busy').slice(0,200),
+  return {id:e.id,uid:e.iCalUID||'',title:'Busy',
     start:wallInstant(e.start.dateTime||e.start.date,e.start.timeZone||zone),
     end:wallInstant(e.end.dateTime||e.end.date,e.end.timeZone||zone),
     response:self?.responseStatus,tentative:self?.responseStatus==='tentative'||e.status==='tentative',
@@ -41,7 +41,7 @@ export function normalizeGoogle(e: any, zone: string): CalendarItem | null {
 export function normalizeMicrosoft(e: any): CalendarItem | null {
   if(e.isCancelled||!e.start||!e.end)return null;
   // Every Graph request uses Prefer: outlook.timezone="UTC".
-  return {id:e.id,uid:e.iCalUId||'',title:String(e.subject||'Busy').slice(0,200),
+  return {id:e.id,uid:e.iCalUId||'',title:'Busy',
     start:wallInstant(e.start.dateTime,'UTC'),end:wallInstant(e.end.dateTime,'UTC'),
     response:e.responseStatus?.response,tentative:e.showAs==='tentative',
     busy:!['free','workingElsewhere'].includes(e.showAs)&&e.responseStatus?.response!=='declined'};
