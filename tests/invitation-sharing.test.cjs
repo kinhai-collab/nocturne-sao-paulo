@@ -15,14 +15,14 @@ test('Known restaurant links preserve the invitation and theme with no guest ide
     assert.equal([...url.searchParams].length,2);
   }
 });
-test('A date is formatted in the destination zone; invitation does not claim a booking',()=>{
+test('Share text stays generic even for a finalized dinner',()=>{
   assert.equal(sharing.title(meal),'Kin invited you to dinner at Yu Seafood');
-  const text=sharing.text(meal);assert.match(text,/6:00 PM EST/);assert.match(text,/RSVP/);assert(!text.includes('Hai'));assert(!text.includes('booked'));
+  const text=sharing.text(meal);assert.doesNotMatch(text,/6:00|EST|2026|Dec|RSVP|vote/i);assert.match(text,/view your invitation/);assert(!text.includes('Hai'));assert(!text.includes('booked'));
   assert.equal(sharing.message(meal,'https://example.com/invite').split('https://example.com/invite').length,2);
 });
 test('A restaurant poll avoids featuring one candidate as the selected restaurant',()=>{
   const poll={...meal,restaurant:'',selectedTime:'',times:['a','b'],restaurants:['A','B','C','D']};
-  assert.match(sharing.text(poll),/2 date options/);assert.match(sharing.text(poll),/Options: A, B, C and more/);
+  assert.doesNotMatch(sharing.text(poll),/date options|vote|time/i);assert.match(sharing.text(poll),/Options: A, B, C and more/);
   assert.equal(new URL(sharing.url(poll,{base:'https://example.com/planner.html',theme:'after-hours',venue:{id:'yu-seafood'}})).pathname,'/i.html');
 });
 test('Unknown restaurants have a generic preview; invalid invitations cannot create links',()=>{

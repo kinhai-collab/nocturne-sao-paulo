@@ -137,8 +137,8 @@ function invitationLanding() {
   return '<section class="invite-summary card stack"><p class="eyebrow">An invitation from ' + escape(info.hostName) +
     '</p><h2>' + escape(info.title) + '</h2>' + dinnerPhotoMarkup(info) + '<p>' + escape(info.restaurant || 'Let’s choose a restaurant together') +
     '</p><p>' + escape(info.location) + '</p><p>' +
-    escape(info.selectedTime && info.timeZone ? mealDateTime(info.selectedTime, info) + ' · ' + destinationLabel(info) : 'Help choose a time that works for you') +
-    '</p><div class="invite-response-action"><button class="primary" data-action="choose-signin">Sign in to respond</button></div><small>Anyone with this invitation can join. Your host can see your response.</small></section>';
+    'Sign in to see the date and details.' +
+    '</p><div class="invite-response-action"><button class="primary" data-action="choose-signin">Sign in to respond</button></div><small>Anyone with this invitation can join. Your host and other guests can\'t see your individual time choices. Only Going is shown to other guests.</small></section>';
 }
 async function loadInvitation() {
   inviteError = '';
@@ -180,7 +180,8 @@ function responseForm(meal) {
     (!meal.organizer && finalPlan(meal) ? '<div data-calendar-time="'+escape(meal.selectedTime)+'" class="calendar-check" aria-live="polite"></div><fieldset class="rsvp-options"><legend>Will you be joining?</legend>' +
     Object.entries(attendanceLabels).map(([value,label])=>'<label class="option"><input type="radio" name="attendance" value="' + value +
       '" ' + (vote.attendance === value ? 'checked' : '') + ' required><span>' + label + '</span></label>').join('') + '</fieldset>' : '') +
-    (!finalPlan(meal) ? '<p class="muted">Select all the options that work for you. RSVP opens once the date and restaurant are set.</p>' : '') +
+    (!finalPlan(meal) ? '<p class="muted">Select all the options that work for you. Your host cannot see your individual time choices. Restaurant totals are anonymous. RSVP opens once the date and restaurant are set.</p>' : '') +
+    (finalPlan(meal)&&!meal.organizer?'<small>Choosing Going shares your name with dinner participants. Maybe and Can’t make it are not shown to other participants in Enkai.</small>':'')+
     (finalPlan(meal)&&meal.myVote?.needsReconfirmation?'<p class="calendar-warning">The plan changed. Please confirm your attendance again.</p>':'')+
     (timesOpen ? '<fieldset class="poll-options"><legend>When works? · ' + escape(destinationLabel(meal)) + '</legend>' +
       calendarPollChoices(meal,vote) + noneChoice('times') + '</fieldset>' : '') +
@@ -197,7 +198,7 @@ function receiptView(meal, showEdit = true) {
     (finalPlan(meal)&&vote.attendance ? '<p>' + escape(attendanceLabels[vote.attendance]) + '</p>' : '') +
     (!meal.selectedTime && meal.times.length ? '<p><strong>Your times</strong><br>' + escape(vote.times.map(t=>mealDateTime(t,meal)).join(' · ') || 'None of these times work') + '</p>' : '') +
     (!meal.restaurant && meal.restaurants.length ? '<p><strong>Your restaurants</strong><br>' + escape(vote.restaurants.join(' · ') || 'None of these restaurants work') + '</p>' : '') +
-    '<p>Your host can see this response. You can change it later.</p>'+(showEdit?'<button data-action="edit-response">Change my response</button>':'')+'<button data-view="dashboard">Back to home</button>'+
+    '<p>Your host and other guests can\'t see your individual time choices. Only Going is shown to other guests. You can change your response later.</p>'+(showEdit?'<button data-action="edit-response">Change my response</button>':'')+'<button data-view="dashboard">Back to home</button>'+
     (!meal.organizer?'<div class="invite-next-evening stack"><p>Have another get-together in mind?</p><button type="button" data-action="new">Plan your own evening</button><small>Your response above is saved. Start a separate plan and invite your people.</small></div>':'')+'</section>';
 }
 

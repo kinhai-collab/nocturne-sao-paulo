@@ -1,5 +1,7 @@
 # Dinner planner quick wins — batch 1
 
+**Superseded by privacy phase 1:** Items 3, 4 and 8 below record the earlier shipped behavior. Time tallies, names, leaders/ties and numbered response status are retired; restaurant totals are anonymous and sharing guidance uses only a boolean. Item 4's owner-only calendar notes and explicit own choices remain for Chunk A; plaintext ballot and shared-calendar retirement is proposed separately.
+
 Front-end changes only. No backend schema, API, reservation values, or permissions changed.
 
 1. Active dinner details have one primary next step. When a guest response form is rendered, the top section is a short Your turn prompt (using the host name for RSVP when available), and the sticky form submit is the primary. Receipts instead have one primary Change my response action, without another edit button in the receipt. Organizer availability is secondary and not sticky; Save plan is also secondary so expanding the controls does not add another primary. A post-render guard keeps only the next-step owner primary. When the top step is Share invitation, the share card keeps Copy invitation and WhatsApp without repeating Share invitation. Home cards use the derived action label.

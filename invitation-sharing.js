@@ -1,6 +1,5 @@
 'use strict';
-// Message previews contain restaurant information only. Dinner details stay in
-// the text the host chooses to share, and the invitation remains an opaque code.
+// Shared messages contain generic invitation and restaurant information only.
 window.EnkaiInvites = (() => {
   function title(meal) {
     const host = String(meal.hostName || '').trim().split(/\s+/)[0];
@@ -8,16 +7,8 @@ window.EnkaiInvites = (() => {
     return meal.restaurant ? start + ' to dinner at ' + meal.restaurant : start + ' to choose where to eat';
   }
   function text(meal) {
-    let date = meal.times?.length ? 'Help choose from ' + meal.times.length + ' date options' : 'Date to be decided';
-    if (meal.selectedTime) {
-      date = 'Time to be confirmed';
-      if (meal.timeZone) try {
-        date = new Intl.DateTimeFormat('en', {timeZone:meal.timeZone, weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short'}).format(new Date(meal.selectedTime));
-      } catch {}
-    }
     const options = !meal.restaurant && meal.restaurants?.length ? 'Options: ' + meal.restaurants.slice(0,3).join(', ') + (meal.restaurants.length > 3 ? ' and more' : '') : '';
-    return [title(meal), [meal.location,date].filter(Boolean).join(' · '), options,
-      meal.selectedTime && meal.restaurant ? 'Open Enkai to RSVP.' : !meal.restaurant && !meal.restaurants?.length && meal.selectedTime ? 'Open Enkai to join the plan.' : 'Open Enkai to vote on the options that work for you.'].filter(Boolean).join('\n');
+    return [title(meal), meal.location, options, 'Open Enkai to view your invitation.'].filter(Boolean).join('\n');
   }
   function url(meal, {base,theme,venue,previewBase}) {
     if (!/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(meal.invite || '')) throw Error('This invitation is unavailable.');

@@ -41,7 +41,7 @@ async function connectCalendar(providerName) {
 }
 function calendarPollChoices(meal,vote) {
   return meal.times.map(t=>'<div class="calendar-time-option"><label class="option"><input type="checkbox" name="times" data-poll-dimension="times" value="'+escape(t)+'" '+
-    (vote.times.includes(t)?'checked':'')+'><span>'+escape(mealDateTime(t,meal))+'</span></label><div data-calendar-time="'+escape(t)+'" class="calendar-check" aria-live="polite">'+
+    ((vote.times || []).includes(t)?'checked':'')+'><span>'+escape(mealDateTime(t,meal))+'</span></label><div data-calendar-time="'+escape(t)+'" class="calendar-check" aria-live="polite">'+
     (hasConflict(t,meal.duration)?'<small class="calendar-warning">⚠ Overlaps a calendar block you added</small>':'')+'</div></div>').join('');
 }
 function calendarDinnerMarkup(meal) {

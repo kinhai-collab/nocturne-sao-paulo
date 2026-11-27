@@ -11,28 +11,17 @@ const plan = overrides => ({
   timeZone: 'America/Toronto', responses: [], ...overrides,
 });
 
-test('organizer poll derives leaders, generic tallies, names and intentional none counts', () => {
-  const meal = plan({ responses: [
-    { name: 'Ari', vote: { times: [first, second], restaurants: ['Garden'] } },
-    { name: 'Sam', vote: { times: [first], restaurants: ['Cedar', 'Garden'] } },
-    { name: 'Jo', vote: { times: [], restaurants: [] } },
-  ] });
+test('organizer ignores legacy time answers and uses anonymous restaurant totals without mutation', () => {
+  const meal = plan({ hasOtherResponses: true, restaurantTallies: [{ value: 'Garden', count: 2, names: ['Ari'] }],
+    responses: [{ name: 'Ari', vote: { times: [first], restaurants: ['Garden'] } }] });
   const before = structuredClone(meal);
   const result = derive(meal, context);
   assert.equal(result.stage, 'choosing-date');
-  assert.equal(result.statusLabel, 'Choosing a date');
-  assert.equal(result.nextAction.id, 'pick-date');
-  assert.equal(result.nextAction.label, 'Pick the date');
-  assert.match(result.nextAction.hint, /2 of 3 can make it/);
-  assert.equal(result.leadingTime, first);
+  assert.deepEqual(result.nextAction, { id: 'pick-date', label: 'Pick the date', hint: 'Responses are private. Choose the time to propose.' });
+  assert.deepEqual(result.tallies, { restaurants: [{ value: 'Garden', count: 2 }] });
   assert.equal(result.leadingRestaurant, 'Garden');
-  assert.deepEqual(result.tallies.times, [
-    { value: first, count: 2, names: ['Ari', 'Sam'] },
-    { value: second, count: 1, names: ['Ari'] },
-  ]);
-  assert.deepEqual(result.tallies.restaurants[1], { value: 'Garden', count: 2, names: ['Ari', 'Sam'] });
-  assert.deepEqual(result.noneCounts, { times: 1, restaurants: 1 });
-  assert.deepEqual(meal, before, 'derivation must not mutate the meal');
+  for (const key of ['leadingTime', 'tiedTimes', 'noneCounts', 'otherResponseCount']) assert(!(key in result));
+  assert.deepEqual(meal, before);
 });
 
 test('time agreed without restaurant options asks organizer to Find a place', () => {
@@ -78,57 +67,23 @@ test('cancelled dinner has no next action and says Cancelled for either role', (
   }
 });
 
-test('no responses offers Share invitation; zero votes have no manufactured leader', () => {
-  const result = derive(plan(), context);
-  assert.equal(result.nextAction.label, 'Share invitation');
-  assert.equal(result.leadingTime, null);
-  assert.equal(result.leadingRestaurant, null);
-  assert.deepEqual(result.noneCounts, { times: 0, restaurants: 0 });
-  assert.equal(result.otherResponseCount, 0);
-  assert.deepEqual(result.tiedTimes, []);
-  assert.deepEqual(result.tiedRestaurants, []);
+test('sharing guidance uses only the projected boolean, never legacy response counts', () => {
+  const meal = plan({ myVote: { times: [first] }, responses: [{ name: 'Host' }, { name: 'Ari' }] });
+  assert.equal(derive(meal, context).nextAction.id, 'share-invitation');
+  assert.equal(derive({ ...meal, hasOtherResponses: true }, context).nextAction.id, 'pick-date');
+  assert.equal(derive({ ...meal, responses: undefined }, context).nextAction.id, 'share-invitation');
 });
 
-test('host-only availability still asks to Share invitation while keeping the host in tallies', () => {
-  const vote = { times: [first], restaurants: ['Cedar'] };
-  const meal = plan({ myVote: vote, responses: [{ name: 'Host', vote }] });
-  const hostOnly = derive(meal, context);
-  assert.equal(hostOnly.otherResponseCount, 0);
-  assert.equal(hostOnly.nextAction.id, 'share-invitation');
-  assert.equal(hostOnly.tallies.times[0].count, 1);
-  assert.equal(hostOnly.leadingTime, first);
-  const withGuest = derive({ ...meal, responses: [...meal.responses, { name: 'Ari', vote }] }, context);
-  assert.equal(withGuest.otherResponseCount, 1);
-  assert.equal(withGuest.nextAction.id, 'pick-date');
-  assert.equal(derive(meal, { ...context, role: 'guest' }).otherResponseCount, 1);
-});
-
-test('restaurant ties expose all tied values without preselecting a restaurant', () => {
-  const result = derive(plan({ selectedTime: first, responses: [
-    { name: 'Ari', vote: { restaurants: ['Garden', 'Cedar'] } },
-    { name: 'No vote yet' },
-  ] }), context);
-  assert.equal(result.stage, 'choosing-restaurant');
-  assert.equal(result.nextAction.label, 'Pick the restaurant');
+test('restaurant totals come only from the anonymous projection while the poll is open', () => {
+  const meal = plan({ selectedTime: first, hasOtherResponses: true,
+    restaurantTallies: [{ value: 'Cedar', count: 1 }, { value: 'Garden', count: 1 }] });
+  const result = derive(meal, context);
+  assert.equal(result.nextAction.id, 'pick-restaurant');
   assert.equal(result.leadingRestaurant, null);
   assert.deepEqual(result.tiedRestaurants, ['Cedar', 'Garden']);
-  assert.match(result.nextAction.hint, /Cedar and Garden are tied · 1 of 1 picked each/);
-  assert.deepEqual(result.noneCounts, { times: 0, restaurants: 0 });
-});
-
-test('date ties name the dates and counts without preselecting, and resolve with another vote', () => {
-  const meal = plan({ responses: [
-    { name: 'Ari', vote: { times: [first, second] } },
-    { name: 'Sam', vote: { times: [first, second] } },
-    { name: 'Jo', vote: { times: [] } },
-  ] });
-  const result = derive(meal, context);
-  assert.equal(result.leadingTime, null);
-  assert.deepEqual(result.tiedTimes, [first, second]);
-  assert.equal(result.nextAction.hint, 'Sat, Dec 5 and Sun, Dec 6 are tied · 2 of 3 can make it');
-  const resolved = derive({ ...meal, responses: [...meal.responses, { name: 'Kit', vote: { times: [second] } }] }, context);
-  assert.equal(resolved.leadingTime, second);
-  assert.deepEqual(resolved.tiedTimes, []);
+  assert.equal(result.nextAction.hint, 'Review the restaurant choices.');
+  assert.deepEqual(derive({ ...meal, restaurant: 'Cedar' }, context).tallies.restaurants, []);
+  assert.deepEqual(derive({ ...meal, restaurantTallies: undefined }, context).tallies.restaurants, []);
 });
 
 test('past dinner uses supplied now and duration, with cancellation taking precedence', () => {
