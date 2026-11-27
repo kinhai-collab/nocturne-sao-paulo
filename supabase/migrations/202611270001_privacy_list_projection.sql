@@ -19,6 +19,9 @@ begin
         'venues',coalesce((select jsonb_agg(jsonb_build_object('name',v->>'name','placeId',v->>'placeId'))
           from jsonb_array_elements(coalesce(plan_row.details->'venues','[]'::jsonb)) v),'[]'::jsonb),
         'myVote',m.response,
+        -- Cached old clients read responses.length and joinedCount. Keep these
+        -- compatibility fields empty/zero for every caller; never disclose peers.
+        'responses','[]'::jsonb,'joinedCount',0,
         'hasOtherResponses',plan_row.owner=actor and exists(select 1 from public.meal_plan_members v
           where v.meal_id=plan_row.id and v.account<>actor and v.account<>plan_row.owner and v.response is not null),
         'restaurantTallies',case when plan_row.owner=actor and coalesce(plan_row.details->>'restaurant','')='' and coalesce(plan_row.details->>'cancelled','false')<>'true'

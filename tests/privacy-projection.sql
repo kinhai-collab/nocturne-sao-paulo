@@ -35,7 +35,9 @@ begin
       assert r->'hasOtherResponses'='false'::jsonb, 'Guests cannot see whether others responded';
       assert r->'restaurantTallies'='[]'::jsonb, 'Guests cannot see restaurant totals';
     end if;
-    assert not(r ?| array['responses','joinedCount','timeTallies','unknown']), 'No legacy response fields';
+    assert r->'responses'='[]'::jsonb, 'Legacy responses must always be empty';
+    assert r->'joinedCount'='0'::jsonb, 'Legacy joined count must always be zero';
+    assert not(r ?| array['timeTallies','unknown']), 'No legacy response fields';
     -- Public candidate options can contain the same instants. Strip those and
     -- own data before searching the entire remaining JSON for peer answer values.
     assert not ((r-'times'-'myVote')::text ~ '2026-12-(24|25|26)|STALE_PRIVATE_TIME|Guest A|Guest B'),
@@ -55,6 +57,8 @@ begin
       if peer like 'microsoft:%' then
         r:=public.meal_microsoft_action(substr(peer,11),'Caller','list','{}')->0;
       else r:=public.meal_planner_action(peer,'Caller','list','{}')->0; end if;
+      assert r->'responses'='[]'::jsonb, 'Finalized legacy responses must always be empty';
+      assert r->'joinedCount'='0'::jsonb, 'Finalized legacy joined count must always be zero';
       assert r->'restaurantTallies'='[]'::jsonb, 'Closed restaurant poll has no totals';
       assert r->'hasOtherResponses'=to_jsonb(peer in ('privacy-host','microsoft:privacy-host-ms')),
         'Only the organizer sees whether others responded after finalization';

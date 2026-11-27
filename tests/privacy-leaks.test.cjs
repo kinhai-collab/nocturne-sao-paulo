@@ -51,6 +51,24 @@ test('home cards contain no counts, named waiting status or peer choices and tol
   }
 });
 
+test('current dashboard, details and derived state never read compatibility fields', () => {
+  const context = vm.createContext({ escape, dinnerState: meal => derive(meal, { now: '2026-11-26' }),
+    venueImage: () => '', statusPill: escape, mealDateTime: value => value, durationLabel: () => '90 minutes',
+    destinationLabel: () => 'Toronto time', finalPlan, availabilitySaved: vote => Boolean(vote),
+    attendanceLabels: { going: 'Going' } });
+  vm.runInContext(section(planner, 'function card(', '\nfunction dashboard('), context);
+  for (const organizer of [true, false]) for (const final of [true, false]) {
+    const meal = baseMeal({ organizer, hasOtherResponses: true,
+      ...(final ? { selectedTime: first, restaurant: 'Cedar' } : {}) });
+    for (const key of ['responses', 'joinedCount']) {
+      Object.defineProperty(meal, key, { get() { assert.fail('Legacy field read: ' + key); } });
+    }
+    assert.doesNotThrow(() => derive(meal));
+    assert.doesNotThrow(() => context.card(meal));
+    for (const receipt of [true, false]) assert.doesNotThrow(() => renderDinner(meal, receipt));
+  }
+});
+
 test('only organizers retain manual attendees after de-duplicated Going names', () => {
   const context = vm.createContext({ finalPlan });
   vm.runInContext(section(planner, 'function attendingGuests(', '\nfunction card('), context);
