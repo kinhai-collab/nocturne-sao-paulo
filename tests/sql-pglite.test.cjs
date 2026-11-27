@@ -18,7 +18,7 @@ test('SQL migrations and transactional fixtures in offline PGlite', { skip: PGli
   try {
     await db.exec('create role anon; create role authenticated; create role service_role;');
     const migrations = path.join(root, 'supabase/migrations');
-    for (const name of fs.readdirSync(migrations).filter(name => name.endsWith('.sql')).sort()) {
+    for (const name of fs.readdirSync(migrations).filter(name => name.endsWith('.sql') && !name.includes('_mdm_')).sort() /* MDM migrations belong to a separate backend and need Supabase's auth schema */) {
       try { await db.exec(fs.readFileSync(path.join(migrations, name), 'utf8')); }
       catch (error) { throw new Error('Migration ' + name + ': ' + error.message, { cause: error }); }
     }
