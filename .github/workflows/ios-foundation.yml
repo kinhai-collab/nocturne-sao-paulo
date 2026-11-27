@@ -68,7 +68,31 @@ jobs:
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App \
             -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/enkai-derived" \
             CODE_SIGNING_ALLOWED=NO build
+      - name: Boot a clean iPhone Simulator and launch Enkai
+        run: |
+          xcrun simctl list -j devices available > "$RUNNER_TEMP/ios-devices.json"
+          SIM_ID=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(next((x["udid"] for arr in d["devices"].values() for x in arr if x["name"].startswith("iPhone") and x["state"]=="Shutdown"),""))' < "$RUNNER_TEMP/ios-devices.json")
+          test -n "$SIM_ID"
+          xcrun simctl boot "$SIM_ID"
+          xcrun simctl bootstatus "$SIM_ID" -b
+          APP="$RUNNER_TEMP/enkai-derived/Build/Products/Debug-iphonesimulator/App.app"
+          test -d "$APP"
+          xcrun simctl install "$SIM_ID" "$APP"
+          xcrun simctl launch "$SIM_ID" com.kinhai.enkai.beta
+          sleep 8
+          xcrun simctl io "$SIM_ID" screenshot "$GITHUB_WORKSPACE/ios-launch.png"
+          test -s "$GITHUB_WORKSPACE/ios-launch.png"
+          xcrun simctl shutdown "$SIM_ID"
+      - name: Upload first-launch screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enkai-ios-first-launch
+          path: ios-launch.png
+          if-no-files-found: warn
+          retention-days: 7
       - name: Upload unsigned iOS source project for review
         if: always()
         uses: actions/upload-artifact@v4
