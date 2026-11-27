@@ -34,10 +34,11 @@
       } else if (stage === 'needs-restaurant-options') nextAction = action('find-place', 'Find a place');
       else if (stage === 'reservation-needed') nextAction = action('record-reservation', 'Record your reservation');
       else if (stage === 'confirmed' || !hasOtherResponses) nextAction = action('share-invitation', 'Share invitation');
-      else if (stage === 'choosing-date') nextAction = action('pick-date', 'Pick the date', 'Responses are private. Choose the time to propose.');
+      else if (stage === 'choosing-date') nextAction = action('pick-date', 'Pick the date', 'Find a time, or choose one yourself.');
       else nextAction = action('pick-restaurant', 'Pick the restaurant', 'Review the restaurant choices.');
     }
     return { stage, statusLabel, role, nextAction, tallies, hasOtherResponses,
+      ...(role === 'organizer' && meal.agentResult ? { agentResult: meal.agentResult } : {}),
       leadingRestaurant: restaurantLeaders.length === 1 ? restaurantLeaders[0].value : null,
       tiedRestaurants: restaurantLeaders.length > 1 ? restaurantLeaders.map(row => row.value) : [] };
   }

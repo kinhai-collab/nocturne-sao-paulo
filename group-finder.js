@@ -102,7 +102,7 @@ function saveGroupShortlist(mode, index, trigger = null) {
     venues: chosen.map(place => ({ name: place.displayName.text, placeId: place.id })),
   };
   for (const key of ['id','version','invite','myVote','responses','organizer','joinedCount',
-    'attendanceResponses','calendarSync','myCalendar','hasOtherResponses','restaurantTallies','suggested']) delete details[key];
+    'attendanceResponses','calendarSync','myCalendar','hasOtherResponses','restaurantTallies','suggested','agentResult']) delete details[key];
   groupFinderState = null;
   syncMeal('manage', { id: meal.id, version: meal.version, details }, [], trigger);
 }

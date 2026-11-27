@@ -17,7 +17,7 @@ test('organizer ignores legacy time answers and uses anonymous restaurant totals
   const before = structuredClone(meal);
   const result = derive(meal, context);
   assert.equal(result.stage, 'choosing-date');
-  assert.deepEqual(result.nextAction, { id: 'pick-date', label: 'Pick the date', hint: 'Responses are private. Choose the time to propose.' });
+  assert.deepEqual(result.nextAction, { id: 'pick-date', label: 'Pick the date', hint: 'Find a time, or choose one yourself.' });
   assert.deepEqual(result.tallies, { restaurants: [{ value: 'Garden', count: 2 }] });
   assert.equal(result.leadingRestaurant, 'Garden');
   for (const key of ['leadingTime', 'tiedTimes', 'noneCounts', 'otherResponseCount']) assert(!(key in result));

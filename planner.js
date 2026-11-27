@@ -21,6 +21,8 @@ let credential = '';
 let lastMealRefresh = 0;
 let autoRefreshing = false;
 let restoringSignIn = false;
+const agentChecks = new Map();
+const hostChoices = new Map();
 
 function savedSession() {
   try {
@@ -70,6 +72,7 @@ async function signOut() {
   try { sessionStorage.removeItem(planDraftKey); sessionStorage.removeItem(responseDraftKey); } catch {}
   state.meals = [];
   calendarAccount=null;calendarStatusAt=0;calendarChecks.clear();
+  agentChecks.clear();hostChoices.clear();
   view = 'dashboard';
   window.google?.accounts?.id?.disableAutoSelect();
   microsoftClient?.clearCache().catch(()=>{});
@@ -124,6 +127,7 @@ async function api(action, payload = {}) {
     if (credential === savedSession()?.token) forgetSession();
     credential = '';
     state.meals = [];
+    agentChecks.clear();hostChoices.clear();
     persistOpenDraft();
     if (activeMeal) pendingMealId = activeMeal.id;
     if (panel.open) panel.close();
@@ -358,6 +362,7 @@ function card(meal) {
   const picture = venueImage(meal.restaurant, meal.location);
   return `<article class="card stack dinner-card">${picture}<div class="row spread"><h3>${escape(meal.title)}</h3>${statusPill(dinner.statusLabel)}</div>
     <div class="muted">${meal.selectedTime ? escape(mealDateTime(meal.selectedTime, meal)) + ' · ' + durationLabel(meal.duration) : 'Date to be decided'}</div>
+    ${meal.organizer&&meal.selectedTime&&hostChoices.get(meal.id)===meal.selectedTime?'<small>Host choice</small>':''}
     ${!meal.timeZone ? '<small>Destination time zone needs organizer confirmation</small>' : ''}
     <div>${escape(meal.restaurant || (meal.restaurants.length ? meal.restaurants.join(' · ') : 'Restaurant to be decided'))}</div><small>${escape(meal.location)} · ${escape(destinationLabel(meal))}</small>
     <small>${meal.organizer ? 'Responses are private' : finalPlan(meal)?'Your RSVP: '+escape(meal.myVote?.needsReconfirmation?'Please reconfirm':attendanceLabels[meal.myVote?.attendance]||'Not sent yet'):'Availability: '+(availabilitySaved(meal.myVote)?'Saved':'Not sent yet')}</small>
@@ -664,6 +669,73 @@ function hasConflict(time, duration) {
 function choices(values, name, selected, label) {
   return values.map(value=>`<label class="option"><input type="checkbox" name="${name}" value="${escape(value)}" ${selected.includes(value)?'checked':''}><span>${label(value)}</span></label>`).join('') || '<p class="muted">No options yet.</p>';
 }
+function mealPlanDetails(meal) {
+  const details={...meal};
+  for (const key of ['id','version','invite','myVote','responses','organizer','joinedCount','hasOtherResponses','restaurantTallies','attendanceResponses','calendarSync','myCalendar','suggested','agentResult']) delete details[key];
+  return details;
+}
+function agentCard(meal, dinner) {
+  if(!meal.organizer||dinner.stage!=='choosing-date')return '';
+  const result=agentChecks.get(meal.id)||dinner.agentResult;
+  const status=result?.status;
+  const works=status==='works'&&meal.times.includes(result.proposedTime);
+  const text=status==='checking'?'Checking...':status==='waiting'?'Waiting for more guests to join before Enkai can check.':
+    works?'A time works':status==='none'?'No time works yet.':
+    status==='agent_limit'?'Enkai has checked enough for today. Try again tomorrow.':
+    status==='error'?"Couldn't check right now. Try again.":'Enkai can privately check which time works for the group.';
+  return '<section class="card stack" data-agent-card aria-label="Find a time"><h3>Find a time</h3><p role="status">'+escape(text)+'</p>'+
+    (works?'<p>'+escape(mealDateTime(result.proposedTime,meal))+'</p><button type="button" data-action="agent-approve">Approve this time</button>':'')+
+    (status==='none'?'<p>You can still choose a time yourself.</p>':'')+
+    '<button type="button" data-action="agent-check" '+(status==='checking'?'disabled':'')+'>'+
+    (status==='checking'?'Checking...':status?'Check again':'Find a time')+'</button></section>';
+}
+async function checkAgentTime() {
+  const meal=activeMeal,session=credential;
+  if(!meal?.organizer||meal.selectedTime||meal.cancelled||requestInFlight||agentChecks.get(meal.id)?.status==='checking')return;
+  persistOpenDraft();
+  agentChecks.set(meal.id,{status:'checking'});
+  mealDetails(meal);
+  try {
+    const result=await api('agent-check',{id:meal.id});
+    if(session!==credential)return;
+    if(result.error)throw Error(result.error);
+    // Read back the current projection; a concurrent edit may invalidate this run.
+    await refresh();
+    agentChecks.delete(meal.id);
+    if(result.agentResult?.status==='waiting')agentChecks.set(meal.id,{status:'waiting'});
+  } catch(error) {
+    if(session!==credential)return;
+    agentChecks.delete(meal.id);
+    if(error.message==='stale') {
+      try {await refresh();} catch {agentChecks.set(meal.id,{status:'error'});}
+      delete meal.agentResult;
+      const current=state.meals.find(item=>item.id===meal.id);
+      if(current)delete current.agentResult;
+    } else agentChecks.set(meal.id,{status:error.message==='agent_limit'?'agent_limit':'error'});
+  } finally {
+    if(session===credential&&panel.open&&activeMeal?.id===meal.id)mealDetails(state.meals.find(item=>item.id===meal.id)||meal);
+  }
+}
+async function approveAgentTime(trigger) {
+  const meal=activeMeal,result=meal?.agentResult,session=credential;
+  if(!meal?.organizer||meal.selectedTime||meal.cancelled||result?.status!=='works'||requestInFlight)return;
+  persistOpenDraft();
+  requestInFlight=true;
+  if(trigger)trigger.disabled=true;
+  try {
+    await refresh();
+    if(session!==credential)return;
+    const current=state.meals.find(item=>item.id===meal.id),fresh=current?.agentResult;
+    if(!current?.organizer||current.cancelled||current.selectedTime||current.version!==meal.version||fresh?.status!=='works'||
+      fresh.proposedTime!==result.proposedTime||fresh.optionsVersion!==result.optionsVersion||fresh.computedAt!==result.computedAt||!current.times.includes(fresh.proposedTime)) {
+      if(current){delete current.agentResult;mealDetails(current);}
+      return;
+    }
+    requestInFlight=false;
+    await syncMeal('manage',{id:current.id,version:current.version,details:{...mealPlanDetails(current),selectedTime:fresh.proposedTime}},[],trigger,true);
+  } catch {message("Couldn't check right now. Try again.");}
+  finally {requestInFlight=false;if(trigger)trigger.disabled=false;}
+}
 function pollTallies(meal, dinner) {
   if(meal.restaurant)return '';
   const rows=dinner.tallies.restaurants;
@@ -737,12 +809,14 @@ function mealDetails(meal) {
       ${meal.restaurant?'<h3>'+escape(meal.restaurant)+'</h3>':''}
       <p>${escape(meal.location)}${meal.selectedTime?' · '+durationLabel(meal.duration):''}</p>
       ${meal.selectedTime?'<p class="dinner-date">'+escape(mealDateTime(meal.selectedTime,meal))+'</p>':''}
+      ${meal.organizer&&meal.selectedTime&&hostChoices.get(meal.id)===meal.selectedTime?'<small>Host choice</small>':''}
       <small>${escape(destinationLabel(meal))}</small>${localTimeNote(meal)}
       ${!meal.timeZone?'<p class="muted">Your host needs to confirm the destination time zone for this existing plan.</p>':''}
       <p>${statusPill(dinner.statusLabel)}</p>
       ${meal.restaurant?`<a href="${venueMaps(meal.restaurant,meal)}" target="_blank" rel="noopener">Restaurant reviews & directions ↗</a>`:''}
     </div>
     ${meal.cancelled?`<section class="cancelled-banner stack" role="status"><strong>This dinner has been cancelled.</strong><button type="button" data-action="copy-cancellation">Copy cancellation message</button></section>`:dinnerNextMarkup(meal,dinner,formRendered,receiptRendered)}
+    ${agentCard(meal,dinner)}
     ${meal.organizer&&!meal.cancelled?pollTallies(meal,dinner):''}
     ${meal.organizer&&!meal.cancelled?`<section class="share-card stack"><h3>Share your invitation</h3><p>Share this link to invite your guests. Adding names doesn’t send messages.</p><div class="row">${dinner.nextAction?.id==='share-invitation'?'':'<button data-action="share">Share invitation</button>'}<button data-action="copy-invite">Copy invitation</button><a class="button" href="https://wa.me/?text=${encodeURIComponent(invitationMessage(meal))}" target="_blank" rel="noopener">WhatsApp</a></div><details><summary>Preview message</summary><p class="share-message">${escape(invitationMessage(meal))}</p></details><p><strong>Planned guests:</strong> ${escape(meal.guests.join(', ')||'No names added')}<br><small>Names are a planning list, not delivery confirmations.</small></p><small>Enkai cannot tell who received a shared link. Responses are private.</small></section>`:''}
     ${responseMarkup}
@@ -917,6 +991,8 @@ document.addEventListener('click', event=>{
       break;
     }
     case 'share': shareInvitation(); break;
+    case 'agent-check': checkAgentTime(); break;
+    case 'agent-approve': approveAgentTime(button); break;
     case 'calendar': downloadCalendar(activeMeal); break;
     case 'meal': responseReceipt=''; mealDetails(state.meals.find(m=>m.id===id)); break;
     case 'people': peopleForm(); break;
@@ -1002,10 +1078,9 @@ panel.addEventListener('submit',event=>{
       const restaurants=[...new Set([...activeMeal.restaurants,...additions])];
       if(additions.length && !value('selectedTime')) { message('Choose the date before opening a restaurant poll.'); return; }
       if(additions.length && (restaurants.length>5)) { message('Choose up to five restaurants.'); return; }
-      const details={...activeMeal,times,restaurants,timeZone:destinationTimeZone,selectedTime:data.has('useNewTime') && time ? time : value('selectedTime'),restaurant:value('restaurant') || (additions.length && restaurants.length===1 ? restaurants[0] : ''),
+      const details=mealPlanDetails({...activeMeal,times,restaurants,timeZone:destinationTimeZone,selectedTime:data.has('useNewTime') && time ? time : value('selectedTime'),restaurant:value('restaurant') || (additions.length && restaurants.length===1 ? restaurants[0] : ''),
         venues:JSON.parse(value('venues')||JSON.stringify(activeMeal.venues||[])).filter(v=>restaurants.includes(v.name)),
-        status:value('status'),attending:split(value('attending')),calendarEnabled:data.has('calendarEnabled')};
-      for (const key of ['id','version','invite','myVote','responses','organizer','joinedCount','hasOtherResponses','restaurantTallies','attendanceResponses','calendarSync','myCalendar','suggested']) delete details[key];
+        status:value('status'),attending:split(value('attending')),calendarEnabled:data.has('calendarEnabled')});
       syncMeal('manage', { id: activeMeal.id, version: activeMeal.version, details }, [], event.submitter); return;
     }
     case 'people': state.people=split(value('people')); break;
@@ -1021,8 +1096,9 @@ panel.addEventListener('submit',event=>{
   } catch (error) { message(error.message); }
 });
 
-async function syncMeal(action, payload, newContacts = [], trigger = null) {
+async function syncMeal(action, payload, newContacts = [], trigger = null, agentApproved = false) {
   if (requestInFlight) return;
+  if(action==='manage')payload={...payload,details:mealPlanDetails(payload.details)};
   requestInFlight = true;
   const buttons = [...new Set([...panel.querySelectorAll('[type=submit], form button:not([type]), [data-action=confirm-cancel-dinner], [data-action=group-pick], [data-action=group-vote]'), ...(trigger?[trigger]:[])])];
   const savingLabel=payload.details?.cancelled?'Cancelling…':action==='create'?'Creating invitation…':action==='respond'||action==='vote'?(finalPlan(activeMeal||{})?'Saving RSVP…':'Saving availability…'):action==='rsvp'?'Saving RSVP…':'Saving plan…';
@@ -1033,10 +1109,16 @@ async function syncMeal(action, payload, newContacts = [], trigger = null) {
   try {
     const { id } = await api(action, payload);
     savedId=id;
+    if(action==='manage') {
+      agentChecks.delete(id);
+      if(agentApproved||!payload.details.selectedTime)hostChoices.delete(id);
+      else if(payload.details.selectedTime!==activeMeal?.selectedTime)hostChoices.set(id,payload.details.selectedTime);
+    }
     setMealAddress(id,true);
     if(action==='respond') {sessionStorage.removeItem(responseDraftKey);responseReceipt=id;}
     if(action==='create') sessionStorage.removeItem(planDraftKey);
     if (action === 'create') {
+      if(payload.details.selectedTime)hostChoices.set(id,payload.details.selectedTime);
       if (newContacts.length) {
         state.people = [...new Set([...state.people,...newContacts])];
         save();
@@ -1048,7 +1130,7 @@ async function syncMeal(action, payload, newContacts = [], trigger = null) {
     }
     await refresh();
     if (panel.open) mealDetails(state.meals.find(meal => meal.id === id));
-    message(action === 'respond' ? (finalPlan(activeMeal||{})?'Your RSVP is saved.':'Your availability is saved. RSVP opens once the date and restaurant are set.') : action === 'rsvp' ? 'Your RSVP is saved. Only Going is shown to other guests.' : action === 'vote' ? 'Your response is saved. Your host and other guests can\'t see your individual time choices.' : 'Meal saved.');
+    message(action === 'respond' ? (finalPlan(activeMeal||{})?'Your RSVP is saved.':'Your availability is saved. RSVP opens once the date and restaurant are set.') : action === 'rsvp' ? 'Your RSVP is saved. Only Going is shown to other guests.' : action === 'vote' ? 'Your response is saved. Other guests and your host never see your availability. Enkai processes it to find a time and deletes it after the dinner.' : 'Meal saved.');
   } catch (error) {
     if(savedId && credential) show('Saved — reconnect to continue','<p>Your changes were saved, but the updated dinner could not be loaded.</p><button class="primary" data-action="reload-dinner" data-id="'+escape(savedId)+'">Open the saved dinner</button>');
     message(error.message);

@@ -16,13 +16,13 @@ async function loadCalendarStatus(force=false) {
 }
 function calendarSettingsMarkup() {
   return '<section class="card stack calendar-settings"><h2>Your calendars</h2><p>Check your Google primary calendar and Outlook default calendar for conflicts. Confirmed dinners can send and accept calendar invitations.</p>'+
-    '<small>Only you see your conflict details. Connecting is optional; you can still vote and RSVP without it.</small>'+
+    '<small>Enkai checks only free/busy times, never event titles. Only you see your conflict details. Connecting is optional; you can still vote and RSVP without it.</small>'+
     ['google','microsoft'].map(p=>{
       const c=calendarAccount?.connections?.find(c=>c.provider===p),primary=calendarAccount?.preferredProvider===p;
       return '<div class="calendar-provider stack"><strong>'+calendarNames[p]+'</strong>'+(c?'<small>'+escape(c.email)+' · '+(c.status==='connected'?'Connected':'Reconnect needed')+'</small>':'')+
         '<div class="row">'+(!c||c.status!=='connected'?'<button data-action="calendar-connect" data-provider="'+p+'">'+(c?'Reconnect ':'Connect ')+calendarNames[p]+'</button>':'<button data-action="calendar-prefer" data-provider="'+p+'" '+(primary?'disabled':'')+'>'+(primary?'Used for invitations':'Use for invitations')+'</button>')+
         (c?'<button data-action="calendar-disconnect" data-provider="'+p+'">Disconnect</button>':'')+'</div></div>';
-    }).join('')+'<small>Enkai requests calendar access to read event titles and times and manage your dinner invitations. You can disconnect here at any time. Existing calendar events stay in your calendar.</small></section>';
+    }).join('')+'<small>Enkai uses calendar access to check free/busy times and manage your dinner invitations. You can disconnect here at any time. Existing calendar events stay in your calendar.</small></section>';
 }
 function showCalendarSettings() {
   persistOpenDraft();
@@ -67,7 +67,7 @@ function paintCalendarChecks(meal,result) {
     const manual=hasConflict(time,meal.duration)?'<small class="calendar-warning">⚠ Overlaps a calendar block you added</small>':'';
     if(overlaps.length) {
       target.innerHTML=manual+'<details class="calendar-conflict"><summary>⚠ '+overlaps.length+' calendar conflict'+(overlaps.length===1?'':'s')+' · View</summary><div class="stack">'+
-        overlaps.map(c=>'<p><strong>'+escape(c.title)+'</strong><br><small>'+escape(EnkaiTime.format(c.start,mealZone(meal)))+' – '+escape(EnkaiTime.format(c.end,mealZone(meal)))+
+        overlaps.map(c=>'<p><strong>Busy</strong><br><small>'+escape(EnkaiTime.format(c.start,mealZone(meal)))+' – '+escape(EnkaiTime.format(c.end,mealZone(meal)))+
           ' · '+calendarNames[c.provider]+(c.tentative?' · Tentative':'')+'</small></p>').join('')+'<small>Only you can see this. You can still choose this time.</small></div></details>'+
         (result.status!=='checked'?'<small>Some calendars could not be checked.</small>':'');
     }else if(result.status==='checked'&&option&&connectedCalendars().length)target.innerHTML=manual+'<small class="calendar-clear">✓ No conflicts found in connected calendars</small>';

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const { derive } = require('../dinner-state.js');
-const { renderDinner, baseMeal, first, section, escape, finalPlan, planner, mobile } = require('./helpers/dinner-render.cjs');
+const { renderDinner, baseMeal, first, section, escape, finalPlan, mealDateTime, planner, mobile, calendar } = require('./helpers/dinner-render.cjs');
 
 const legacy = {
   hasOtherResponses: true, joinedCount: 37,
@@ -22,7 +22,7 @@ test('organizer and guest details ignore legacy peer availability in polls, rece
     noPeerLeak(html);
     assert.doesNotMatch(html, /host can see|organizer can see/i);
     if (receipt) {
-      assert.match(html, /Your host and other guests can't see your individual time choices\./);
+      assert.match(html, /Other guests and your host never see your availability. Enkai processes it to find a time and deletes it after the dinner\./);
       assert.match(html, /Only Going is shown to other guests\./);
     }
     if (!receipt && final && !organizer) assert.match(html, /Choosing Going shares your name with dinner participants/);
@@ -37,7 +37,7 @@ test('organizer and guest details ignore legacy peer availability in polls, rece
 });
 
 test('home cards contain no counts, named waiting status or peer choices and tolerate absent legacy fields', () => {
-  const context = vm.createContext({ escape, dinnerState: meal => derive(meal, { now: '2026-11-26' }),
+  const context = vm.createContext({ hostChoices: new Map(), escape, dinnerState: meal => derive(meal, { now: '2026-11-26' }),
     venueImage: () => '', statusPill: escape, mealDateTime: value => value, durationLabel: () => '90 minutes',
     destinationLabel: () => 'Toronto time', finalPlan: meal => Boolean(meal.selectedTime && meal.restaurant),
     availabilitySaved: vote => Boolean(vote), attendanceLabels: { going: 'Going' } });
@@ -52,7 +52,7 @@ test('home cards contain no counts, named waiting status or peer choices and tol
 });
 
 test('current dashboard, details and derived state never read compatibility fields', () => {
-  const context = vm.createContext({ escape, dinnerState: meal => derive(meal, { now: '2026-11-26' }),
+  const context = vm.createContext({ hostChoices: new Map(), escape, dinnerState: meal => derive(meal, { now: '2026-11-26' }),
     venueImage: () => '', statusPill: escape, mealDateTime: value => value, durationLabel: () => '90 minutes',
     destinationLabel: () => 'Toronto time', finalPlan, availabilitySaved: vote => Boolean(vote),
     attendanceLabels: { going: 'Going' } });
@@ -87,7 +87,7 @@ test('invitation landing and save notices explain who can see answers', async ()
   vm.runInContext(section(mobile, 'function invitationLanding(', '\nasync function loadInvitation('), context);
   const html = context.invitationLanding();
   assert.match(html, /Sign in to see the date and details\./);
-  assert.match(html, /Your host and other guests can't see your individual time choices\./);
+  assert.match(html, /Other guests and your host never see your availability. Enkai processes it to find a time and deletes it after the dinner\./);
   assert.match(html, /Only Going is shown to other guests\./);
   assert.doesNotMatch(html, /Open Enkai to view your invitation/);
   const messages = [];
@@ -99,7 +99,7 @@ test('invitation landing and save notices explain who can see answers', async ()
   await saving.syncMeal('rsvp', { id: 'dinner' });
   await saving.syncMeal('vote', { id: 'dinner' });
   assert.deepEqual(messages, ['Your RSVP is saved. Only Going is shown to other guests.',
-    "Your response is saved. Your host and other guests can't see your individual time choices."]);
+    "Your response is saved. Other guests and your host never see your availability. Enkai processes it to find a time and deletes it after the dinner."]);
 });
 
 test('sharing and crawler metadata ignore legacy scheduling fields', async () => {
@@ -124,4 +124,154 @@ test('public preview allowlist excludes schedule fields and request logging stay
   assert.deepEqual(logs, ["console.error('Planner database operation failed', action, error.code)"]);
   const landing = section(mobile, 'function invitationLanding(', '\nasync function loadInvitation(');
   assert.doesNotMatch(landing, /selectedTime|timeZone|duration|host can see/);
+});
+
+const agentResult = { status: 'works', proposedTime: '2026-12-07T23:00:00.000Z', computedAt: first, optionsVersion: 'digest' };
+const agentMarkup = html => html.match(/<section[^>]*data-agent-card[\s\S]*?<\/section>/)?.[0] || '';
+test('injected agent results never reach guest cards or derived state', () => {
+  for (const status of ['works', 'none', 'waiting']) {
+    const meal = baseMeal({ organizer: false, agentResult: { ...agentResult, status } });
+    for (const receipt of [true, false]) {
+      const html = renderDinner(meal, receipt);
+      assert.doesNotMatch(html, /data-agent-card|A time works|No time works yet|Dec 7|2026-12-07/);
+    }
+    assert(!('agentResult' in derive(meal)));
+    assert(!('agentResult' in derive({ ...meal, organizer: true }, { role: 'guest' })));
+  }
+});
+
+test('organizer card shows coarse states with only the proposed time and no names or counts', () => {
+  const meal = baseMeal({ ...legacy, organizer: true, guests: ['Private peer'], agentResult,
+    times: [first, agentResult.proposedTime] });
+  for (const status of [undefined, 'waiting', 'works', 'none', 'checking', 'agent_limit', 'error']) {
+    const result = { ...agentResult, status, names: ['Private peer'], count: 37, answers: [true, false] };
+    const local = ['checking', 'agent_limit', 'error'].includes(status) ? new Map([[meal.id, result]]) : new Map();
+    const card = agentMarkup(renderDinner({ ...meal, agentResult: status ? result : undefined }, false, { agentChecks: local }));
+    assert(card);
+    assert.doesNotMatch(card, /Private peer|computedAt|optionsVersion|answers|rank|count/);
+    const formatted = mealDateTime(agentResult.proposedTime, meal);
+    assert.doesNotMatch(card.replace(/<[^>]+>/g, '').replace(formatted, ''), /\d/);
+    if (status === 'works') {
+      assert(card.includes(formatted));
+      assert.match(card, /A time works[\s\S]*Approve this time[\s\S]*Check again/);
+      assert.doesNotMatch(card, /23:00|2026-12-07/);
+    } else assert(!card.includes(formatted));
+    if (status === 'none') assert.match(card, /No time works yet\.[\s\S]*You can still choose a time yourself\./);
+    if (status === 'waiting') assert.match(card, /Waiting for more guests to join before Enkai can check\./);
+    if (status === 'checking') assert.match(card, /data-action="agent-check" disabled/);
+    if (status === 'agent_limit') assert.match(card, /Enkai has checked enough for today. Try again tomorrow\./);
+    if (status === 'error') assert.match(card, /Couldn't check right now. Try again\./);
+  }
+  for (const overrides of [{ selectedTime: first }, { cancelled: true }]) {
+    assert.equal(agentMarkup(renderDinner({ ...meal, ...overrides })), '');
+  }
+  assert.doesNotMatch(renderDinner(baseMeal({ organizer: true })), /Host choice/);
+});
+
+function agentHarness(overrides = {}) {
+  const meal = baseMeal({ organizer: true, version: 7, agentResult, times: [first, agentResult.proposedTime], ...overrides });
+  const calls = [], screens = [], messages = [];
+  const context = vm.createContext({ activeMeal: meal, state: { meals: [meal] }, credential: 'session',
+    requestInFlight: false, agentChecks: new Map(), hostChoices: new Map(), escape, mealDateTime, finalPlan,
+    panel: { open: true, querySelectorAll: () => [] }, persistOpenDraft() {}, render() {},
+    setMealAddress() {}, sessionStorage: { removeItem() {} }, message: text => messages.push(text),
+    mealDetails(current) { context.activeMeal = current; screens.push(current); },
+    api: async (action, payload) => {
+      calls.push({ action, payload });
+      return action === 'list' ? context.state.meals : action === 'agent-check' ? { agentResult } : { id: meal.id };
+    },
+  });
+  vm.runInContext(section(planner, 'function mealPlanDetails(', '\nfunction pollTallies('), context);
+  vm.runInContext(section(planner, 'async function refresh(', '\nasync function refreshOnReturn('), context);
+  vm.runInContext(section(planner, 'async function syncMeal(', '\nfunction inviteUrl('), context);
+  return { context, meal, calls, screens, messages };
+}
+
+test('load and list never call agent-check; only the explicit action starts it', async () => {
+  const h = agentHarness();
+  await h.context.refresh();
+  await h.context.refresh(true);
+  renderDinner(h.meal);
+  assert.deepEqual(h.calls.map(call => call.action), ['list', 'list']);
+  assert.equal((planner.match(/api\('agent-check'/g) || []).length, 1);
+  assert.equal((planner.match(/checkAgentTime\(/g) || []).length, 2, 'Only declaration and click handler');
+  assert.match(planner, /case 'agent-check': checkAgentTime\(\); break;/);
+  let complete;
+  h.context.api = async (action, payload) => {
+    h.calls.push({ action, payload });
+    return action === 'agent-check' ? new Promise(resolve => { complete = resolve; }) : [h.meal];
+  };
+  const running = h.context.checkAgentTime();
+  assert.equal(h.context.agentChecks.get(h.meal.id).status, 'checking');
+  assert.match(h.context.agentCard(h.meal, derive(h.meal)), /Checking\.\.\.[\s\S]*disabled/);
+  await h.context.checkAgentTime();
+  assert.equal(h.calls.filter(call => call.action === 'agent-check').length, 1);
+  assert.equal(JSON.stringify(h.calls.at(-1).payload), JSON.stringify({ id: h.meal.id }));
+  complete({ agentResult }); await running;
+  assert.equal(h.calls.at(-1).action, 'list');
+  assert(!h.context.agentChecks.has(h.meal.id));
+});
+
+test('agent retry states stay neutral, stale re-lists, and guests cannot run checks', async () => {
+  for (const failure of ['waiting', 'stale', 'agent_limit', 'provider private error']) {
+    const h = agentHarness(); let lists = 0;
+    h.context.api = async action => {
+      if (action === 'list') { lists++; return [h.meal]; }
+      if (failure === 'waiting') return { agentResult: { status: 'waiting' } };
+      throw Error(failure);
+    };
+    await h.context.checkAgentTime();
+    const card = h.context.agentCard(h.meal, derive(h.meal));
+    assert.doesNotMatch(card, /provider private error|No time works yet/);
+    if (failure === 'stale') { assert.equal(lists, 1); assert.match(card, /Enkai can privately check/); }
+    else assert.equal(h.context.agentChecks.get(h.meal.id).status,
+      failure === 'waiting' ? 'waiting' : failure === 'agent_limit' ? 'agent_limit' : 'error');
+  }
+  const guest = agentHarness({ organizer: false });
+  await guest.context.checkAgentTime(); await guest.context.approveAgentTime();
+  assert.deepEqual(guest.calls, []);
+});
+
+test('approval revalidates the result and saves only plan details with the current version', async () => {
+  const h = agentHarness();
+  await h.context.approveAgentTime();
+  assert.deepEqual(h.calls.map(call => call.action), ['list', 'manage', 'list']);
+  const saved = h.calls.find(call => call.action === 'manage').payload;
+  assert.equal(saved.version, 7);
+  assert.equal(saved.details.selectedTime, agentResult.proposedTime);
+  for (const key of ['agentResult', 'organizer', 'version', 'responses']) assert(!(key in saved.details));
+  assert(!h.context.hostChoices.has(h.meal.id));
+  const stale = agentHarness();
+  stale.context.state.meals = [{ ...stale.meal, version: 8 }];
+  await stale.context.approveAgentTime();
+  assert.deepEqual(stale.calls.map(call => call.action), ['list']);
+  assert(!stale.context.state.meals[0].agentResult);
+});
+
+test('manual and cancellation manage saves strip list-only keys and host choice is session-only', async () => {
+  for (const cancelled of [false, true]) {
+    const h = agentHarness();
+    await h.context.syncMeal('manage', { id: h.meal.id, version: 7,
+      details: { ...h.meal, selectedTime: first, cancelled, calendarSync: {}, myCalendar: {}, suggested: true } });
+    const saved = h.calls.find(call => call.action === 'manage').payload.details;
+    for (const key of ['agentResult', 'id', 'version', 'calendarSync', 'myCalendar', 'suggested']) assert(!(key in saved));
+    assert(!('hostChoice' in saved));
+    const chosen = { ...h.meal, selectedTime: first };
+    assert.match(renderDinner(chosen, false, { hostChoices: h.context.hostChoices }), /Host choice/);
+    assert.doesNotMatch(renderDinner({ ...chosen, organizer: false }, false, { hostChoices: h.context.hostChoices }), /Host choice/);
+    assert.doesNotMatch(renderDinner(chosen), /Host choice/);
+  }
+});
+
+test('calendar conflict UI ignores even injected event titles', () => {
+  const target = { dataset: { calendarTime: first }, innerHTML: '' };
+  const context = vm.createContext({ panel: { open: true, querySelector: () => null, querySelectorAll: () => [target] },
+    activeMeal: baseMeal(), connectedCalendars: () => [{}], hasConflict: () => false, escape,
+    EnkaiTime: { format: value => value }, mealZone: meal => meal.timeZone, calendarNames: { google: 'Google' } });
+  vm.runInContext(section(calendar, 'function paintCalendarChecks(', '\nasync function checkDinnerCalendar('), context);
+  const conflict = { start: first, end: first, provider: 'google' };
+  Object.defineProperty(conflict, 'title', { get() { assert.fail('Never read event titles'); } });
+  context.paintCalendarChecks(baseMeal(), { status: 'checked', options: [{ time: first, conflicts: [conflict] }] });
+  assert.match(target.innerHTML, /<strong>Busy<\/strong>/);
+  assert.match(calendar, /Enkai checks only free\/busy times, never event titles/);
 });

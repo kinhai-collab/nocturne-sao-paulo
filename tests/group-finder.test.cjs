@@ -80,8 +80,8 @@ test('live search uses current authenticated Places action and shows no availabi
   assert.doesNotMatch(h.nodes['[data-group-results]'].innerHTML,/confirmed reservation/i);
 });
 
-test('choose one persists Unbooked status and the selected Google Place ID',async()=>{
-  const h=harness();
+test('choose one persists Unbooked status and the selected Google Place ID without list-only agent data',async()=>{
+  const h=harness({agentResult:{status:'works',proposedTime:'PRIVATE_AGENT_TIME'}});
   h.context.form=h.form;
   vm.runInContext('openGroupFinder()',h.context);
   await vm.runInContext('searchGroupPlaces(form)',h.context);
@@ -94,6 +94,7 @@ test('choose one persists Unbooked status and the selected Google Place ID',asyn
   assert.equal(saved.payload.details.venues[0].placeId,'place_2');
   assert.equal(saved.payload.details.selectedTime,h.meal.selectedTime);
   assert.equal(saved.payload.details.timeZone,h.meal.timeZone);
+  assert(!('agentResult' in saved.payload.details));
   assert.equal(saved.trigger,h.context.trigger,'the clicked pick button owns the saving state');
 });
 

@@ -32,7 +32,7 @@ for venue in venues:
 <meta property="og:image" content="{image}">
 <meta property="og:image:type" content="image/jpeg"><meta property="og:image:width" content="{width}"><meta property="og:image:height" content="{height}">
 <meta property="og:image:alt" content="Restaurant photo: {name}"><meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="../planner.css?v=20261128"><script src="../invite.js?v=20261128" defer></script></head>
+<link rel="stylesheet" href="../planner.css?v=20261129"><script src="../invite.js?v=20261129" defer></script></head>
 <body><main class="card stack" style="max-width:640px;margin:5vh auto;padding:24px">
 <p>Enkai · You’re invited</p><h1>Dinner at {name}</h1><p>{city}</p>
 <img src="{image}" alt="{name}" style="width:100%;height:auto;border-radius:16px">
